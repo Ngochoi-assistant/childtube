@@ -26,16 +26,13 @@
   <div class="login-card">
     <h1>Chào bố mẹ 👋</h1>
     <p>Đăng nhập để chọn video cho bé xem trên TV.</p>
-    <form id="email-form">
+    <form id="login-form">
       <label for="email">Email</label>
-      <input id="email" type="email" autocomplete="email" inputmode="email" placeholder="ban@gmail.com" required>
-      <button class="btn primary" type="submit">Gửi mã đăng nhập</button>
-    </form>
-    <form id="code-form" class="hidden">
-      <label for="code">Mã 6 số trong email</label>
-      <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="123456" required>
-      <button class="btn primary" type="submit">Đăng nhập</button>
-      <button class="btn link" type="button" id="back-email">Dùng email khác</button>
+      <input id="email" type="email" autocomplete="username" inputmode="email" placeholder="ban@gmail.com" required>
+      <label for="password">Mật khẩu</label>
+      <input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Ít nhất 6 ký tự" required>
+      <button class="btn primary" type="submit" id="login-btn">Đăng nhập</button>
+      <button class="btn link" type="button" id="mode-btn">Chưa có tài khoản? Tạo tài khoản mới</button>
     </form>
     <p class="msg" id="login-msg"></p>
   </div>

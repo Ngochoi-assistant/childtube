@@ -67,32 +67,35 @@ $('#sheet').addEventListener('click', (e) => {
   if (b && sheetHandler) sheetHandler(b.dataset.a, b, e);
 });
 
-// ---------- Đăng nhập (email + mã 6 số) ----------
-let loginEmail = '';
+// ---------- Đăng nhập (email + mật khẩu) ----------
+let signup = false;  // false = đăng nhập, true = tạo tài khoản mới
 const loginMsg = (t, ok) => { $('#login-msg').textContent = t || ''; $('#login-msg').className = 'msg ' + (ok ? 'ok' : 'err'); };
-$('#email-form').addEventListener('submit', async (e) => {
+const AUTH_ERR = {
+  'Invalid login credentials': 'Sai email hoặc mật khẩu.',
+  'User already registered': 'Email này đã có tài khoản, hãy bấm "Đăng nhập".',
+  'Password should be at least 6 characters.': 'Mật khẩu phải có ít nhất 6 ký tự.',
+  'Unable to validate email address: invalid format': 'Email không hợp lệ.',
+};
+function setMode(isSignup) {
+  signup = isSignup;
+  $('#login-btn').textContent = signup ? 'Tạo tài khoản' : 'Đăng nhập';
+  $('#mode-btn').textContent = signup ? 'Đã có tài khoản? Đăng nhập' : 'Chưa có tài khoản? Tạo tài khoản mới';
+  $('#password').setAttribute('autocomplete', signup ? 'new-password' : 'current-password');
+  loginMsg(signup ? 'Tự đặt một mật khẩu (ít nhất 6 ký tự) và ghi nhớ lại.' : '', true);
+}
+$('#mode-btn').addEventListener('click', () => setMode(!signup));
+$('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  loginEmail = $('#email').value.trim();
-  const btn = e.submitter; btn.disabled = true;
-  loginMsg('Đang gửi…', true);
-  const { error } = await sb.auth.signInWithOtp({
-    email: loginEmail,
-    options: { shouldCreateUser: true, emailRedirectTo: location.origin + location.pathname },
-  });
-  btn.disabled = false;
-  if (error) return loginMsg(error.message.includes('rate') ? 'Gửi quá nhiều lần, hãy đợi vài phút.' : error.message);
-  $('#email-form').classList.add('hidden');
-  $('#code-form').classList.remove('hidden');
-  $('#code').focus();
-  loginMsg(`Đã gửi mã tới ${loginEmail}. Kiểm tra cả mục Spam. (Bấm vào link trong email cũng đăng nhập được.)`, true);
-});
-$('#code-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const { error } = await sb.auth.verifyOtp({ email: loginEmail, token: $('#code').value.trim(), type: 'email' });
-  if (error) loginMsg('Mã không đúng hoặc đã hết hạn.');
-});
-$('#back-email').addEventListener('click', () => {
-  $('#code-form').classList.add('hidden'); $('#email-form').classList.remove('hidden'); loginMsg('');
+  const email = $('#email').value.trim(), password = $('#password').value;
+  $('#login-btn').disabled = true;
+  loginMsg(signup ? 'Đang tạo tài khoản…' : 'Đang đăng nhập…', true);
+  const { data, error } = signup
+    ? await sb.auth.signUp({ email, password })
+    : await sb.auth.signInWithPassword({ email, password });
+  $('#login-btn').disabled = false;
+  if (error) return loginMsg(AUTH_ERR[error.message] || error.message);
+  if (signup && !data.session) loginMsg('Đã tạo tài khoản nhưng cần xác nhận email. Hãy báo người cài đặt tắt "Confirm email" trên Supabase.');
+  else loginMsg('');
 });
 
 function showApp(on) {
@@ -396,6 +399,12 @@ function viewSettings() {
     ${f.invite_code ? `<div class="hint">Mã mời hiện tại: <b style="letter-spacing:2px">${esc(f.invite_code)}</b> — người kia đăng nhập app rồi bấm "Nhập mã mời".</div>` : ''}
   </div>
 
+  <h2>🔑 Tài khoản của bạn</h2>
+  <div class="card">
+    <label>Đổi mật khẩu đăng nhập app</label>
+    <div class="add"><input id="newpw" type="password" autocomplete="new-password" placeholder="Mật khẩu mới (ít nhất 6 ký tự)"><button class="btn" data-a="newpw">Đổi</button></div>
+  </div>
+
   <button class="btn" data-a="logout" style="width:100%;margin-top:8px">Đăng xuất</button>
   <p class="hint" style="text-align:center">Trang trên TV: ${esc(new URL('../tv/', location.href).href)}</p>`;
 }
@@ -473,6 +482,14 @@ $('#view').addEventListener('click', async (e) => {
     if (!confirm('Vào gia đình kia? Danh sách hiện tại của bạn (nếu chỉ có mình bạn) sẽ bị xoá.')) return;
     await act(() => rpc('ct_join', { p_code: code }), 'Đã vào gia đình');
     return load();
+  }
+  if (a === 'newpw') {
+    const pw = $('#newpw').value;
+    if (pw.length < 6) return toast('Mật khẩu phải có ít nhất 6 ký tự.', true);
+    const { error } = await sb.auth.updateUser({ password: pw });
+    if (error) return toast(error.message, true);
+    $('#newpw').value = '';
+    return toast('Đã đổi mật khẩu.');
   }
   if (a === 'logout') { await sb.auth.signOut(); return; }
 });

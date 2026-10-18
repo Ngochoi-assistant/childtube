@@ -28,7 +28,7 @@ input, select { font: inherit; color: var(--ink); }
 .login-card h1 { margin: 0 0 6px; font-size: 24px; }
 .login-card p { margin: 0 0 18px; color: var(--mute); }
 label { display: block; font-size: 13px; color: var(--mute); margin: 12px 0 6px; }
-input[type=text], input[type=email], input:not([type]), input[inputmode] {
+input[type=text], input[type=email], input[type=password], input:not([type]), input[inputmode] {
   width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 16px;
 }
 input:focus { outline: 2px solid var(--blue); outline-offset: -1px; }
