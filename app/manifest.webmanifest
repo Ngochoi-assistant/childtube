@@ -1,0 +1,19 @@
+{
+  "name": "ChildTube – Bố mẹ",
+  "short_name": "ChildTube",
+  "description": "Chọn video YouTube cho bé xem trên TV",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101a3d",
+  "theme_color": "#101a3d",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  }
+}
