@@ -1,0 +1,1210 @@
+{
+ "generated": "2026-10-18",
+ "sources": [
+  {
+   "label": "WHO 2019",
+   "url": "https://www.who.int/news/item/24-04-2019-to-grow-up-healthy-children-need-to-sit-less-and-play-more"
+  },
+  {
+   "label": "AAP – Media and Young Minds",
+   "url": "https://publications.aap.org/pediatrics/article/138/5/e20162591/60354"
+  },
+  {
+   "label": "Mayo Clinic",
+   "url": "https://www.mayoclinic.org/healthy-lifestyle/childrens-health/in-depth/screen-time/art-20047952"
+  },
+  {
+   "label": "Chương trình GDMN (TT 17/2009, 28/2016, 51/2020)",
+   "url": "https://thuvienphapluat.vn/van-ban/Giao-duc/Thong-tu-51-2020-TT-BGDDT-sua-doi-Thong-tu-17-2009-TT-BGDDT-Chuong-trinh-Giao-duc-mam-non-469972.aspx"
+  },
+  {
+   "label": "Common Sense Media",
+   "url": "https://www.commonsensemedia.org/articles/youtube-kids-channels-for-early-learning"
+  }
+ ],
+ "templates": [
+  {
+   "id": "hat-cung-be",
+   "emoji": "🎶",
+   "name": "Hát cùng bé (xem cùng bố mẹ)",
+   "age": [
+    1.5,
+    3
+   ],
+   "dailyMinutes": 15,
+   "blurb": "Những bài hát ngắn, nhịp chậm, lời đơn giản. Dành cho bé 18 tháng–3 tuổi: nên ngồi xem cùng bố mẹ, hát và làm động tác theo.",
+   "goals": [
+    "Nghe – hát theo, vỗ tay, nhún nhảy",
+    "Làm quen từ vựng cơ bản",
+    "Gắn kết bố mẹ – con"
+   ],
+   "note": "WHO: trẻ 1 tuổi không khuyến nghị xem màn hình; từ 2 tuổi tối đa 1 giờ/ngày. AAP: 18–24 tháng chỉ nên xem nội dung chất lượng cao và xem cùng bố mẹ.",
+   "lessons": [
+    {
+     "id": "tVlcKp3bWH8",
+     "title": "Hello! | Kids Greeting Song and Feelings Song | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 79
+    },
+    {
+     "id": "ZanHgPprl-0",
+     "title": "Head Shoulders Knees & Toes (Sing It) | Follow Along | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 61
+    },
+    {
+     "id": "M6LoRZsHMSs",
+     "title": "If You’re Happy And You Know It | Kids Songs | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 98
+    },
+    {
+     "id": "yCjJyiqpAuU",
+     "title": "Twinkle Twinkle Little Star | Nursery Rhymes for Kids | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 154
+    },
+    {
+     "id": "_6HzoUcx3eo",
+     "title": "Old MacDonald Had A Farm | Nursery Rhymes | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 198
+    },
+    {
+     "id": "jO2vrSXVDo0",
+     "title": "Xuân Mai ♫ Con Cò Bé Bé ♫ Nhạc Thiếu Nhi Bé Xuân Mai",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 273
+    },
+    {
+     "id": "lrhU226aF4s",
+     "title": "Xuân Mai ♫ Cả Nhà Thương Nhau ♫ Ba Thương Con Vì Con Giống Mẹ",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 225
+    },
+    {
+     "id": "97owg_i0_5U",
+     "title": "Tập Thể Dục Buổi Sáng - Bé Khánh Vy | Nhạc Thiếu Nhi Vui Nhộn, Cô Dạy Em Tập Thể Dục Buổi Sáng, MV4K",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 200
+    }
+   ]
+  },
+  {
+   "id": "mau-sac-hinh-khoi",
+   "emoji": "🎨",
+   "name": "Màu sắc & hình khối",
+   "age": [
+    2,
+    4
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Nhận biết màu cơ bản và các hình tròn, vuông, tam giác, chữ nhật qua bài hát và hình ảnh rõ ràng.",
+   "goals": [
+    "Gọi tên các màu cơ bản",
+    "Nhận biết hình tròn, vuông, tam giác, chữ nhật (GDMN 3–4 tuổi)",
+    "Tìm màu và hình trong đồ vật xung quanh"
+   ],
+   "note": "Theo chương trình GDMN: trẻ 3–4 tuổi nhận biết, gọi tên các hình vuông, tam giác, tròn, chữ nhật và nhận dạng trong thực tế.",
+   "lessons": [
+    {
+     "id": "Kiq-lTuZs8Q",
+     "title": "Thức ăn sắc màu | Tập37 | Colorful Foods | Hoạt hình 3D | Bebefinn Tiếng Việt - Nhạc thiếu nhi",
+     "channel": "Bebefinn Tiếng Việt - Nhạc thiếu nhi",
+     "seconds": 204
+    },
+    {
+     "id": "ZZiTNJ6QleA",
+     "title": "My Yellow Car | Learn Colors! | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 179
+    },
+    {
+     "id": "IZsg_WNpB_Y",
+     "title": "Thanh nấm - Bé học tiếng anh | Dạy bé học màu sắc bằng tiếng anh | Dạy bé nhận biết màu sắc",
+     "channel": "Thanh Nấm",
+     "seconds": 192
+    },
+    {
+     "id": "BytlgQbe0lU",
+     "title": "Học Các Hình Khối Mới Nhất – Dạy Trẻ Nhận Biết Hình Vuông, Hình Tròn, Hình Tam Giác...",
+     "channel": "Tép Còi TV",
+     "seconds": 565
+    },
+    {
+     "id": "lcl8uB2AWM0",
+     "title": "Shapes Are All Around | Shape Songs | PINKFONG Songs",
+     "channel": "Baby Shark - Pinkfong Kids’ Songs & Stories",
+     "seconds": 207
+    },
+    {
+     "id": "63Pc3rf35E4",
+     "title": "Đỏ Vàng  Xanh Lá Xanh Dương | Bé Học Màu Sắc Với Baby John | Little Angel Tiếng Việt",
+     "channel": "Little Angel tiếng Việt: Nhạc Thiếu Nhi",
+     "seconds": 254
+    }
+   ]
+  },
+  {
+   "id": "con-vat",
+   "emoji": "🐶",
+   "name": "Con vật quanh bé",
+   "age": [
+    2,
+    4
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Tên và tiếng kêu các con vật nuôi, con vật trong rừng, dưới nước, côn trùng.",
+   "goals": [
+    "Gọi tên con vật và bắt chước tiếng kêu",
+    "Đặc điểm nổi bật và ích lợi của con vật (GDMN 3–4 tuổi)",
+    "Yêu thương, bảo vệ vật nuôi"
+   ],
+   "note": "Theo chương trình GDMN 3–4 tuổi: đặc điểm nổi bật và ích lợi của con vật; cách chăm sóc, bảo vệ con vật gần gũi.",
+   "lessons": [
+    {
+     "id": "tyHVHJW0HP4",
+     "title": "Dạy bé học các con vật nuôi trong nhà gia đình | tiếng kêu và hình ảnh động vật | ECE 1",
+     "channel": "GIÁO DỤC TRẺ EM ECE",
+     "seconds": 270
+    },
+    {
+     "id": "JuD8GXnjJQw",
+     "title": "Bé Học Con Vật Nuôi Trong Gia Đình, Nông Trại | Con Gì Đây?",
+     "channel": "SuRiKa KiDs TV",
+     "seconds": 216
+    },
+    {
+     "id": "BpgQaP661cY",
+     "title": "Con Gì Đây - Các Con Vật Dưới Biển | Dạy Bé Học Các Con Vật | Song Ngữ Anh-Việt",
+     "channel": "KidsEdu TV",
+     "seconds": 274
+    },
+    {
+     "id": "zXEq-QO3xTg",
+     "title": "The Animals On The Farm | Animals and Farm Song for Kids | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 204
+    },
+    {
+     "id": "PzlqYTbB2RI",
+     "title": "Con Gì Đây? Bé Học Các Loại Chim Ở Việt Nam | Dạy Trẻ Thông Minh Sớm | Surika Kids TV",
+     "channel": "SuRiKa KiDs TV",
+     "seconds": 220
+    },
+    {
+     "id": "IuuLZTRkAts",
+     "title": "Con Gà Cục Tác | Nhạc Thiếu Nhi Sôi Động | Nhạc Thiếu Nhi Cho Bé Xem Vui Nhộn | Nursery Rhymes",
+     "channel": "Cartoon - Nhạc Thiếu Nhi",
+     "seconds": 344
+    },
+    {
+     "id": "o5kduClgF5Y",
+     "title": "Farm Animals Finger Family | Nursery Rhymes | Farm Animal Songs | Pinkfong Songs",
+     "channel": "Baby Shark - Pinkfong Kids’ Songs & Stories",
+     "seconds": 183
+    }
+   ]
+  },
+  {
+   "id": "bai-hat-viet-nam",
+   "emoji": "🎵",
+   "name": "Bài hát thiếu nhi Việt Nam",
+   "age": [
+    2,
+    6
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Những bài hát thiếu nhi quen thuộc: giai điệu dễ nhớ, lời trong sáng, bé hát theo và vận động.",
+   "goals": [
+    "Nghe và hát đúng giai điệu, lời ca (GDMN)",
+    "Vận động theo nhịp điệu",
+    "Làm quen văn hoá, tình cảm gia đình"
+   ],
+   "note": "Theo chương trình GDMN: nghe, hát đúng giai điệu lời ca, vận động đơn giản theo nhịp điệu bài hát.",
+   "lessons": [
+    {
+     "id": "dZxnKj3N_SA",
+     "title": "Con Voi - Chú Voi Con - Nhạc Thiếu Nhi - Hoạt Hình Voi Con Ở Bản Đôn",
+     "channel": "Thiếu Nhi MUSIC",
+     "seconds": 233
+    },
+    {
+     "id": "2bUwTDauIU0",
+     "title": "Rửa Mặt Như Mèo ♫ Bảo Ngọc ♫♫ Nhạc Thiếu Nhi Vui Nhộn Meo Meo Meo",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 122
+    },
+    {
+     "id": "ldEYSFxFEng",
+     "title": "Chiếc Đèn Ông Sao - Nhạc Trung Thu Dành Cho Thiếu Nhi Hay Nhất 2021",
+     "channel": "LALATV - Cartoon For Kids",
+     "seconds": 130
+    },
+    {
+     "id": "7BnSAqbAkRs",
+     "title": "Nhạc thiếu Nhi: Bài hát Lớn lên cháu lái máy cày - siêu dễ thương, siêu đáng yêu cho bé 2-5 tuổi",
+     "channel": "Gà Con Music - Kênh nhạc thiếu nhi",
+     "seconds": 199
+    },
+    {
+     "id": "qjIh_3IXuYg",
+     "title": "Cháu Yêu Bà ✿ Thần Đồng Âm Nhạc Việt Nam Bé MAI VY ♪ #NamvietThieunhi",
+     "channel": "Nam Việt Thiếu Nhi",
+     "seconds": 236
+    },
+    {
+     "id": "4dXj1h8bQHs",
+     "title": "Mẹ Ơi Có Biết - Bé Khánh Vy | Nhạc Thiếu Nhi Hay Nhất, Mẹ ơi có biết con thương mẹ nhiều, 4K",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA và Dâu Tây Khánh Vy",
+     "seconds": 224
+    },
+    {
+     "id": "qE9Fp3J5Z64",
+     "title": "Ba Ngọn Nến Lung Linh, Ba là cây nến vàng - Bé Khánh Vy | CA NHẠC THIẾU NHI VUI NHỘN, Official MV 4K",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 226
+    },
+    {
+     "id": "hvfJzGCDd4Y",
+     "title": "Em Yêu Trường Em ♫ Bé MinChu ♫ Nhạc Thiếu Nhi Cho Trẻ Mầm Non",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 243
+    }
+   ]
+  },
+  {
+   "id": "thoi-quen-tot",
+   "emoji": "🧼",
+   "name": "Thói quen tốt mỗi ngày",
+   "age": [
+    2,
+    5
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Đánh răng, rửa tay, ăn uống, dọn đồ chơi, nói lời cảm ơn/xin lỗi: các kỹ năng tự phục vụ và lễ phép.",
+   "goals": [
+    "Rửa tay, đánh răng đúng cách",
+    "Tự phục vụ: dọn đồ chơi, ăn uống gọn gàng",
+    "Lễ phép: dạ, vâng, cảm ơn, xin lỗi (GDMN)"
+   ],
+   "note": "Theo chương trình GDMN: luyện thói quen vệ sinh, tự phục vụ; dùng từ vâng ạ, cảm ơn, xin lỗi trong giao tiếp.",
+   "lessons": [
+    {
+     "id": "cOaBbiVWvY0",
+     "title": "Bé Mầm Chibi chỉ cách rửa tay đúng cách WHO – Bé 2–6 tuổi nhớ liền chỉ sau 1 bài hát!",
+     "channel": "Bé Mầm Chibi TV",
+     "seconds": 220
+    },
+    {
+     "id": "NhIf1ClPNj8",
+     "title": "Bé Tập Đánh Răng - Candy Ngọc Hà ♫ Nhạc Thiếu Nhi [MV]",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 288
+    },
+    {
+     "id": "wCio_xVlgQ0",
+     "title": "Brush Your Teeth | Kids Songs |  Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 135
+    },
+    {
+     "id": "sUXBikpQVvo",
+     "title": "Bữa ăn sáng đầy dinh dưỡng của em bé | Học điều hay cùng bé | LiaChaCha Ca Nhạc Thiếu Nhi Việt Nam",
+     "channel": "LiaChaCha - Ca Nhạc Thiếu Nhi Việt Nam",
+     "seconds": 174
+    },
+    {
+     "id": "cAn5nuhG3Fs",
+     "title": "Căn phòng gọn gàng của chúng mình | Cùng Kiki dọn dẹp nhà cửa | Nhạc thiếu nhi vui nhộn | BabyBus",
+     "channel": "BabyBus - Nhạc thiếu nhi",
+     "seconds": 187
+    },
+    {
+     "id": "-jBfb33_KHU",
+     "title": "Put On Your Shoes | Clothing and Routines Song for Kids | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 182
+    },
+    {
+     "id": "eR5P-yMbeeY",
+     "title": "[Vinacartoon] Thói Quen Cảm Ơn, Xin Lỗi",
+     "channel": "Vina Cartoon",
+     "seconds": 489
+    },
+    {
+     "id": "yQRY524EX_c",
+     "title": "🌙 Bé Ngủ Đúng Giờ | Nhạc Thiếu Nhi | Bé Khánh Ly 🌈 | Thói Quen Tốt Cho Bé - Phần 01",
+     "channel": "Bé Yêu Kids Media",
+     "seconds": 209
+    }
+   ]
+  },
+  {
+   "id": "chu-cai-viet",
+   "emoji": "🔤",
+   "name": "Bảng chữ cái tiếng Việt",
+   "age": [
+    3,
+    6
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Làm quen 29 chữ cái tiếng Việt: nhận mặt chữ, phát âm, và các dấu thanh.",
+   "goals": [
+    "Nhận dạng các chữ cái trong bảng chữ cái tiếng Việt (GDMN)",
+    "Phát âm rõ các chữ cái",
+    "Làm quen các dấu thanh"
+   ],
+   "note": "Theo chương trình GDMN: nhận dạng các chữ trong bảng chữ cái tiếng Việt; làm quen cách đọc, viết từ trái sang phải, từ trên xuống.",
+   "lessons": [
+    {
+     "id": "hzSa-dUKl5o",
+     "title": "Bảng chữ cái Tiếng Việt - Tiếng Việt mẫu giáo [OLM.VN]",
+     "channel": "Học trực tuyến OLM",
+     "seconds": 486
+    },
+    {
+     "id": "TMj5RkpKsVk",
+     "title": "HỌC CHỮ A | ABC Vui từng giờ Tập 4 | Bé làm quen với bảng chữ cái tiếng Việt",
+     "channel": "VTV7 KIDS",
+     "seconds": 0
+    },
+    {
+     "id": "90RfC3jPsds",
+     "title": "Dạy bé học 29 chữ cái và 10 chữ số đầu từ số 0  -  9 | Học bảng chữ cái - EDU  Mầm Non",
+     "channel": "EDU Mầm Non",
+     "seconds": 487
+    },
+    {
+     "id": "c0r9UfCVens",
+     "title": "Bé học bảng chữ cái và hát bài hát bảng chữ cái - EDU Mầm Non",
+     "channel": "EDU Mầm Non",
+     "seconds": 571
+    },
+    {
+     "id": "hpaaPclF7No",
+     "title": "HỌC CHỮ O | ABC Vui từng giờ Tập 1 | Bé làm quen với bảng chữ cái tiếng Việt",
+     "channel": "VTV7 KIDS",
+     "seconds": 0
+    },
+    {
+     "id": "-sxtsDkA2qA",
+     "title": "Thanh nấm - Học 5 dấu thanh trong tiếng việt: Dấu sắc, dấu huyền, dấu nặng, dấu ngã, dấu hỏi",
+     "channel": "Thanh Nấm",
+     "seconds": 555
+    }
+   ]
+  },
+  {
+   "id": "dem-so",
+   "emoji": "🔢",
+   "name": "Học đếm số 1–20",
+   "age": [
+    3,
+    5
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Đếm đồ vật trong phạm vi 10 rồi 20, nhận mặt số, hiểu \"nhiều – ít\", \"bằng nhau\".",
+   "goals": [
+    "Đếm trên đối tượng trong phạm vi 5, 10, 20 (GDMN)",
+    "Nhận biết chữ số",
+    "So sánh nhiều – ít – bằng nhau"
+   ],
+   "note": "Theo chương trình GDMN: trẻ 3–4 tuổi đếm trong phạm vi 5; 4–5 tuổi trong phạm vi 10; 5–6 tuổi trong phạm vi 10 và hơn thế, gộp/tách nhóm.",
+   "lessons": [
+    {
+     "id": "ex6qWpDpnIk",
+     "title": "Lia và ChaCha học đếm những con số | Mười bạn nhỏ trên giường | LiaChaCha Ca Nhạc Thiếu Nhi Việt Nam",
+     "channel": "LiaChaCha - Ca Nhạc Thiếu Nhi Việt Nam",
+     "seconds": 248
+    },
+    {
+     "id": "fxwKTqt_tUg",
+     "title": "Cùng đếm số | Tập21 | Numbers Song | Hoạt hình 3D | Bebefinn Tiếng Việt - Nhạc thiếu nhi",
+     "channel": "Bebefinn Tiếng Việt - Nhạc thiếu nhi",
+     "seconds": 204
+    },
+    {
+     "id": "M3MHkS5gO2Y",
+     "title": "Meet the Numberblocks! | Introducing Numbers 0 to 20! | Learn To Count | @Numberblocks",
+     "channel": "Numberblocks",
+     "seconds": 257
+    },
+    {
+     "id": "vR4pVGNisZA",
+     "title": "Adding Up To 10 | Bumble Nums Counting Song! | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 227
+    },
+    {
+     "id": "oJPxp9de900",
+     "title": "Thanh nấm - Bé học đếm số từ 1 đến 20 thật vui và hấp dẫn giúp Bé thông minh",
+     "channel": "Thanh Nấm",
+     "seconds": 264
+    },
+    {
+     "id": "rWFztLVWuL0",
+     "title": "Nhiều hơn, ít hơn, bằng nhau - Toán mẫu giáo [OLM.VN]",
+     "channel": "Học trực tuyến OLM",
+     "seconds": 417
+    },
+    {
+     "id": "w3y3CLztqN8",
+     "title": "Đếm đến 10, nhận biết chữ số 10 - OLM Mầm non [OLM.VN]",
+     "channel": "OLM Kids",
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "id": "the-gioi-quanh-be",
+   "emoji": "🌦️",
+   "name": "Khám phá thế giới quanh bé",
+   "age": [
+    3,
+    5
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Cơ thể, gia đình, nghề nghiệp, phương tiện giao thông, thời tiết, ngày – đêm, hoa quả, rau củ: các chủ đề của chương trình mầm non.",
+   "goals": [
+    "Bộ phận cơ thể và giác quan",
+    "Gia đình, nghề nghiệp, phương tiện giao thông",
+    "Thời tiết, ngày – đêm, cây cối (Khám phá khoa học và xã hội – GDMN)"
+   ],
+   "note": "Bám các chủ đề Khám phá khoa học/xã hội của chương trình GDMN 3–5 tuổi: cơ thể, đồ vật, phương tiện giao thông, động – thực vật, thời tiết, nghề nghiệp, gia đình.",
+   "lessons": [
+    {
+     "id": "SeV0LUOL6sA",
+     "title": "Dạy bé học bộ phận cơ thể | Bé nhận biết các bộ phận cơ thể nhanh nhất | Bài 210",
+     "channel": "Dạy Bé Học",
+     "seconds": 141
+    },
+    {
+     "id": "MW92UvcezQk",
+     "title": "Gia Đình Nhỏ Hạnh Phúc To ♪ Bé Minh Vy [MV Official] ☀ Ca Nhạc Thiếu Nhi Cho Bé",
+     "channel": "Nam Việt Thiếu Nhi",
+     "seconds": 310
+    },
+    {
+     "id": "goIDGX2_bFE",
+     "title": "Khám phá: Một số phương tiện giao thông đường bộ - OLM Mầm non [OLM.VN",
+     "channel": "OLM Kids",
+     "seconds": 536
+    },
+    {
+     "id": "ljZCuDfBCbQ",
+     "title": "Bé học về các nghề nghiệp tiếng Việt và tiếng Anh",
+     "channel": "Bé Thông Minh - Học vui vẻ",
+     "seconds": 269
+    },
+    {
+     "id": "Vs_OVMEUONk",
+     "title": "Khám phá hiện tượng thời tiết nắng - mưa - OLM Mầm non [OLM.VN]",
+     "channel": "OLM Kids",
+     "seconds": 530
+    },
+    {
+     "id": "43WU6iMuuxY",
+     "title": "Bé khám phá Mặt Trăng 🌙 Những bí mật trên bầu trời đêm",
+     "channel": "Vocab Vault Kids",
+     "seconds": 308
+    },
+    {
+     "id": "uBNos_cdXKE",
+     "title": "Bé Học Các Loại Trái Cây | Nhận Biết Tên Các Loại Loại Quả Cho Trẻ Mầm Non",
+     "channel": "Tép Còi TV",
+     "seconds": 348
+    },
+    {
+     "id": "pTlyvcwDoos",
+     "title": "Bé Học Tên Rau Củ Quả Song Ngữ Anh Việt | Dạy Trẻ Nhận Biết Nhanh | Fruits & Vegetables for Kids",
+     "channel": "Tép Còi TV",
+     "seconds": 562
+    }
+   ]
+  },
+  {
+   "id": "ghep-van",
+   "emoji": "📖",
+   "name": "Làm quen chữ & ghép vần",
+   "age": [
+    4,
+    6
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Từ chữ cái đến ghép vần đơn giản, tập tô nét chữ: nền tảng để đọc trơn tiếng Việt.",
+   "goals": [
+    "Ghép phụ âm với nguyên âm",
+    "Tô, đồ nét chữ, sao chép chữ cái (GDMN 5–6 tuổi)",
+    "Đọc từ đơn giản"
+   ],
+   "note": "Theo chương trình GDMN 5–6 tuổi: tô, đồ các nét chữ, sao chép một số chữ cái, tên của mình; làm quen cách đọc, viết tiếng Việt.",
+   "lessons": [
+    {
+     "id": "hwVaFfmMd6A",
+     "title": "Dạy bé học | Tâp tô, tập viết chữ cái o ô ơ - EDU Mầm Non",
+     "channel": "EDU Mầm Non",
+     "seconds": 192
+    },
+    {
+     "id": "b5ZcDvy-jxY",
+     "title": "Thanh nấm - Học đánh vần tiếng việt lớp 1, dạy bé tập đọc, tập ghép vần P1",
+     "channel": "Thanh Nấm",
+     "seconds": 425
+    },
+    {
+     "id": "-MblnIzhsqA",
+     "title": "Dạy bé tập ghép vần, đánh vần các chữ ba, bo, bô, bơ, be, bê, bi, bu, bư.. trong tiếng việt lớp 1",
+     "channel": "Thanh Nấm",
+     "seconds": 358
+    },
+    {
+     "id": "bbTXQPUHqlg",
+     "title": "Tập đánh vần / Tổng hợp chuỗi đánh vần tiếng việt lớp 1 với chữ M, các dấu thanh - Hành trang cho Bé",
+     "channel": "Thanh Nấm",
+     "seconds": 0
+    },
+    {
+     "id": "N2z5fuhjc7A",
+     "title": "Thanh nấm - Tập đọc, ghép vần và đánh vần với ƯƠ Trong TIẾNG VIỆT",
+     "channel": "Thanh Nấm",
+     "seconds": 0
+    },
+    {
+     "id": "K_PtYuP3MHc",
+     "title": "Làm quen với nhóm chữ a, ă, â - Tiếng Việt mẫu giáo [OLM.VN]",
+     "channel": "Học trực tuyến OLM",
+     "seconds": 294
+    }
+   ]
+  },
+  {
+   "id": "toan-mam-non",
+   "emoji": "➕",
+   "name": "Toán mầm non: đếm, so sánh, cộng trừ",
+   "age": [
+    4,
+    6
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Gộp – tách nhóm, so sánh, sắp xếp theo quy tắc, cộng trừ trong phạm vi 10.",
+   "goals": [
+    "Gộp / tách các nhóm đối tượng và đếm (GDMN 5–6 tuổi)",
+    "So sánh, sắp xếp theo quy tắc",
+    "Cộng trừ trong phạm vi 10"
+   ],
+   "note": "Theo chương trình GDMN 5–6 tuổi: gộp/tách các nhóm đối tượng bằng các cách khác nhau và đếm; so sánh và sắp xếp theo quy tắc.",
+   "lessons": [
+    {
+     "id": "JNw9zJ18Dg8",
+     "title": "Toán lớp 1, Học phép toán cộng phạm vi 10 - Trang 56 sách Chân trời sáng tạo - Thanh nấm",
+     "channel": "Thanh Nấm",
+     "seconds": 476
+    },
+    {
+     "id": "H32_nhyH1mk",
+     "title": "Toán trừ lớp 1 - Dạy bé học phép toán trừ trong phạm vi 10, Học làm toán trừ lớp 1 - Thanh nấm",
+     "channel": "Thanh Nấm",
+     "seconds": 557
+    },
+    {
+     "id": "Jt6MFGEcA0w",
+     "title": "Gộp tách nhóm đối tượng trong phạm vi 2 và đếm - OLM Mầm non [OLM.VN]",
+     "channel": "OLM Kids",
+     "seconds": 550
+    },
+    {
+     "id": "0iMyzZDi4a4",
+     "title": "Numberblocks | Maths Addition and Subtraction Skills | Let's add and subtract up to Five",
+     "channel": "Numberblocks",
+     "seconds": 0
+    },
+    {
+     "id": "JpCJKXz_zaU",
+     "title": "BÀI 1- SẮP XẾP QUY TẮC 2 ĐỐI TƯỢNG/THƯ VIỆN MẦM NON/TOÁN MẦM NON",
+     "channel": "THƯ VIỆN MẦM NON",
+     "seconds": 522
+    },
+    {
+     "id": "UfqzBgDGzHw",
+     "title": "Dạy bé học so sánh (Compare) To - Nhỏ, Cao - Thấp trong tiếng Anh | Big and Small | Oh Vui Kids",
+     "channel": "Oh Vui Kids",
+     "seconds": 340
+    },
+    {
+     "id": "5A3oRU2PEPI",
+     "title": "Dạy bé học cách xem giờ hỏi và nói giờ đồng hồ Tiếng việt | dạy trẻ em thông minh sớm | ECE channel",
+     "channel": "GIÁO DỤC TRẺ EM ECE",
+     "seconds": 264
+    }
+   ]
+  },
+  {
+   "id": "tieng-anh-phonics",
+   "emoji": "🗣️",
+   "name": "Tiếng Anh cho bé: ABC & phonics",
+   "age": [
+    3,
+    6
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Bảng chữ cái tiếng Anh, âm của chữ (phonics), số đếm và chào hỏi qua bài hát.",
+   "goals": [
+    "Nhận mặt chữ A–Z và âm của chữ",
+    "Từ vựng đầu tiên",
+    "Hát theo, nghe phát âm chuẩn"
+   ],
+   "note": "Các kênh Super Simple Songs, Alphablocks, Numberblocks, Pinkfong thường được Common Sense Media và AAP nêu là nội dung chất lượng cho trẻ nhỏ.",
+   "lessons": [
+    {
+     "id": "I_3mbra4dHU",
+     "title": "ABC Quack | Super Simple ABCs | Kids Alphabet Songs",
+     "channel": "Super Simple ABCs",
+     "seconds": 196
+    },
+    {
+     "id": "xg4_gWt8N_Q",
+     "title": "The Alphabet From A - Z | Phonics For Kids - Learn To Read | Alphablocks",
+     "channel": "Alphablocks",
+     "seconds": 155
+    },
+    {
+     "id": "yr8xVjBZWsE",
+     "title": "Fun with Phonics | ABC Alphabet Songs | Phonics | PINKFONG Songs for Children",
+     "channel": "Baby Shark - Pinkfong Kids’ Songs & Stories",
+     "seconds": 279
+    },
+    {
+     "id": "lhX064AiyGg",
+     "title": "The Alphabet Song | Phonics Song for Kids | Kindergarten Alphabet song | Jack Hartmann",
+     "channel": "Jack Hartmann Kids Music Channel",
+     "seconds": 246
+    },
+    {
+     "id": "S84fcGdEULk",
+     "title": "Counting Up To 20 | Count Along With The Roundabouts! | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 153
+    },
+    {
+     "id": "PraN5ZoSjiY",
+     "title": "Bye Bye Goodbye | Goodbye Song for Kids | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 121
+    },
+    {
+     "id": "HrDl_1Ov8gc",
+     "title": "Learn Colors with Wonderville Friends | Pinkfong & Hogi | Colors for Kids | Learn with Hogi",
+     "channel": "Hogi! Pinkfong - Learn & Play",
+     "seconds": 149
+    },
+    {
+     "id": "loINl3Ln6Ck",
+     "title": "Days Of The Week Song | Kids Songs | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 86
+    }
+   ]
+  },
+  {
+   "id": "tieng-anh-bai-hat",
+   "emoji": "🎤",
+   "name": "Tiếng Anh qua bài hát",
+   "age": [
+    2,
+    6
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Cơ thể, gia đình, trái cây, thời tiết, con vật bằng tiếng Anh: lời đơn giản, lặp lại nhiều.",
+   "goals": [
+    "Từ vựng chủ đề quen thuộc",
+    "Nghe và hát theo",
+    "Làm quen âm điệu tiếng Anh"
+   ],
+   "note": "Nội dung ngôn ngữ nên xem cùng bố mẹ, nói lại và chỉ vào đồ vật thật để bé gắn từ với thực tế (AAP/Mayo Clinic).",
+   "lessons": [
+    {
+     "id": "eBVqcTEC3zQ",
+     "title": "One Little Finger featuring @NoodleAndPals | Kids Song | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 145
+    },
+    {
+     "id": "frN3nvhIHUk",
+     "title": "Do You Like Broccoli Ice Cream? | Food Song for Kids! | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 163
+    },
+    {
+     "id": "CqgcFpcN2Ow",
+     "title": "Where Is My Body? | Let’s Find the Body Parts | Hoi’s Playground | Pinkfong Official",
+     "channel": "Baby Shark - Pinkfong Kids’ Songs & Stories",
+     "seconds": 261
+    },
+    {
+     "id": "rD6FRDd9Hew",
+     "title": "How's The Weather? | Learn About Weather | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 127
+    },
+    {
+     "id": "yWirdnSDsV4",
+     "title": "The Wheels On The Bus featuring Noodle & Pals | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 153
+    },
+    {
+     "id": "pZw9veQ76fo",
+     "title": "Five Little Ducks | Kids Songs | Super Simple Songs",
+     "channel": "Super Simple Songs - Kids Songs",
+     "seconds": 174
+    },
+    {
+     "id": "1MXzCD8IAcE",
+     "title": "The Itsy Bitsy Spider | Nursery Rhymes from Caitie's Classroom",
+     "channel": "Super Simple Play with Caitie!",
+     "seconds": 253
+    },
+    {
+     "id": "XqZsoesa55w",
+     "title": "Baby Shark Dance | #babyshark Most Viewed Video | Animal Songs | PINKFONG Songs for Children",
+     "channel": "Baby Shark - Pinkfong Kids’ Songs & Stories",
+     "seconds": 137
+    }
+   ]
+  },
+  {
+   "id": "khoa-hoc-kham-pha",
+   "emoji": "🔬",
+   "name": "Khoa học khám phá",
+   "age": [
+    4,
+    8
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Vì sao cần ngủ, trọng lực, cây cối, vòng tuần hoàn của nước, vũ trụ, khủng long: trả lời những câu \"vì sao\" của bé.",
+   "goals": [
+    "Tò mò và đặt câu hỏi",
+    "Hiểu hiện tượng tự nhiên đơn giản",
+    "Thí nghiệm vui tại nhà cùng bố mẹ"
+   ],
+   "note": "SciShow Kids, National Geographic Kids và Free School được nhiều danh sách của giáo viên/phụ huynh nêu cho trẻ mầm non – tiểu học.",
+   "lessons": [
+    {
+     "id": "_aAmaCeq9v4",
+     "title": "Why Do We Need Sleep?",
+     "channel": "SciShow Kids",
+     "seconds": 213
+    },
+    {
+     "id": "3-xKZKxXuu0",
+     "title": "What is Sound? | Physics for Kids | SciShow Kids",
+     "channel": "SciShow Kids",
+     "seconds": 238
+    },
+    {
+     "id": "tkFPyue5X3Q",
+     "title": "How Does A Seed Become A Plant? | Backyard Science | SciShow Kids",
+     "channel": "SciShow Kids",
+     "seconds": 227
+    },
+    {
+     "id": "auvGBmIxG08",
+     "title": "The Water Cycle: Collection, Condensation, Precipitation, Evaporation, Learning Videos For Children",
+     "channel": "KidsEduc – Kids Educational Games",
+     "seconds": 316
+    },
+    {
+     "id": "libKVRa01L8",
+     "title": "Solar System 101 | National Geographic",
+     "channel": "National Geographic",
+     "seconds": 251
+    },
+    {
+     "id": "rINFqiuZ_B0",
+     "title": "5 Thí Nghiệm Khoa Học Vật Lý Tại Nhà",
+     "channel": "MangoVid",
+     "seconds": 316
+    },
+    {
+     "id": "zxg4HuqmKXI",
+     "title": "Động Vật- Khủng Long | Bài hát về Khủng Long | Pinkfong! Những bài hát cho trẻ em",
+     "channel": "Pinkfong! Cá mập con - Nhạc thiếu nhi",
+     "seconds": 98
+    },
+    {
+     "id": "KyuQdK2NUHw",
+     "title": "Vì sao lại có mưa // Cùng bé học điều hay // Em yêu khoa học // An's Channel",
+     "channel": "An Channel",
+     "seconds": 224
+    }
+   ]
+  },
+  {
+   "id": "an-toan-cho-be",
+   "emoji": "🚦",
+   "name": "An toàn cho bé",
+   "age": [
+    3,
+    7
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Giao thông, lửa và điện, nước, người lạ, bảo vệ cơ thể, số điện thoại khẩn cấp. Nên xem cùng bố mẹ và trò chuyện sau mỗi video.",
+   "goals": [
+    "Qua đường an toàn, nhận biết biển báo (GDMN)",
+    "Tránh nguy hiểm: lửa, điện, nước",
+    "Tự bảo vệ: không đi theo người lạ, quyền riêng tư cơ thể"
+   ],
+   "note": "Chương trình GDMN có nội dung nhận ra ký hiệu thông thường (nơi nguy hiểm, biển báo giao thông). Chủ đề tự bảo vệ cơ thể nên được bố mẹ xem trước và xem cùng bé.",
+   "lessons": [
+    {
+     "id": "TFCQQ6sgfaw",
+     "title": "Tôi yêu Việt Nam \"Vui Giao Thông\" - Tập 4: Vòng Tay An Toàn | An Toàn Khi Ngồi Trên Xe Máy",
+     "channel": "POPS Kids",
+     "seconds": 300
+    },
+    {
+     "id": "Y1-YJ3cvA5A",
+     "title": "Tôi yêu Việt Nam \"Vui Giao Thông\" - Tập 6: Dòng Sông Xe Cộ | Cách Để Qua Đường An Toàn",
+     "channel": "POPS Kids",
+     "seconds": 300
+    },
+    {
+     "id": "k8uMv-KDG_s",
+     "title": "DẠY CON CÁCH XỬ TRÍ KHI GẶP HỎA HOẠN | KỸ NĂNG AN TOÀN CHO BÉ",
+     "channel": "VTV7 KIDS",
+     "seconds": 0
+    },
+    {
+     "id": "WBPiyBnw5HA",
+     "title": "Nguy Hiểm Điện Giật - Dạy Trẻ Cách Phòng Tránh Điện Giật | Kỹ Năng An Toàn Cho Trẻ Em",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 220
+    },
+    {
+     "id": "MZ_spxcH6x0",
+     "title": "POKI| Phòng tránh đuối nước - Cứu người bị đuối nước| Kỹ năng sống POKI",
+     "channel": "POKI ơi, làm sao đây nhỉ?",
+     "seconds": 111
+    },
+    {
+     "id": "8lIwE0kI_MQ",
+     "title": "Tiết Học Kỹ Năng: Không Đi Theo Hoặc Nhận Quà Của Người Lạ_Sen Búp 2",
+     "channel": "Trường Mầm Non Sen Hồng",
+     "seconds": 233
+    },
+    {
+     "id": "cQmgoyMUfv8",
+     "title": "BÀI HÁT 5 NGÓN TAY XINH | Dạy bé tự bảo vệ mình khỏi xâm hại tình dục | VTV7",
+     "channel": "VTV7",
+     "seconds": 0
+    },
+    {
+     "id": "JB9-nZwp27U",
+     "title": "Dạy Bé Nhớ Số Điện Thoại Khẩn Cấp 113, 114, 115 - Công An, Cứu Hoả, Cấp Cứu | Kỹ Năng Sống Cho Bé",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 270
+    }
+   ]
+  },
+  {
+   "id": "cam-xuc-ky-nang",
+   "emoji": "😊",
+   "name": "Cảm xúc & kỹ năng xã hội",
+   "age": [
+    3,
+    7
+   ],
+   "dailyMinutes": 20,
+   "blurb": "Nhận biết cảm xúc, bình tĩnh khi giận, chia sẻ, nhường nhịn, kết bạn, lễ phép.",
+   "goals": [
+    "Gọi tên cảm xúc: vui, buồn, giận, sợ",
+    "Cách bình tĩnh lại",
+    "Chia sẻ, nhường nhịn, kết bạn (phát triển tình cảm – kỹ năng xã hội, GDMN)"
+   ],
+   "note": "Một trong 5 lĩnh vực phát triển của chương trình GDMN là tình cảm và kỹ năng xã hội. Sesame Street và PBS Kids được AAP nêu là nội dung chất lượng.",
+   "lessons": [
+    {
+     "id": "QZlZ1Yf4FgY",
+     "title": "Dạy Trẻ Online - Bé Nhận Biết Cảm Xúc Vui Buồn (Cho Bé 3 - 4 Tuổi)",
+     "channel": "GIÁO VIÊN MẦM NON",
+     "seconds": 169
+    },
+    {
+     "id": "_mZbzDOpylA",
+     "title": "Sesame Street: Common and Colbie Caillat Sing \"Belly Breathe\" with Elmo",
+     "channel": "Sesame Street",
+     "seconds": 146
+    },
+    {
+     "id": "mClBkFwKcZs",
+     "title": "Kỹ năng kiềm chế sự nóng giận( Bài 5 - Khoá 3)",
+     "channel": "Bé Nhím",
+     "seconds": 0
+    },
+    {
+     "id": "R2BWwvl9zZw",
+     "title": "Video HD Trẻ biết chia sẻ và nhường nhịn bạn Cô Thủy Tiên MNAD 1",
+     "channel": "TRƯỜNG MẦM NON ANH ĐÀO",
+     "seconds": 328
+    },
+    {
+     "id": "AZqguQMYv8Q",
+     "title": "Giáo Dục Lễ Giáo - Chia Sẻ Đồ Chơi Cùng Bạn",
+     "channel": "Vina Cartoon",
+     "seconds": 426
+    },
+    {
+     "id": "AD4RGoiTyl4",
+     "title": "When You Feel so Mad That You Want to Roar",
+     "channel": "Daniel Tiger's Neighborhood - Topic",
+     "seconds": 72
+    },
+    {
+     "id": "g04xhdSqxB8",
+     "title": "Bài học cảm ơn và xin lỗi của Gấu con | Chun Chin | Chuyện kể cho bé",
+     "channel": "Chun Chin - Chill cùng bé iu",
+     "seconds": 0
+    }
+   ]
+  },
+  {
+   "id": "van-dong-yoga",
+   "emoji": "🧘",
+   "name": "Vận động & yoga nhẹ nhàng",
+   "age": [
+    3,
+    8
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Đứng lên vận động thay vì ngồi xem: nhảy theo nhạc, yoga kể chuyện, khởi động buổi sáng.",
+   "goals": [
+    "Vận động thô: nhảy, chạy, giữ thăng bằng",
+    "Thư giãn, hít thở",
+    "Giảm thời gian ngồi một chỗ (WHO)"
+   ],
+   "note": "WHO nhấn mạnh trẻ dưới 5 tuổi cần nhiều vận động và hạn chế ngồi xem màn hình; chọn video để bé đứng lên làm theo.",
+   "lessons": [
+    {
+     "id": "ucqYUEKGILM",
+     "title": "My Little Pony! 🦄 | A Cosmic Kids Yoga Adventure!",
+     "channel": "Cosmic Kids Yoga",
+     "seconds": 1042
+    },
+    {
+     "id": "wf5K3pP2IUQ",
+     "title": "Be the Pond | Mindfulness for Kids | Cosmic Kids Zen Den",
+     "channel": "Cosmic Kids Yoga",
+     "seconds": 336
+    },
+    {
+     "id": "cSPmGPIyykU",
+     "title": "Exercise, Rhyme and Freeze | Rhyming Words for Kids | Exercise Song | Jack Hartmann",
+     "channel": "Jack Hartmann Kids Music Channel",
+     "seconds": 199
+    },
+    {
+     "id": "ET8rdp2b1a4",
+     "title": "Cô Dạy Em Tập Thể Dục Buổi Sáng - Bé Khánh Vy - Nhạc Thiếu Nhi Sôi Động Cho Bé",
+     "channel": "CoCoMonkey - Nhạc Thiếu Nhi",
+     "seconds": 200
+    },
+    {
+     "id": "YVFz0mkBPb4",
+     "title": "Vận động theo nhạc khối Nhà Trẻ(BANANA CHACHA)",
+     "channel": "Mầm non ABC SUN",
+     "seconds": 132
+    },
+    {
+     "id": "j8z7UjET1Is",
+     "title": "Baby Shark | Kids Songs and Nursery Rhymes | Animal Songs from Bounce Patrol",
+     "channel": "Bounce Patrol - Kids Songs",
+     "seconds": 253
+    }
+   ]
+  },
+  {
+   "id": "truyen-co-tich",
+   "emoji": "📚",
+   "name": "Truyện cổ tích & bài học đạo đức",
+   "age": [
+    3,
+    8
+   ],
+   "dailyMinutes": 25,
+   "blurb": "Truyện cổ tích Việt Nam và thế giới, giọng kể nhẹ nhàng, hợp xem trước giờ ngủ (tắt màn hình trước giờ ngủ khoảng 1 giờ).",
+   "goals": [
+    "Nghe hiểu truyện, kể lại truyện có sự giúp đỡ (GDMN)",
+    "Bài học về lòng tốt, trung thực, dũng cảm",
+    "Mở rộng vốn từ"
+   ],
+   "note": "AAP khuyến nghị không xem màn hình trong 1 giờ trước giờ ngủ. Nên xem truyện vào buổi chiều rồi cho bé kể lại.",
+   "lessons": [
+    {
+     "id": "MtzDqwoLYIo",
+     "title": "Miền Cổ Tích - Thạch Sanh",
+     "channel": "Miền Cổ Tích",
+     "seconds": 0
+    },
+    {
+     "id": "OE1egLQ15NU",
+     "title": "Tam Cam - Truyện Cổ Tích Tấm Cám - Truyện Cổ Tích Việt Nam",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 693
+    },
+    {
+     "id": "BfLO_rUfrCw",
+     "title": "SỰ TÍCH BÁNH CHƯNG BÁNH DÀY",
+     "channel": "VTV7 KIDS",
+     "seconds": 282
+    },
+    {
+     "id": "FaFd3m4TONI",
+     "title": "Cây Tre Trăm Đốt | Truyện cổ tích hấp dẫn | Phim Hoạt Hình Việt Nam",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 543
+    },
+    {
+     "id": "R519gJviU9Y",
+     "title": "Sọ Dừa | Truyện cổ tích hay cho thiếu nhi | Phim hoạt hình Việt Nam",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 559
+    },
+    {
+     "id": "lQIcl4MnvTQ",
+     "title": "Truyện Ngụ Ngôn Hay Nhất | Thỏ Và Rùa | Truyện Cổ Tích Hay Cho Bé Yêu",
+     "channel": "Kênh Thiếu Nhi - BHMEDIA",
+     "seconds": 204
+    },
+    {
+     "id": "l2cAjtKXmEg",
+     "title": "Truyện Cổ Tích Cậu Bé Chăn Cừu Nói Dối - Kể Chuyện Bé Nghe - Truyện Kể Mầm Non",
+     "channel": "Vina Cartoon",
+     "seconds": 275
+    },
+    {
+     "id": "u_w-7DsKmIc",
+     "title": "Ba Chú Heo Con và chó sói câu chuyện cổ tích - Truyện cổ tích việt nam - Hoạt hình",
+     "channel": "Câu chuyện cổ tích việt nam",
+     "seconds": 441
+    }
+   ]
+  },
+  {
+   "id": "vao-lop-1",
+   "emoji": "🎒",
+   "name": "Chuẩn bị vào lớp 1",
+   "age": [
+    5,
+    6
+   ],
+   "dailyMinutes": 30,
+   "blurb": "Tổng hợp cho bé 5–6 tuổi: chữ cái, ghép vần, số và phép tính, kỹ năng tự phục vụ ở trường.",
+   "goals": [
+    "Đọc chữ cái, ghép vần cơ bản",
+    "Đếm, cộng trừ trong phạm vi 10",
+    "Tự phục vụ: xếp cặp sách, ăn, đi vệ sinh, giao tiếp với cô giáo"
+   ],
+   "note": "Bám nội dung chương trình GDMN 5–6 tuổi; nên kết hợp tập viết, đọc sách và trò chuyện, không chỉ xem video.",
+   "lessons": [
+    {
+     "id": "aoadxkNkEqw",
+     "title": "10 kĩ năng bạn cần chuẩn bị cho con vào lớp 1",
+     "channel": "Ươm mầm tiểu học",
+     "seconds": 207
+    },
+    {
+     "id": "GRj9HlWxyps",
+     "title": "Hướng dẫn phụ huynh dạy con cầm bút đúng cách - GV Dương Thị Mừng - Trường Mầm non Xuân Tảo",
+     "channel": "Nhà trẻ - Mầm non Xuân Tảo",
+     "seconds": 185
+    },
+    {
+     "id": "QS87vPx9Nnw",
+     "title": "Học Chữ Cái Cùng Capybara | Bé học chữ cái Tiếng Việt | Chuẩn bị cho bé vào lớp 1 - EDU Mầm Non",
+     "channel": "EDU Mầm Non",
+     "seconds": 267
+    },
+    {
+     "id": "gSz5V5gejzU",
+     "title": "Phép toán cộng trừ trong phạm vi 20 - Thanh nấm",
+     "channel": "Thanh Nấm",
+     "seconds": 373
+    },
+    {
+     "id": "4jX-Yz6de4s",
+     "title": "Giáo Dục Lễ Giáo - Giữ Gìn Sách Vở Và Đồ Dùng Học Tập",
+     "channel": "Vina Cartoon",
+     "seconds": 551
+    },
+    {
+     "id": "TzwHlOtyMao",
+     "title": "Dạy trẻ kỹ năng tự phục vụ",
+     "channel": "Thống Nhất Mầm non",
+     "seconds": 0
+    },
+    {
+     "id": "v_ZrvNZH6rQ",
+     "title": "Làm quen với trường tiểu học và các đồ dùng học tập ở lớp 1.",
+     "channel": "LỚP HỌC VUI -  Chuyên Mầm non ",
+     "seconds": 395
+    }
+   ]
+  },
+  {
+   "id": "toan-tieu-hoc",
+   "emoji": "✖️",
+   "name": "Toán tiểu học: cộng trừ & bảng cửu chương",
+   "age": [
+    6,
+    8
+   ],
+   "dailyMinutes": 30,
+   "blurb": "Cộng trừ trong phạm vi 100 và bảng cửu chương, học bằng bài hát và hình minh hoạ.",
+   "goals": [
+    "Cộng trừ trong phạm vi 100",
+    "Thuộc bảng nhân 2, 3, 4, 5",
+    "Hiểu ý nghĩa phép nhân"
+   ],
+   "note": "Cho bé 6–8 tuổi, nên xen kẽ video và bài tập viết; mỗi video xem xong làm vài phép tính.",
+   "lessons": [
+    {
+     "id": "maYgsBjkhyg",
+     "title": "Ôn tập phép cộng, trừ (không nhớ) phạm vi 100 - Toán lớp 2 SGK mới [OLM.VN]",
+     "channel": "Học trực tuyến OLM",
+     "seconds": 470
+    },
+    {
+     "id": "u2ntwZOOXKg",
+     "title": "Bảng Cửu Chương Số 2 – Bài Hát Học Toán Cho Bé  Nhạc Thiếu Nhi Vui Nhộn | Muki Kids Việt Nam",
+     "channel": "Muki Kids Việt Nam - Nhạc Thiếu Nhi Vui Nhộn",
+     "seconds": 140
+    },
+    {
+     "id": "RdhQocmXSzI",
+     "title": "BẢNG CỬU CHƯƠNG 3 - ĐỌC CHẬM - HỌC THUỘC LÒNG | CÚC CU",
+     "channel": "CÚC CU",
+     "seconds": 187
+    },
+    {
+     "id": "Eyh5-R-Scr0",
+     "title": "Hát RAP Bảng Cửu Chương Từ 2 Đến 9 Siêu Hay, Nghe Là Thuộc Ngay",
+     "channel": "CÚC CU",
+     "seconds": 282
+    },
+    {
+     "id": "x2ZRqXB3a_A",
+     "title": "Học Bảng Cửu Chương từ 2 đến 5 Bằng Hai Bàn Tay| #toancohien #hocbangcuuchuong  #toantuduy",
+     "channel": "TOÁN CÔ HIỀN",
+     "seconds": 325
+    },
+    {
+     "id": "aD6VC8PnOWA",
+     "title": "Phép nhân - Toán lớp 2 [OLM.VN]",
+     "channel": "Học trực tuyến OLM",
+     "seconds": 262
+    }
+   ]
+  }
+ ]
+}

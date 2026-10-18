@@ -129,3 +129,10 @@ h2 .btn { margin-left: auto; }
 .icon-btn:disabled { opacity: .3; }
 .switch { align-items: flex-start; }
 .switch input { margin-top: 2px; flex-shrink: 0; }
+
+/* 6 tab: chữ nhỏ lại cho vừa màn hình hẹp */
+.tabs button { font-size: 10.5px; padding-left: 1px; padding-right: 1px; }
+.tabs button span { font-size: 20px; }
+a.btn { text-decoration: none; color: inherit; }
+.toolbar .btn:disabled { opacity: .6; }
+.row .toolbar { flex-wrap: wrap; }
