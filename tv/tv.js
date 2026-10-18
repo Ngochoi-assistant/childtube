@@ -76,12 +76,24 @@
     });
   }
 
+  var qrFor = '';
+  function drawQr(code) {
+    if (!code || qrFor === code) return;
+    qrFor = code;
+    try {
+      var q = qrcode(0, 'M');
+      q.addData(APP_URL + '#pair=' + code);
+      q.make();
+      $('#qr').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    } catch (e) { $('#qr').innerHTML = ''; }
+  }
+
   function showPair(code) {
     zone = 'pair';
     $('#home').classList.add('hidden');
     $('#pair').classList.remove('hidden');
     $('#pair-url').textContent = APP_URL.replace(/^https?:\/\//, '');
-    if (code) $('#pair-code').textContent = code;
+    if (code) { $('#pair-code').textContent = code; drawQr(code); }
     $('#pair-msg').textContent = 'Màn hình sẽ tự chuyển khi ghép xong.';
   }
 

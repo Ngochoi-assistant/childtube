@@ -45,6 +45,31 @@ async function load() {
   S = await rpc('ct_state');
   $('#fam-name').textContent = S.family.name;
   render();
+  offerPair();
+}
+
+// Có mã ghép từ QR trên TV: hỏi xác nhận rồi ghép.
+function offerPair() {
+  let code = null;
+  try { code = sessionStorage.getItem('ct-pair'); } catch (e) { /* bỏ qua */ }
+  if (!code) return;
+  const forget = () => { try { sessionStorage.removeItem('ct-pair'); } catch (e) { /* bỏ qua */ } };
+  sheet(`<h3>📺 Ghép TV của bé?</h3>
+    <p class="hint" style="margin-top:0">Mã trên TV: <b style="letter-spacing:3px">${esc(code)}</b>. Sau khi ghép, TV sẽ hiện các video bạn đã chọn.</p>
+    <label>Tên TV</label><input id="qr-name" placeholder="Ví dụ: TV phòng khách" value="TV phòng khách">
+    <button class="btn primary" data-a="go">Ghép TV này</button>
+    <button class="btn link" data-a="no">Để sau</button>`,
+  async (a) => {
+    if (a === 'no') { forget(); return closeSheet(); }
+    try {
+      await rpc('ct_pair_tv', { p_code: code, p_name: $('#qr-name').value });
+      forget(); closeSheet(); toast('Đã ghép TV! TV sẽ hiện danh sách trong vài giây.');
+      await load();
+    } catch (e) {
+      toast(e.message, true);
+      if (/hết hạn|không đúng/i.test(e.message)) { forget(); closeSheet(); }
+    }
+  });
 }
 const groupsOf = (kind) => S.groups.filter((g) => g.kind === kind);
 const ago = (t) => {
@@ -513,6 +538,11 @@ $('#view').addEventListener('submit', (e) => { e.preventDefault(); if (e.target.
     pendingLink = m[0];
     history.replaceState(null, '', location.pathname);
   }
+  // Quét QR trên TV: #pair=123456. Giữ trong sessionStorage để không mất khi đăng ký/đăng nhập tải lại trang.
+  const code = (hash.get('pair') || '').replace(/\D/g, '');
+  try {
+    if (/^\d{6}$/.test(code)) { sessionStorage.setItem('ct-pair', code); history.replaceState(null, '', location.pathname); }
+  } catch (e) { /* trình duyệt chặn lưu trữ: bỏ qua */ }
 })();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
