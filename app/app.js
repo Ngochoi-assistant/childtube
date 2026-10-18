@@ -653,11 +653,13 @@ async function openCreate() {
   try { d = await loadTemplates(); } catch (e) { toast(e.message, true); return closeSheet(); }
   const list = d.templates.filter((t) => overlaps(t, tplAge)).sort((a, b) => a.age[0] - b.age[0] || a.name.localeCompare(b.name, 'vi'));
   sheet(`<h3>Tạo giáo trình</h3>
+    <button class="choice wiz-cta" data-a="cwiz">🧭 Lập giáo trình theo mong muốn của bố mẹ<small>Trả lời vài câu hỏi về bé và định hướng, app dựng khung rồi tìm video phù hợp</small></button>
     <button class="choice" data-a="cblank">✏️ Tự tạo từ đầu<small>Đặt tên rồi thêm video bạn chọn</small></button>
-    <label>Hoặc chọn mẫu theo tuổi của bé</label>
+    <label>Hoặc chọn mẫu có sẵn theo tuổi</label>
     <div class="chips">${AGE_BANDS.map(([v, l]) => `<button class="chip ${tplAge === v ? 'on' : ''}" data-a="tage" data-v="${v}">${l}</button>`).join('')}</div>
     <div class="tpl-grid">${list.map((t) => `<button class="tpl-card" data-a="tpl" data-id="${t.id}"><span class="e">${esc(t.emoji)}</span><b>${esc(t.name)}</b><small>${ageText(t.age)} · ${t.lessons.length} bài</small></button>`).join('') || '<div class="empty">Chưa có mẫu cho tuổi này.</div>'}</div>`,
   async (a, b) => {
+    if (a === 'cwiz') return wzOpen();
     if (a === 'cblank') return newGroup('collection');
     if (a === 'tage') { tplAge = b.dataset.v; return openCreate(); }
     if (a === 'tpl') return openTemplate(b.dataset.id);

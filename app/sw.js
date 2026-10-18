@@ -1,6 +1,6 @@
 // Service worker tối giản: cho phép cài app ra màn hình chính và mở nhanh khi mạng chậm.
-const CACHE = 'childtube-v9';
-const SHELL = ['./', 'index.html', 'app.css', 'app.js', '../config.js', 'icon-192.png'];
+const CACHE = 'childtube-v10';
+const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'wizard.js', '../config.js', 'icon-192.png'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
