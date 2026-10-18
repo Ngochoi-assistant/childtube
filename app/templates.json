@@ -1,27 +1,5 @@
 {
  "generated": "2026-10-18",
- "sources": [
-  {
-   "label": "WHO 2019",
-   "url": "https://www.who.int/news/item/24-04-2019-to-grow-up-healthy-children-need-to-sit-less-and-play-more"
-  },
-  {
-   "label": "AAP – Media and Young Minds",
-   "url": "https://publications.aap.org/pediatrics/article/138/5/e20162591/60354"
-  },
-  {
-   "label": "Mayo Clinic",
-   "url": "https://www.mayoclinic.org/healthy-lifestyle/childrens-health/in-depth/screen-time/art-20047952"
-  },
-  {
-   "label": "Chương trình GDMN (TT 17/2009, 28/2016, 51/2020)",
-   "url": "https://thuvienphapluat.vn/van-ban/Giao-duc/Thong-tu-51-2020-TT-BGDDT-sua-doi-Thong-tu-17-2009-TT-BGDDT-Chuong-trinh-Giao-duc-mam-non-469972.aspx"
-  },
-  {
-   "label": "Common Sense Media",
-   "url": "https://www.commonsensemedia.org/articles/youtube-kids-channels-for-early-learning"
-  }
- ],
  "templates": [
   {
    "id": "hat-cung-be",
@@ -38,7 +16,7 @@
     "Làm quen từ vựng cơ bản",
     "Gắn kết bố mẹ – con"
    ],
-   "note": "WHO: trẻ 1 tuổi không khuyến nghị xem màn hình; từ 2 tuổi tối đa 1 giờ/ngày. AAP: 18–24 tháng chỉ nên xem nội dung chất lượng cao và xem cùng bố mẹ.",
+   "note": "Nên xem cùng bố mẹ.",
    "lessons": [
     {
      "id": "tVlcKp3bWH8",
@@ -105,7 +83,7 @@
     "Nhận biết hình tròn, vuông, tam giác, chữ nhật (GDMN 3–4 tuổi)",
     "Tìm màu và hình trong đồ vật xung quanh"
    ],
-   "note": "Theo chương trình GDMN: trẻ 3–4 tuổi nhận biết, gọi tên các hình vuông, tam giác, tròn, chữ nhật và nhận dạng trong thực tế.",
+   "note": "",
    "lessons": [
     {
      "id": "Kiq-lTuZs8Q",
@@ -160,7 +138,7 @@
     "Đặc điểm nổi bật và ích lợi của con vật (GDMN 3–4 tuổi)",
     "Yêu thương, bảo vệ vật nuôi"
    ],
-   "note": "Theo chương trình GDMN 3–4 tuổi: đặc điểm nổi bật và ích lợi của con vật; cách chăm sóc, bảo vệ con vật gần gũi.",
+   "note": "",
    "lessons": [
     {
      "id": "tyHVHJW0HP4",
@@ -221,7 +199,7 @@
     "Vận động theo nhịp điệu",
     "Làm quen văn hoá, tình cảm gia đình"
    ],
-   "note": "Theo chương trình GDMN: nghe, hát đúng giai điệu lời ca, vận động đơn giản theo nhịp điệu bài hát.",
+   "note": "",
    "lessons": [
     {
      "id": "dZxnKj3N_SA",
@@ -288,7 +266,7 @@
     "Tự phục vụ: dọn đồ chơi, ăn uống gọn gàng",
     "Lễ phép: dạ, vâng, cảm ơn, xin lỗi (GDMN)"
    ],
-   "note": "Theo chương trình GDMN: luyện thói quen vệ sinh, tự phục vụ; dùng từ vâng ạ, cảm ơn, xin lỗi trong giao tiếp.",
+   "note": "",
    "lessons": [
     {
      "id": "cOaBbiVWvY0",
@@ -355,7 +333,7 @@
     "Phát âm rõ các chữ cái",
     "Làm quen các dấu thanh"
    ],
-   "note": "Theo chương trình GDMN: nhận dạng các chữ trong bảng chữ cái tiếng Việt; làm quen cách đọc, viết từ trái sang phải, từ trên xuống.",
+   "note": "",
    "lessons": [
     {
      "id": "hzSa-dUKl5o",
@@ -410,7 +388,7 @@
     "Nhận biết chữ số",
     "So sánh nhiều – ít – bằng nhau"
    ],
-   "note": "Theo chương trình GDMN: trẻ 3–4 tuổi đếm trong phạm vi 5; 4–5 tuổi trong phạm vi 10; 5–6 tuổi trong phạm vi 10 và hơn thế, gộp/tách nhóm.",
+   "note": "",
    "lessons": [
     {
      "id": "ex6qWpDpnIk",
@@ -471,7 +449,7 @@
     "Gia đình, nghề nghiệp, phương tiện giao thông",
     "Thời tiết, ngày – đêm, cây cối (Khám phá khoa học và xã hội – GDMN)"
    ],
-   "note": "Bám các chủ đề Khám phá khoa học/xã hội của chương trình GDMN 3–5 tuổi: cơ thể, đồ vật, phương tiện giao thông, động – thực vật, thời tiết, nghề nghiệp, gia đình.",
+   "note": "",
    "lessons": [
     {
      "id": "SeV0LUOL6sA",
@@ -538,7 +516,7 @@
     "Tô, đồ nét chữ, sao chép chữ cái (GDMN 5–6 tuổi)",
     "Đọc từ đơn giản"
    ],
-   "note": "Theo chương trình GDMN 5–6 tuổi: tô, đồ các nét chữ, sao chép một số chữ cái, tên của mình; làm quen cách đọc, viết tiếng Việt.",
+   "note": "",
    "lessons": [
     {
      "id": "hwVaFfmMd6A",
@@ -593,7 +571,7 @@
     "So sánh, sắp xếp theo quy tắc",
     "Cộng trừ trong phạm vi 10"
    ],
-   "note": "Theo chương trình GDMN 5–6 tuổi: gộp/tách các nhóm đối tượng bằng các cách khác nhau và đếm; so sánh và sắp xếp theo quy tắc.",
+   "note": "",
    "lessons": [
     {
      "id": "JNw9zJ18Dg8",
@@ -654,7 +632,7 @@
     "Từ vựng đầu tiên",
     "Hát theo, nghe phát âm chuẩn"
    ],
-   "note": "Các kênh Super Simple Songs, Alphablocks, Numberblocks, Pinkfong thường được Common Sense Media và AAP nêu là nội dung chất lượng cho trẻ nhỏ.",
+   "note": "",
    "lessons": [
     {
      "id": "I_3mbra4dHU",
@@ -721,7 +699,7 @@
     "Nghe và hát theo",
     "Làm quen âm điệu tiếng Anh"
    ],
-   "note": "Nội dung ngôn ngữ nên xem cùng bố mẹ, nói lại và chỉ vào đồ vật thật để bé gắn từ với thực tế (AAP/Mayo Clinic).",
+   "note": "",
    "lessons": [
     {
      "id": "eBVqcTEC3zQ",
@@ -788,7 +766,7 @@
     "Hiểu hiện tượng tự nhiên đơn giản",
     "Thí nghiệm vui tại nhà cùng bố mẹ"
    ],
-   "note": "SciShow Kids, National Geographic Kids và Free School được nhiều danh sách của giáo viên/phụ huynh nêu cho trẻ mầm non – tiểu học.",
+   "note": "",
    "lessons": [
     {
      "id": "_aAmaCeq9v4",
@@ -849,13 +827,13 @@
     7
    ],
    "dailyMinutes": 20,
-   "blurb": "Giao thông, lửa và điện, nước, người lạ, bảo vệ cơ thể, số điện thoại khẩn cấp. Nên xem cùng bố mẹ và trò chuyện sau mỗi video.",
+   "blurb": "Giao thông, lửa và điện, nước, người lạ, bảo vệ cơ thể, số điện thoại khẩn cấp.",
    "goals": [
     "Qua đường an toàn, nhận biết biển báo (GDMN)",
     "Tránh nguy hiểm: lửa, điện, nước",
     "Tự bảo vệ: không đi theo người lạ, quyền riêng tư cơ thể"
    ],
-   "note": "Chương trình GDMN có nội dung nhận ra ký hiệu thông thường (nơi nguy hiểm, biển báo giao thông). Chủ đề tự bảo vệ cơ thể nên được bố mẹ xem trước và xem cùng bé.",
+   "note": "Nên xem trước và xem cùng bé.",
    "lessons": [
     {
      "id": "TFCQQ6sgfaw",
@@ -922,7 +900,7 @@
     "Cách bình tĩnh lại",
     "Chia sẻ, nhường nhịn, kết bạn (phát triển tình cảm – kỹ năng xã hội, GDMN)"
    ],
-   "note": "Một trong 5 lĩnh vực phát triển của chương trình GDMN là tình cảm và kỹ năng xã hội. Sesame Street và PBS Kids được AAP nêu là nội dung chất lượng.",
+   "note": "",
    "lessons": [
     {
      "id": "QZlZ1Yf4FgY",
@@ -983,7 +961,7 @@
     "Thư giãn, hít thở",
     "Giảm thời gian ngồi một chỗ (WHO)"
    ],
-   "note": "WHO nhấn mạnh trẻ dưới 5 tuổi cần nhiều vận động và hạn chế ngồi xem màn hình; chọn video để bé đứng lên làm theo.",
+   "note": "",
    "lessons": [
     {
      "id": "ucqYUEKGILM",
@@ -1038,7 +1016,7 @@
     "Bài học về lòng tốt, trung thực, dũng cảm",
     "Mở rộng vốn từ"
    ],
-   "note": "AAP khuyến nghị không xem màn hình trong 1 giờ trước giờ ngủ. Nên xem truyện vào buổi chiều rồi cho bé kể lại.",
+   "note": "",
    "lessons": [
     {
      "id": "MtzDqwoLYIo",
@@ -1105,7 +1083,7 @@
     "Đếm, cộng trừ trong phạm vi 10",
     "Tự phục vụ: xếp cặp sách, ăn, đi vệ sinh, giao tiếp với cô giáo"
    ],
-   "note": "Bám nội dung chương trình GDMN 5–6 tuổi; nên kết hợp tập viết, đọc sách và trò chuyện, không chỉ xem video.",
+   "note": "",
    "lessons": [
     {
      "id": "aoadxkNkEqw",
@@ -1166,7 +1144,7 @@
     "Thuộc bảng nhân 2, 3, 4, 5",
     "Hiểu ý nghĩa phép nhân"
    ],
-   "note": "Cho bé 6–8 tuổi, nên xen kẽ video và bài tập viết; mỗi video xem xong làm vài phép tính.",
+   "note": "",
    "lessons": [
     {
      "id": "maYgsBjkhyg",

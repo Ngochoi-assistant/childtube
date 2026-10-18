@@ -96,6 +96,8 @@ function sheet(html, onClick) {
 }
 function closeSheet() { $('#sheet').classList.add('hidden'); sheetHandler = null; sheetChange = null; }
 $('#sheet').addEventListener('change', (e) => { if (sheetChange) sheetChange(e); });
+$('#sheet-x').addEventListener('click', closeSheet);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#sheet').classList.contains('hidden')) closeSheet(); });
 $('#sheet').addEventListener('click', (e) => {
   if (e.target === $('#sheet')) return closeSheet();
   const b = e.target.closest('[data-a]');
@@ -369,13 +371,9 @@ function viewGroups() {
     return `<h2>${title}<button class="btn small" data-a="newgroup" data-kind="${kind}">+ Tạo</button></h2>
     <div class="card">${list.length ? list.map(card).join('') : `<div class="empty">${hint}</div>`}</div>`;
   };
-  const cta = `<div class="card warn"><b>✨ Giáo trình mẫu theo độ tuổi</b>
-    <div class="hint" style="margin:4px 0 8px;color:inherit">Bộ giáo trình dựng sẵn từ khuyến nghị của WHO/AAP và chương trình mầm non Việt Nam: chọn mẫu, thêm bằng một chạm rồi chỉnh sửa theo ý bạn.</div>
-    <button class="btn small" data-a="tpl-open">Xem thư viện mẫu</button></div>`;
-  return cta + block('collection', '📚 Giáo trình / Bộ sưu tập', 'Mỗi giáo trình là một dãy bài theo thứ tự, ví dụ: "Bảng chữ cái", "Đếm số 1–10", "Trước giờ ngủ".')
-    + block('topic', '🏷️ Chủ đề', `Gắn nhãn cho video theo chủ đề: Âm nhạc, Tiếng Anh, Toán…<br><button class="btn small" data-a="suggest" style="margin-top:10px">Tạo nhanh chủ đề gợi ý</button>`)
-    + viewFavs()
-    + '<p class="hint">Mỗi giáo trình/chủ đề hiện thành một mục riêng trên TV. Bấm vào một mục để thêm bài, đổi thứ tự, đánh số bài và theo dõi bé đã học tới đâu.</p>';
+  return block('collection', '📚 Giáo trình', 'Chưa có giáo trình. Bấm <b>+ Tạo</b> để chọn mẫu theo tuổi của bé.')
+    + block('topic', '🏷️ Chủ đề', `Gắn nhãn cho video: Âm nhạc, Tiếng Anh, Toán…<br><button class="btn small" data-a="suggest" style="margin-top:10px">Tạo chủ đề gợi ý</button>`)
+    + viewFavs();
 }
 
 // Trình soạn giáo trình: thứ tự bài, đánh số, khoá theo thứ tự, thêm bài bằng link hoặc chọn từ danh sách.
@@ -544,6 +542,8 @@ async function pickVideos(gid, sid) {
 }
 
 // ---------- Tab Tìm (tìm trực tiếp trên YouTube) ----------
+const srchCache = new Map();
+let srchSeq = 0;
 let srch = { q: '', type: 'video', lang: 'vi', results: null, busy: false, err: '', target: null };
 
 function viewSearch() {
@@ -551,18 +551,16 @@ function viewSearch() {
   const ideas = ['bảng chữ cái tiếng Việt', 'học đếm số cho bé', 'bài hát thiếu nhi', 'truyện cổ tích cho bé', 'khoa học cho bé', 'Super Simple Songs'];
   const tg = srch.target && S.groups.find((g) => g.id === srch.target);
   if (srch.target && !tg) srch.target = null;
-  return `<h2>🔎 Tìm trên YouTube</h2>
-    ${tg ? `<div class="card warn"><b>Đang chọn bài cho «${esc(tg.emoji + ' ' + tg.name)}»</b><div class="hint" style="margin:4px 0 8px;color:inherit">Bấm ➕ ở video để thêm thẳng vào giáo trình này (${tg.items.length} mục).</div><button class="btn small" data-a="starget-open">Xem giáo trình</button> <button class="btn small" data-a="starget-clear">Xong</button></div>` : ''}
+  return `${tg ? `<div class="card warn target"><span>Đang thêm vào <b>${esc(tg.emoji + ' ' + tg.name)}</b> (${tg.items.length})</span><span><button class="btn small" data-a="starget-open">Xem</button> <button class="btn small" data-a="starget-clear">Xong</button></span></div>` : ''}
     <form class="add" id="search-form" onsubmit="return false">
-      <input id="sq" value="${esc(srch.q)}" placeholder="Tìm video, kênh… (vd: học đếm số cho bé)" enterkeyhint="search" autocomplete="off">
+      <input id="sq" value="${esc(srch.q)}" placeholder="Tìm trên YouTube…" enterkeyhint="search" autocomplete="off">
       <button class="btn" data-a="sgo" type="button">Tìm</button>
     </form>
     <div class="chips" style="margin-top:8px">${chips([['video', '🎬 Video'], ['channel', '📺 Kênh'], ['playlist', '📃 Playlist']], srch.type, 'stype')}</div>
     <div class="chips">${chips([['vi', '🇻🇳 Tiếng Việt'], ['en', '🇬🇧 English']], srch.lang, 'slang')}</div>
     ${srch.busy ? '<div class="empty"><span class="spin"></span><br>Đang tìm…</div>'
       : srch.err ? `<div class="empty">${esc(srch.err)}</div>`
-      : srch.results === null ? `<div class="hint" style="margin-top:12px">Gợi ý tìm: ${ideas.map((i) => `<button class="chip" data-a="sidea" data-q="${esc(i)}">${esc(i)}</button>`).join('')}</div>
-        <p class="hint">Kết quả lấy từ YouTube ở chế độ hạn chế nội dung, nhưng bạn vẫn nên bấm <b>▶ Xem thử</b> trước khi thêm. Video có ⚠ không phát được trên TV nên sẽ không thêm được.</p>`
+      : srch.results === null ? `<div class="hint" style="margin-top:12px">Gợi ý tìm: ${ideas.map((i) => `<button class="chip" data-a="sidea" data-q="${esc(i)}">${esc(i)}</button>`).join('')}</div>`
       : srch.results.length ? '<div class="card">' + srch.results.map(searchRow).join('') + '</div>' : '<div class="empty">Không có kết quả. Thử từ khoá khác.</div>'}`;
 }
 
@@ -571,12 +569,12 @@ function searchRow(r, i) {
   if (r.type === 'video') {
     const bad = r.embed === false;
     return `<div class="row" data-i="${i}">
-      <a href="https://www.youtube.com/watch?v=${r.id}" target="_blank" rel="noopener"><img class="th" src="${thumb(r.id)}" alt="" loading="lazy"></a>
+      <a href="https://www.youtube.com/watch?v=${r.id}" target="_blank" rel="noopener"><img class="th" src="${thumb(r.id)}" alt="" loading="lazy" decoding="async"></a>
       <div class="info"><div class="t" style="font-size:14px">${esc(r.title)}</div>
         <div class="m">${esc(r.channel)} · ${esc(r.durationText)}${r.viewsText ? ' · ' + esc(r.viewsText) : ''}${r.published ? ' · ' + esc(r.published) : ''}</div>
         ${bad ? '<div class="m pend">⚠ Không phát được trên TV</div>' : ''}
         <div class="toolbar" style="margin:6px 0 0">
-          ${bad ? '' : inTarget ? '<button class="btn small" disabled>✓ Đã thêm</button>' : `<button class="btn small" data-a="sadd">➕ ${srch.target ? 'Thêm vào giáo trình' : 'Thêm vào giáo trình…'}</button>`}
+          ${bad ? '' : inTarget ? '<button class="btn small" disabled>✓ Đã thêm</button>' : `<button class="btn small" data-a="sadd">➕ Thêm vào giáo trình</button>`}
           ${r.channelId ? '<button class="btn small" data-a="sch">📺 Thêm kênh</button>' : ''}
         </div></div></div>`;
   }
@@ -593,13 +591,19 @@ function searchRow(r, i) {
 async function doSearch() {
   const q = ($('#sq') ? $('#sq').value : srch.q).trim();
   if (q.length < 2) return toast('Hãy gõ ít nhất 2 ký tự.', true);
-  srch.q = q; srch.busy = true; srch.err = '';
+  srch.q = q; srch.err = '';
+  const key = [q.toLowerCase(), srch.type, srch.lang].join('|');
+  if (srchCache.has(key)) { srch.results = srchCache.get(key); srch.busy = false; $('#view').innerHTML = viewSearch(); return; }
+  srch.busy = true; srch.results = null;
+  const mine = ++srchSeq;
   $('#view').innerHTML = viewSearch();
   try {
     const { data, error } = await sb.functions.invoke('ct-search', { body: { q, type: srch.type, lang: srch.lang } });
     if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch (e) { /* giữ thông báo gốc */ } throw new Error(m); }
+    if (mine !== srchSeq) return;
     srch.results = data.results || [];
-  } catch (e) { srch.err = e.message; srch.results = []; }
+    srchCache.set(key, srch.results);
+  } catch (e) { if (mine !== srchSeq) return; srch.err = e.message; srch.results = []; }
   srch.busy = false;
   if (tab === 'search') $('#view').innerHTML = viewSearch();
 }
@@ -643,44 +647,39 @@ const tplMinutes = (t) => Math.max(1, Math.round(t.lessons.reduce((n, l) => n + 
 const ageText = (a) => `${String(a[0]).replace('.5', ',5')}–${a[1]} tuổi`;
 const overlaps = (t, band) => band === 'all' || (t.age[0] <= +band + 1.99 && t.age[1] >= +band);
 
-async function openTemplates() {
-  sheet('<h3>✨ Giáo trình mẫu</h3><div class="empty"><span class="spin"></span></div>');
+async function openCreate() {
+  sheet('<h3>Tạo giáo trình</h3><div class="empty"><span class="spin"></span></div>');
   let d;
   try { d = await loadTemplates(); } catch (e) { toast(e.message, true); return closeSheet(); }
   const list = d.templates.filter((t) => overlaps(t, tplAge)).sort((a, b) => a.age[0] - b.age[0] || a.name.localeCompare(b.name, 'vi'));
-  sheet(`<h3>✨ Giáo trình mẫu theo độ tuổi</h3>
-    <div class="hint" style="margin-top:0">Chọn độ tuổi của bé, xem mẫu, rồi thêm vào danh sách bằng một chạm. Bạn vẫn có thể thêm, bớt, đổi thứ tự bài sau đó.</div>
+  sheet(`<h3>Tạo giáo trình</h3>
+    <button class="choice" data-a="cblank">✏️ Tự tạo từ đầu<small>Đặt tên rồi thêm video bạn chọn</small></button>
+    <label>Hoặc chọn mẫu theo tuổi của bé</label>
     <div class="chips">${AGE_BANDS.map(([v, l]) => `<button class="chip ${tplAge === v ? 'on' : ''}" data-a="tage" data-v="${v}">${l}</button>`).join('')}</div>
-    ${list.map((t) => `<div class="row tap" data-a="tpl" data-id="${t.id}">
-      <div class="av">${esc(t.emoji)}</div>
-      <div class="info"><div class="t">${esc(t.name)}</div><div class="m">${ageText(t.age)} · ${t.lessons.length} bài · khoảng ${tplMinutes(t)} phút</div></div><span class="m">›</span></div>`).join('') || '<div class="empty">Chưa có mẫu cho độ tuổi này.</div>'}
-    <div class="hint" style="margin-top:12px"><b>Cơ sở xây dựng:</b> ${d.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`).join(' · ')}. Danh sách do hệ thống tổng hợp, hãy xem thử video trước khi cho bé xem.</div>
-    <button class="btn primary" data-a="tclose">Đóng</button>`,
+    <div class="tpl-grid">${list.map((t) => `<button class="tpl-card" data-a="tpl" data-id="${t.id}"><span class="e">${esc(t.emoji)}</span><b>${esc(t.name)}</b><small>${ageText(t.age)} · ${t.lessons.length} bài</small></button>`).join('') || '<div class="empty">Chưa có mẫu cho tuổi này.</div>'}</div>`,
   async (a, b) => {
-    if (a === 'tclose') return closeSheet();
-    if (a === 'tage') { tplAge = b.dataset.v; return openTemplates(); }
+    if (a === 'cblank') return newGroup('collection');
+    if (a === 'tage') { tplAge = b.dataset.v; return openCreate(); }
     if (a === 'tpl') return openTemplate(b.dataset.id);
   });
 }
 
 async function openTemplate(id) {
   const d = await loadTemplates(), t = d.templates.find((x) => x.id === id);
-  if (!t) return openTemplates();
+  if (!t) return openCreate();
   const mins = tplMinutes(t);
   sheet(`<div class="head"><div class="av" style="width:54px;height:54px;font-size:28px">${esc(t.emoji)}</div><div><h3>${esc(t.name)}</h3>
-      <div class="hint" style="margin:0">${ageText(t.age)} · ${t.lessons.length} bài · khoảng ${mins} phút · gợi ý xem ≤ ${t.dailyMinutes} phút/ngày</div></div></div>
-    <p class="hint" style="margin-top:0">${esc(t.blurb)}</p>
-    <label>Mục tiêu</label><ul class="hint" style="margin:0 0 6px 18px;padding:0">${t.goals.map((g) => `<li>${esc(g)}</li>`).join('')}</ul>
-    <div class="card warn" style="margin-top:10px"><span style="font-size:13px">📌 ${esc(t.note)}</span></div>
-    <div class="toolbar"><button class="btn small" data-a="tuse">✅ Dùng mẫu này</button><button class="btn small" data-a="tinto">➕ Thêm vào giáo trình có sẵn…</button></div>
-    <h2 style="margin-top:12px">Các bài (${t.lessons.length})</h2>
+      <div class="hint" style="margin:0">${ageText(t.age)} · ${t.lessons.length} bài · ~${mins} phút · xem ≤ ${t.dailyMinutes} phút/ngày</div></div></div>
+    <p class="hint" style="margin:0 0 4px">${esc(t.blurb)}${t.note ? ' ' + esc(t.note) : ''}</p>
+    <button class="btn primary" data-a="tuse">✅ Dùng mẫu này</button>
+    <button class="btn link" data-a="tinto">Hoặc thêm vào giáo trình có sẵn…</button>
     ${t.lessons.map((l, i) => `<div class="row" data-k="${i}">
       <a href="https://www.youtube.com/watch?v=${l.id}" target="_blank" rel="noopener"><img class="th" src="${thumb(l.id)}" alt="" loading="lazy"></a>
       <div class="info"><span class="lesson-n">Bài ${i + 1}</span><div class="t" style="font-size:14px">${esc(l.title)}</div><div class="m">${esc(l.channel)} · ${clock(l.seconds)}</div></div>
       <button class="icon-btn" data-a="tl-add" title="Thêm riêng bài này">➕</button></div>`).join('')}
-    <button class="btn link" data-a="tback">← Quay lại thư viện</button>`,
+    <button class="btn link" data-a="tback">← Chọn mẫu khác</button>`,
   async (a, b) => {
-    if (a === 'tback') return openTemplates();
+    if (a === 'tback') return openCreate();
     if (a === 'tl-add') { const l = t.lessons[+b.closest('.row').dataset.k]; return chooseGroup({ id: l.id, title: l.title }, () => openTemplate(id)); }
     if (a === 'tuse') return useTemplate(t);
     if (a === 'tinto') {
@@ -882,13 +881,12 @@ $('#view').addEventListener('click', async (e) => {
   }
   if (a === 'go-settings') return $('#tabs [data-tab="settings"]').click();
   if (a === 'source') return openSource(b.dataset.id);
-  if (a === 'newgroup') return newGroup(b.dataset.kind);
+  if (a === 'newgroup') return b.dataset.kind === 'collection' ? openCreate() : newGroup(b.dataset.kind);
   if (a === 'suggest') {
     for (const [n, em] of SUGGEST_TOPICS) await act(() => rpc('ct_group_save', { p_id: null, p_kind: 'topic', p_name: n, p_emoji: em }));
     return load();
   }
   if (a === 'gedit') return openGroupEditor(b.dataset.id);
-  if (a === 'tpl-open') return openTemplates();
   // --- Tab Tìm ---
   if (a === 'sgo') return doSearch();
   if (a === 'stype' || a === 'slang') {

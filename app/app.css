@@ -136,3 +136,19 @@ h2 .btn { margin-left: auto; }
 a.btn { text-decoration: none; color: inherit; }
 .toolbar .btn:disabled { opacity: .6; }
 .row .toolbar { flex-wrap: wrap; }
+
+/* ---- Nút đóng, chọn mẫu, mượt ---- */
+.sheet-box { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.sheet-bar { position: sticky; top: 0; height: 0; z-index: 4; display: flex; justify-content: flex-end; }
+.sheet-x { position: relative; top: -2px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--chip); color: var(--ink); font-size: 17px; line-height: 1; }
+.sheet h3 { padding-right: 44px; }
+.tpl-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 8px 0 4px; }
+.tpl-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left; padding: 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--bg); min-height: 108px; }
+.tpl-card .e { font-size: 28px; line-height: 1.1; }
+.tpl-card b { font-size: 14px; line-height: 1.25; }
+.tpl-card small { color: var(--mute); font-size: 12px; }
+.tpl-card:active { transform: scale(.97); background: var(--chip-on); }
+.card.target { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; font-size: 14px; }
+.row { content-visibility: auto; contain-intrinsic-size: auto 64px; }
+.sheet { backdrop-filter: none; }
+.sheet-box { animation-duration: .15s; will-change: transform; }
