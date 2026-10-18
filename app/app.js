@@ -102,7 +102,7 @@ function showApp(on) {
   $('#login').classList.toggle('hidden', on);
   $('#main').classList.toggle('hidden', !on);
   $('#tabs').classList.toggle('hidden', !on);
-  if (!on) $('#fam-name').textContent = '';
+  if (!on) { $('#fam-name').textContent = ''; setMode(false); }
 }
 
 sb.auth.onAuthStateChange((ev, session) => {
