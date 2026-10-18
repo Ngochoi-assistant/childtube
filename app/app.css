@@ -167,3 +167,25 @@ textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px sol
 .wz-day { font-size: 12px; font-weight: 800; color: var(--mute); text-transform: uppercase; letter-spacing: .04em; padding: 10px 2px 2px; }
 .wz-sum { line-height: 1.6; }
 .btn:disabled { opacity: .45; }
+
+/* ---- Hồ sơ, năng lực, lộ trình ---- */
+.wz-sub { margin: 0 0 4px !important; }
+.wz-q { padding: 8px 0; border-top: 1px solid var(--line); }
+.wz-q:first-of-type { border-top: 0; }
+.wz-q > label { margin: 4px 0 2px; color: var(--ink); font-size: 14px; }
+.wz-t { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.wz-opts { margin: 4px 0 2px; }
+.wz-opts .chip { padding: 6px 11px; font-size: 13px; }
+.wz-dom { font-size: 15px !important; margin: 16px 2px 6px !important; }
+.wz-card { padding: 4px 12px; }
+.wz-bar { padding: 8px 0; }
+.wz-bar-h { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+.lv { font-size: 12px; color: var(--mute); }
+.lv.ok { color: var(--ok); } .lv.mid { color: var(--blue); } .lv.low { color: var(--danger); }
+.wz-tips { margin: 4px 0 8px 18px; padding: 0; font-size: 14px; color: var(--ink); }
+.wz-tips li { margin: 4px 0; }
+.wz-stage { padding: 12px 14px; }
+.wz-stage-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.wz-goal { font-size: 14px; padding: 4px 0; }
+.wz-tipbox { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--bg); font-size: 13px; color: var(--mute); }
+.wz-tipbox b { display: block; color: var(--ink); margin-bottom: 2px; }
