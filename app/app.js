@@ -12,7 +12,6 @@ const SUGGEST_TOPICS = [['Âm nhạc', '🎵'], ['Tiếng Anh', '🔤'], ['Toán
 
 let S = null;          // trạng thái gia đình (ct_state)
 let tab = 'list';
-let openGroup = null;  // nhóm đang mở trong tab Nhóm
 let pendingLink = '';  // link nhận từ "Chia sẻ" hoặc extension
 
 // ---------- Tiện ích ----------
@@ -44,8 +43,17 @@ async function act(fn, okMsg) {
 async function load() {
   S = await rpc('ct_state');
   $('#fam-name').textContent = S.family.name;
+  updateBadge();
   render();
   offerPair();
+}
+// Cập nhật dữ liệu mà không vẽ lại màn hình (để không nháy khi đang duyệt hàng loạt).
+async function quietLoad() { S = await rpc('ct_state'); updateBadge(); }
+const pendTotal = () => S.sources.reduce((n, s) => n + (s.pending || 0), 0);
+function updateBadge() {
+  const n = pendTotal(), el = $('#pend-count');
+  el.textContent = n > 99 ? '99+' : n;
+  el.classList.toggle('hidden', !n);
 }
 
 // Có mã ghép từ QR trên TV: hỏi xác nhận rồi ghép.
@@ -79,13 +87,15 @@ const ago = (t) => {
 };
 
 // ---------- Bảng trượt ----------
-let sheetHandler = null;
+let sheetHandler = null, sheetChange = null;
 function sheet(html, onClick) {
   $('#sheet-body').innerHTML = html;
   sheetHandler = onClick || null;
+  sheetChange = null;
   $('#sheet').classList.remove('hidden');
 }
-function closeSheet() { $('#sheet').classList.add('hidden'); sheetHandler = null; }
+function closeSheet() { $('#sheet').classList.add('hidden'); sheetHandler = null; sheetChange = null; }
+$('#sheet').addEventListener('change', (e) => { if (sheetChange) sheetChange(e); });
 $('#sheet').addEventListener('click', (e) => {
   if (e.target === $('#sheet')) return closeSheet();
   const b = e.target.closest('[data-a]');
@@ -155,8 +165,9 @@ function render() {
   if (!S) return;
   const v = $('#view');
   if (tab === 'list') v.innerHTML = viewList();
+  else if (tab === 'review') renderReview();
+  else if (tab === 'history') renderHistory();
   else if (tab === 'groups') v.innerHTML = viewGroups();
-  else if (tab === 'favs') v.innerHTML = viewFavs();
   else v.innerHTML = viewSettings();
   if (tab === 'list' && pendingLink) { $('#link').value = pendingLink; pendingLink = ''; startAdd(); }
 }
@@ -165,7 +176,9 @@ function render() {
 function viewList() {
   const src = S.sources;
   const noTv = !S.tvs.length ? `<div class="card"><b>Chưa có TV nào.</b><div class="hint" style="margin:4px 0 8px">Mở app ChildTube trên TV, TV sẽ hiện một mã 6 số.</div><button class="btn small" data-a="go-settings">Ghép TV ngay</button></div>` : '';
-  return `${noTv}
+  const waiting = pendTotal();
+  const banner = waiting ? `<div class="card warn"><b>⏳ ${waiting} video đang chờ bạn duyệt</b><div class="hint" style="margin:4px 0 8px;color:inherit">Bé chưa xem được các video này trên TV.</div><button class="btn small" data-a="gorev">Duyệt ngay</button></div>` : '';
+  return `${noTv}${banner}
   <form class="add" id="add-form" onsubmit="return false">
     <input id="link" placeholder="Dán link YouTube (kênh, video, playlist)" autocomplete="off" enterkeyhint="go">
     <button class="btn" data-a="add" type="submit">Thêm</button>
@@ -176,7 +189,7 @@ function viewList() {
     <div class="row tap" data-a="source" data-id="${s.id}">
       ${s.kind === 'video' ? `<img class="th" src="${esc(s.thumb)}" alt="">` : `<img class="av" src="${esc(s.thumb)}" alt="">`}
       <div class="info"><div class="t">${esc(s.title)}</div>
-        <div class="m"><span class="badge">${KIND[s.kind]}</span>${s.kind === 'video' ? '' : s.count + ' video'}${tagLine(s.id)}</div></div>
+        <div class="m"><span class="badge">${KIND[s.kind]}</span>${s.kind === 'video' ? '' : s.count + ' video'}${s.pending ? ` · <span class="pend">⏳ ${s.pending} chờ duyệt</span>` : (s.kind !== 'video' && s.approval === 'auto' ? ' · ▶ tự động' : '')}${tagLine(s.id)}</div></div>
       <span class="m">›</span>
     </div>`).join('') : `<div class="empty">Chưa có gì.<br>Dán link kênh YouTube đầu tiên ở trên, ví dụ <b>youtube.com/@Cocomelon</b></div>`}
   </div>`;
@@ -218,20 +231,32 @@ async function doAdd(url, as) {
   if (btn) { btn.disabled = false; btn.textContent = 'Thêm'; }
 }
 
-// Chi tiết một kênh/playlist/video: gắn nhóm, sắp xếp, xoá, từng video (yêu thích / ẩn / nhóm).
+// Chi tiết một kênh/playlist/video: chế độ duyệt, gắn nhóm, sắp xếp, xoá, từng video.
 async function openSource(id, justAdded) {
   const s = S.sources.find((x) => x.id === id);
   if (!s) return;
   const idx = S.sources.indexOf(s);
   const isVideo = s.kind === 'video';
+  const manual = !isVideo && s.approval === 'manual';
   const chips = (kind) => groupsOf(kind).map((g) => {
     const on = isVideo ? g.items.some((i) => i.video_id === s.yt_id) : g.items.some((i) => i.source_id === s.id);
     return `<button class="chip ${on ? 'on' : ''}" data-a="tag" data-g="${g.id}">${esc(g.emoji)} ${esc(g.name)}</button>`;
   }).join('') + `<button class="chip add-chip" data-a="newgroup" data-kind="${kind}">+ Tạo mới</button>`;
   const fav = isVideo && S.favorites.some((f) => f.video_id === s.yt_id);
+  const modeBox = isVideo ? '' : `
+    <label>Cách cho bé xem</label>
+    <div class="chips">
+      <button class="chip ${manual ? 'on' : ''}" data-a="mode" data-m="manual">✅ Tôi duyệt từng video</button>
+      <button class="chip ${manual ? '' : 'on'}" data-a="mode" data-m="auto">▶ Cho xem tất cả</button>
+    </div>
+    <div class="hint" style="margin:0 0 8px">${manual
+      ? 'Video của ' + (s.kind === 'channel' ? 'kênh' : 'playlist') + ' này (kể cả video mới) chỉ lên TV sau khi bạn bấm ✅ <b>Cho xem</b>.'
+      : 'Tất cả video, kể cả video mới đăng, hiện trên TV ngay.'}</div>
+    ${manual && s.pending ? `<button class="btn small" data-a="okall">✅ Duyệt tất cả (${s.pending} video)</button>` : ''}`;
 
   sheet(`<div class="head"><img src="${esc(s.thumb)}" alt=""><div><h3>${esc(s.title)}</h3><div class="hint" style="margin:0">${KIND[s.kind]}${isVideo ? '' : ' · ' + s.count + ' video'}</div></div></div>
-    ${justAdded ? '<div class="hint">Đã thêm! Chọn bộ sưu tập / chủ đề cho ' + (isVideo ? 'video' : 'kênh') + ' này (không bắt buộc):</div>' : ''}
+    ${justAdded ? '<div class="hint">Đã thêm!' + (isVideo ? '' : ' Mặc định bé <b>chỉ xem video bạn duyệt</b>: bấm ✅ ở từng video bên dưới, hoặc <b>Duyệt tất cả</b>.') + '</div>' : ''}
+    ${modeBox}
     <label>Bộ sưu tập</label><div class="chips">${chips('collection')}</div>
     <label>Chủ đề</label><div class="chips">${chips('topic')}</div>
     <div class="toolbar">
@@ -240,7 +265,7 @@ async function openSource(id, justAdded) {
       <button class="btn small" data-a="down" ${idx === S.sources.length - 1 ? 'disabled' : ''}>↓ Xuống</button>
       <button class="btn small danger" data-a="del">Xoá</button>
     </div>
-    ${isVideo ? '' : '<h2 style="margin-top:14px">Từng video</h2><div class="hint" style="margin-top:-6px">❤ yêu thích · 🏷 gắn nhóm · 🚫 ẩn không cho bé xem</div><div id="vids"><div class="empty"><span class="spin"></span></div></div>'}`,
+    ${isVideo ? '' : `<h2 style="margin-top:14px">Từng video</h2><div class="hint" style="margin-top:-6px">${manual ? '✅ cho xem · ' : ''}❤ yêu thích · 🏷 thêm vào giáo trình/nhóm · 🚫 ẩn</div><div id="vids"><div class="empty"><span class="spin"></span></div></div>`}`,
   async (a, b) => {
     if (a === 'tag') {
       const g = S.groups.find((x) => x.id === b.dataset.g);
@@ -250,6 +275,13 @@ async function openSource(id, justAdded) {
       await load();
     } else if (a === 'newgroup') {
       newGroup(b.dataset.kind, () => openSource(id));
+    } else if (a === 'mode') {
+      await act(() => rpc('ct_set_approval', { p_source: s.id, p_mode: b.dataset.m }));
+      await load(); openSource(id);
+    } else if (a === 'okall') {
+      const n = await act(() => rpc('ct_approve_source', { p_source: s.id }));
+      if (n !== undefined) toast(`Đã duyệt ${n} video. Bé xem được trên TV.`);
+      await load(); openSource(id);
     } else if (a === 'fav') {
       await act(() => rpc('ct_favorite', { p_video: s.yt_id, p_title: s.title, p_on: !fav }));
       await load(); openSource(id);
@@ -263,16 +295,19 @@ async function openSource(id, justAdded) {
       if (!confirm(`Xoá "${s.title}" khỏi danh sách của bé?`)) return;
       await act(() => rpc('ct_source_delete', { p_id: s.id }), 'Đã xoá');
       closeSheet(); load();
-    } else if (a === 'vfav' || a === 'vhide' || a === 'vtag') {
+    } else if (a === 'vfav' || a === 'vhide' || a === 'vtag' || a === 'vok') {
       const row = b.closest('.row');
       const vid = row.dataset.vid, title = row.dataset.title;
       if (a === 'vtag') return videoTags(vid, title, () => openSource(id));
       const on = !b.classList.contains('on');
-      await act(() => a === 'vfav' ? rpc('ct_favorite', { p_video: vid, p_title: title, p_on: on }) : rpc('ct_hide', { p_video: vid, p_on: on }));
+      await act(() => a === 'vfav' ? rpc('ct_favorite', { p_video: vid, p_title: title, p_on: on })
+        : a === 'vok' ? rpc('ct_approve', { p_videos: [vid], p_on: on })
+        : rpc('ct_hide', { p_video: vid, p_on: on }));
       b.classList.toggle('on', on);
-      if (a === 'vhide') row.classList.toggle('off', on);
+      if (a === 'vhide') { row.classList.toggle('off', on); if (on) { const ok = row.querySelector('[data-a="vok"]'); if (ok) ok.classList.remove('on'); } }
+      if (a === 'vok') { row.classList.remove('off'); row.classList.toggle('waiting', !on); const hb = row.querySelector('[data-a="vhide"]'); if (hb) hb.classList.remove('on'); }
       if (a === 'vfav') b.textContent = on ? '❤️' : '🤍';
-      load();
+      quietLoad();
     }
   });
 
@@ -282,12 +317,15 @@ async function openSource(id, justAdded) {
       const box = $('#vids');
       if (!box) return;
       box.innerHTML = vids.length ? vids.map((v) => `
-        <div class="row ${v.hidden ? 'off' : ''}" data-vid="${v.id}" data-title="${esc(v.title)}">
+        <div class="row ${v.hidden ? 'off' : ''} ${manual && !v.approved && !v.hidden ? 'waiting' : ''}" data-vid="${v.id}" data-title="${esc(v.title)}">
           <img class="th" src="${thumb(v.id)}" alt="" loading="lazy">
-          <div class="info"><div class="t" style="font-size:14px">${esc(v.title)}</div>${v.groups.length ? `<div class="m">${esc(S.groups.filter((g) => v.groups.includes(g.id)).map((g) => g.emoji + ' ' + g.name).join(', '))}</div>` : ''}</div>
-          <button class="icon-btn ${v.fav ? 'on' : ''}" data-a="vfav" title="Yêu thích">${v.fav ? '❤️' : '🤍'}</button>
-          <button class="icon-btn" data-a="vtag" title="Gắn nhóm">🏷</button>
-          <button class="icon-btn ${v.hidden ? 'on' : ''}" data-a="vhide" title="Ẩn">🚫</button>
+          <div class="info"><div class="t" style="font-size:14px">${esc(v.title)}</div>${manual && !v.approved && !v.hidden ? '<div class="m pend">⏳ Chờ duyệt</div>' : ''}${v.groups.length ? `<div class="m">${esc(S.groups.filter((g) => v.groups.includes(g.id)).map((g) => g.emoji + ' ' + g.name).join(', '))}</div>` : ''}</div>
+          <div class="ctl">
+            ${manual ? `<button class="icon-btn ${v.approved ? 'on' : ''}" data-a="vok" title="Cho xem">✅</button>` : ''}
+            <button class="icon-btn ${v.fav ? 'on' : ''}" data-a="vfav" title="Yêu thích">${v.fav ? '❤️' : '🤍'}</button>
+            <button class="icon-btn" data-a="vtag" title="Thêm vào giáo trình">🏷</button>
+            <button class="icon-btn ${v.hidden ? 'on' : ''}" data-a="vhide" title="Ẩn">🚫</button>
+          </div>
         </div>`).join('') : '<div class="empty">Chưa lấy được video. Thử lại sau ít phút.</div>';
     } catch (e) { toast(e.message, true); }
   }
@@ -313,39 +351,257 @@ function videoTags(vid, title, back) {
   });
 }
 
-// ---------- Tab Nhóm (bộ sưu tập + chủ đề) ----------
+// ---------- Tab Giáo trình (bộ sưu tập + chủ đề + yêu thích) ----------
 function viewGroups() {
+  const card = (g) => {
+    const vids = g.items.filter((i) => i.video_id), done = vids.filter((i) => i.done).length;
+    const srcN = g.items.length - vids.length;
+    return `<div class="row tap" data-a="gedit" data-id="${g.id}">
+      <div class="av">${esc(g.emoji || '📁')}</div>
+      <div class="info"><div class="t">${esc(g.name)}</div>
+        <div class="m">${vids.length} bài${srcN ? ` + ${srcN} kênh/playlist` : ''}${g.numbered && vids.length ? ` · đã học ${done}/${vids.length}` : ''}${g.locked ? ' · 🔒 học theo thứ tự' : ''}</div>
+        ${g.numbered && vids.length ? `<div class="bar sm"><i style="width:${Math.round(done / vids.length * 100)}%"></i></div>` : ''}</div>
+      <span class="m">›</span></div>`;
+  };
   const block = (kind, title, hint) => {
     const list = groupsOf(kind);
     return `<h2>${title}<button class="btn small" data-a="newgroup" data-kind="${kind}">+ Tạo</button></h2>
-    <div class="card">${list.length ? list.map((g, i) => `
-      <div class="row tap" data-a="group" data-id="${g.id}">
-        <div class="av">${esc(g.emoji || '📁')}</div>
-        <div class="info"><div class="t">${esc(g.name)}</div><div class="m">${g.items.length} mục</div></div>
-        <span class="m">${openGroup === g.id ? '⌄' : '›'}</span>
-      </div>
-      ${openGroup === g.id ? groupDetail(g, i, list.length) : ''}`).join('') : `<div class="empty">${hint}</div>`}
-    </div>`;
+    <div class="card">${list.length ? list.map(card).join('') : `<div class="empty">${hint}</div>`}</div>`;
   };
-  return block('collection', '🗂️ Bộ sưu tập', 'Ví dụ: "Trước giờ ngủ", "Cuối tuần", "Học buổi sáng"')
-    + block('topic', '🏷️ Chủ đề', `Ví dụ: Âm nhạc, Tiếng Anh, Toán…<br><button class="btn small" data-a="suggest" style="margin-top:10px">Tạo nhanh chủ đề gợi ý</button>`)
-    + '<p class="hint">Mỗi nhóm hiện thành một mục riêng trên TV. Thêm kênh hoặc video vào nhóm ở tab <b>Danh sách</b> (bấm vào kênh → chọn nhóm, hoặc 🏷 ở từng video).</p>';
+  return block('collection', '📚 Giáo trình / Bộ sưu tập', 'Mỗi giáo trình là một dãy bài theo thứ tự, ví dụ: "Bảng chữ cái", "Đếm số 1–10", "Trước giờ ngủ".')
+    + block('topic', '🏷️ Chủ đề', `Gắn nhãn cho video theo chủ đề: Âm nhạc, Tiếng Anh, Toán…<br><button class="btn small" data-a="suggest" style="margin-top:10px">Tạo nhanh chủ đề gợi ý</button>`)
+    + viewFavs()
+    + '<p class="hint">Mỗi giáo trình/chủ đề hiện thành một mục riêng trên TV. Bấm vào một mục để thêm bài, đổi thứ tự, đánh số bài và theo dõi bé đã học tới đâu.</p>';
 }
-function groupDetail(g, i, n) {
-  const item = (it) => {
-    const s = it.source_id && S.sources.find((x) => x.id === it.source_id);
-    const img = s ? s.thumb : thumb(it.video_id);
-    return `<div class="row" style="padding-left:12px"><img class="${s && s.kind !== 'video' ? 'av' : 'th'}" src="${esc(img)}" alt="">
-      <div class="info"><div class="t" style="font-size:14px">${esc(s ? s.title : it.title)}</div><div class="m">${s ? KIND[s.kind] + (s.kind === 'video' ? '' : ' · cả kênh') : 'Video'}</div></div>
-      <button class="icon-btn" data-a="gremove" data-item="${it.id}" data-g="${g.id}" title="Bỏ khỏi nhóm">✕</button></div>`;
+
+// Trình soạn giáo trình: thứ tự bài, đánh số, khoá theo thứ tự, thêm bài bằng link hoặc chọn từ danh sách.
+function openGroupEditor(gid, keepScroll) {
+  const g = S.groups.find((x) => x.id === gid);
+  if (!g) return closeSheet();
+  const box = $('.sheet-box');
+  const y = keepScroll && box ? box.scrollTop : 0;
+  const vids = g.items.filter((i) => i.video_id), done = vids.filter((i) => i.done).length;
+  let n = 0;
+  const row = (it, k) => {
+    const src = it.source_id && S.sources.find((x) => x.id === it.source_id);
+    const lead = src ? `<img class="av" src="${esc(src.thumb)}" alt="">` : `<img class="th" src="${thumb(it.video_id)}" alt="" loading="lazy">`;
+    const num = !src && g.numbered ? `<span class="lesson-n">Bài ${++n}</span>` : '';
+    return `<div class="row lesson ${it.done ? 'done' : ''}">
+      ${lead}
+      <div class="info">${num}<div class="t" style="font-size:14px">${esc(src ? src.title : it.title)}</div>
+        <div class="m">${src ? `${KIND[src.kind]} · cả ${src.kind === 'channel' ? 'kênh' : 'playlist'} (${src.count} video)` : (it.done ? '✓ Đã học' : 'Chưa học')}</div></div>
+      <div class="ctl">
+        ${src ? '<span></span>' : `<button class="icon-btn ${it.done ? 'on' : ''}" data-a="gdone" data-k="${k}" title="Đánh dấu đã học">✓</button>`}
+        <button class="icon-btn" data-a="gmv" data-d="-1" data-k="${k}" title="Lên" ${k === 0 ? 'disabled' : ''}>↑</button>
+        <button class="icon-btn" data-a="grm" data-k="${k}" title="Bỏ khỏi nhóm">✕</button>
+        <button class="icon-btn" data-a="gmv" data-d="1" data-k="${k}" title="Xuống" ${k === g.items.length - 1 ? 'disabled' : ''}>↓</button>
+      </div></div>`;
   };
-  return `<div style="padding:0 0 8px">${g.items.map(item).join('') || '<div class="hint" style="padding-left:12px">Nhóm trống.</div>'}
-    <div class="toolbar" style="padding-left:12px">
-      <button class="btn small" data-a="gup" data-g="${g.id}" ${i === 0 ? 'disabled' : ''}>↑</button>
-      <button class="btn small" data-a="gdown" data-g="${g.id}" ${i === n - 1 ? 'disabled' : ''}>↓</button>
-      <button class="btn small" data-a="gedit" data-g="${g.id}">✎ Sửa</button>
-      <button class="btn small danger" data-a="gdel" data-g="${g.id}">Xoá nhóm</button>
-    </div></div>`;
+  sheet(`<div class="head"><div class="av" style="width:54px;height:54px;font-size:28px">${esc(g.emoji || '📁')}</div>
+      <div><h3>${esc(g.name)}</h3><div class="hint" style="margin:0">${g.kind === 'collection' ? 'Bộ sưu tập' : 'Chủ đề'} · ${vids.length} bài${vids.length ? ` · đã học ${done}/${vids.length}` : ''}</div></div></div>
+    ${vids.length ? `<div class="bar"><i style="width:${Math.round(done / vids.length * 100)}%"></i></div>` : ''}
+    <label>Mục tiêu / ghi chú</label>
+    <input id="g-note" value="${esc(g.note)}" placeholder="Ví dụ: Học bảng chữ cái trong 2 tuần" maxlength="200">
+    <label class="switch"><input type="checkbox" data-a="gnum" ${g.numbered ? 'checked' : ''}> Đánh số bài (Bài 1, Bài 2…) và chiếu theo thứ tự</label>
+    <label class="switch" ${g.numbered ? '' : 'style="opacity:.45"'}><input type="checkbox" data-a="glock" ${g.locked ? 'checked' : ''} ${g.numbered ? '' : 'disabled'}> Khoá bài sau cho tới khi bé xem xong bài trước</label>
+    <h2 style="margin-top:14px">Các bài (${g.items.length})</h2>
+    <div>${g.items.length ? g.items.map(row).join('') : '<div class="empty">Chưa có bài nào. Thêm bên dưới.</div>'}</div>
+    <h2 style="margin-top:14px">Thêm bài</h2>
+    <div class="add"><input id="g-link" placeholder="Dán link video YouTube" autocomplete="off"><button class="btn" data-a="gadd">Thêm</button></div>
+    <div class="toolbar"><button class="btn small" data-a="gpick">📂 Chọn từ danh sách đã có</button></div>
+    <div class="toolbar" style="margin-top:14px">
+      <button class="btn small" data-a="gren">✎ Tên & biểu tượng</button>
+      <button class="btn small" data-a="gup">↑ Nhóm lên</button>
+      <button class="btn small" data-a="gdown">↓ Nhóm xuống</button>
+      <button class="btn small danger" data-a="gdel">Xoá nhóm</button>
+    </div>
+    <button class="btn primary" data-a="gclose">Xong</button>`,
+  async (a, b) => {
+    const reopen = async () => { await load(); openGroupEditor(gid, true); };
+    const it = b.dataset.k !== undefined ? g.items[+b.dataset.k] : null;
+    if (a === 'gclose') return closeSheet();
+    if (a === 'gnum') { await act(() => rpc('ct_group_update', { p_id: gid, p: b.checked ? { numbered: true } : { numbered: false, locked: false } })); return reopen(); }
+    if (a === 'glock') { await act(() => rpc('ct_group_update', { p_id: gid, p: { locked: b.checked } })); return reopen(); }
+    if (a === 'gdone') { await act(() => rpc('ct_mark_done', { p_video: it.video_id, p_on: !it.done })); return reopen(); }
+    if (a === 'gmv') {
+      const ids = g.items.map((x) => x.id), k = +b.dataset.k, j = k + +b.dataset.d;
+      [ids[k], ids[j]] = [ids[j], ids[k]];
+      await act(() => rpc('ct_group_reorder', { p_group: gid, p_items: ids }));
+      return reopen();
+    }
+    if (a === 'grm') {
+      await act(() => rpc('ct_group_item', { p_group: gid, p_source: it.source_id, p_video: it.video_id, p_title: '', p_on: false }));
+      return reopen();
+    }
+    if (a === 'gadd') return addLinkToGroup(gid, $('#g-link').value);
+    if (a === 'gpick') return openPicker(gid);
+    if (a === 'gren') return newGroup(g.kind, () => openGroupEditor(gid), g);
+    if (a === 'gup' || a === 'gdown') {
+      const ids = groupsOf(g.kind).map((x) => x.id), i = ids.indexOf(gid), j = i + (a === 'gup' ? -1 : 1);
+      if (j < 0 || j >= ids.length) return;
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      await act(() => rpc('ct_reorder', { p_what: 'group', p_ids: ids }), 'Đã đổi thứ tự hiển thị trên TV');
+      return reopen();
+    }
+    if (a === 'gdel') {
+      if (!confirm(`Xoá "${g.name}"? (Kênh và video vẫn còn trong danh sách.)`)) return;
+      await act(() => rpc('ct_group_delete', { p_id: gid }), 'Đã xoá');
+      closeSheet(); return load();
+    }
+  });
+  sheetChange = async (e) => {
+    if (e.target.id !== 'g-note') return;
+    await act(() => rpc('ct_group_update', { p_id: gid, p: { note: e.target.value } }), 'Đã lưu ghi chú');
+    quietLoad();
+  };
+  if (box) box.scrollTop = y;
+}
+
+// Dán link YouTube vào giáo trình: video → thêm thành một bài; kênh/playlist → thêm cả kênh/playlist.
+async function addLinkToGroup(gid, text) {
+  const url = (text || '').trim();
+  if (!url) return toast('Hãy dán link video YouTube.', true);
+  const k = linkKind(url);
+  const vid = (url.match(/(?:[?&]v=|youtu\.be\/|\/shorts\/|\/embed\/|\/live\/)([\w-]{11})/) || [])[1];
+  const btn = $('[data-a="gadd"]'); if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spin"></span>'; }
+  try {
+    if ((k === 'video' || k === 'video+list') && vid) {
+      const exist = S.sources.find((x) => x.kind === 'video' && x.yt_id === vid);
+      if (exist) {
+        await rpc('ct_group_item', { p_group: gid, p_source: null, p_video: vid, p_title: exist.title, p_on: true });
+      } else {
+        const r = await yt({ action: 'add', url });
+        await rpc('ct_group_item', { p_group: gid, p_source: null, p_video: vid, p_title: r.title, p_on: true });
+        await rpc('ct_source_delete', { p_id: r.id });   // bài nằm trong giáo trình, không cần hiện thêm ở "Video lẻ"
+      }
+    } else {
+      const r = await yt({ action: 'add', url });
+      await rpc('ct_group_item', { p_group: gid, p_source: r.id, p_video: null, p_title: r.title, p_on: true });
+    }
+    toast('Đã thêm vào giáo trình');
+  } catch (e) { toast(e.message, true); if (btn) { btn.disabled = false; btn.textContent = 'Thêm'; } return; }
+  await load();
+  openGroupEditor(gid, true);
+}
+
+// Chọn bài từ các kênh/video đã có trong danh sách của bé.
+function openPicker(gid) {
+  const g = S.groups.find((x) => x.id === gid);
+  const inV = new Set(g.items.filter((i) => i.video_id).map((i) => i.video_id));
+  const inS = new Set(g.items.filter((i) => i.source_id).map((i) => i.source_id));
+  const rows = S.sources.map((s) => {
+    const isV = s.kind === 'video', added = isV ? inV.has(s.yt_id) : inS.has(s.id);
+    return `<div class="row"><img class="${isV ? 'th' : 'av'}" src="${esc(s.thumb)}" alt="">
+      <div class="info"><div class="t" style="font-size:14px">${esc(s.title)}</div><div class="m"><span class="badge">${KIND[s.kind]}</span>${isV ? '' : s.count + ' video'}</div></div>
+      ${isV ? `<button class="btn small" data-a="padd" data-id="${s.id}" ${added ? 'disabled' : ''}>${added ? '✓ Đã có' : '➕ Thêm'}</button>`
+            : `<button class="btn small" data-a="ppick" data-id="${s.id}">Chọn video…</button>`}</div>`;
+  }).join('');
+  sheet(`<h3>Chọn bài từ danh sách đã có</h3>
+    <div class="hint" style="margin-top:0">Chọn video từ các kênh/playlist bạn đã thêm. Video được chọn vào giáo trình sẽ tự được duyệt cho bé xem.</div>
+    ${rows || '<div class="empty">Chưa có kênh hay video nào. Hãy thêm ở tab <b>Danh sách</b>.</div>'}
+    <button class="btn primary" data-a="pback">Quay lại giáo trình</button>`,
+  async (a, b) => {
+    if (a === 'pback') return openGroupEditor(gid, true);
+    const s = S.sources.find((x) => x.id === b.dataset.id);
+    if (a === 'padd') { await act(() => rpc('ct_group_item', { p_group: gid, p_source: null, p_video: s.yt_id, p_title: s.title, p_on: true })); await load(); return openPicker(gid); }
+    if (a === 'ppick') return pickVideos(gid, s.id);
+  });
+}
+
+async function pickVideos(gid, sid) {
+  const s = S.sources.find((x) => x.id === sid), g = S.groups.find((x) => x.id === gid);
+  sheet(`<h3>${esc(s.title)}</h3><div class="empty"><span class="spin"></span></div>`);
+  let vids;
+  try { vids = await rpc('ct_source_videos', { p_source: sid }); } catch (e) { toast(e.message, true); return openPicker(gid); }
+  const inV = new Set(g.items.filter((i) => i.video_id).map((i) => i.video_id));
+  const list = vids.filter((v) => !v.hidden);
+  sheet(`<h3>${esc(s.title)}</h3>
+    <div class="hint" style="margin-top:0">Tick các video muốn đưa vào giáo trình "${esc(g.name)}" theo thứ tự hiện ở đây.</div>
+    <div class="toolbar"><button class="btn small" data-a="pall">Chọn tất cả</button><button class="btn small" data-a="pnone">Bỏ chọn</button></div>
+    <div id="pv">${list.map((v) => `<label class="row pick"><input type="checkbox" data-vid="${v.id}" data-title="${esc(v.title)}" ${inV.has(v.id) ? 'checked disabled' : ''}>
+      <img class="th" src="${thumb(v.id)}" alt="" loading="lazy"><div class="info"><div class="t" style="font-size:14px">${esc(v.title)}</div>${inV.has(v.id) ? '<div class="m">✓ Đã có trong giáo trình</div>' : ''}</div></label>`).join('') || '<div class="empty">Kênh này chưa có video.</div>'}</div>
+    <button class="btn primary" data-a="pgo">Thêm vào giáo trình</button>
+    <button class="btn link" data-a="pback">Quay lại</button>`,
+  async (a) => {
+    const boxes = () => [...document.querySelectorAll('#pv input[type=checkbox]:not(:disabled)')];
+    if (a === 'pall') return boxes().forEach((x) => { x.checked = true; });
+    if (a === 'pnone') return boxes().forEach((x) => { x.checked = false; });
+    if (a === 'pback') return openPicker(gid);
+    if (a === 'pgo') {
+      const picked = boxes().filter((x) => x.checked).map((x) => ({ id: x.dataset.vid, title: x.dataset.title }));
+      if (!picked.length) return toast('Hãy tick ít nhất một video.', true);
+      const n = await act(() => rpc('ct_group_add_videos', { p_group: gid, p_videos: picked }));
+      if (n === undefined) return;
+      toast(`Đã thêm ${n} bài vào giáo trình`);
+      await load(); openGroupEditor(gid, true);
+    }
+  });
+}
+
+// ---------- Tab Duyệt ----------
+let pend = [];
+async function renderReview() {
+  const box = $('#view');
+  box.innerHTML = '<div class="empty"><span class="spin"></span></div>';
+  try { pend = await rpc('ct_pending'); } catch (e) { return toast(e.message, true); }
+  if (tab === 'review') box.innerHTML = viewReview();
+}
+function viewReview() {
+  if (!pend.length) {
+    return `<h2>✅ Duyệt video</h2><div class="card"><div class="empty">Không có video nào đang chờ duyệt. 🎉<br>Khi kênh có video mới, chúng hiện ở đây trước khi lên TV.</div></div>
+    <p class="hint">Kênh nào để chế độ <b>Cho xem tất cả</b> thì không cần duyệt. Đổi chế độ ở trang chi tiết của kênh (tab Danh sách).</p>`;
+  }
+  const order = [], by = {};
+  for (const v of pend) { if (!by[v.source_id]) { by[v.source_id] = { sid: v.source_id, source: v.source, items: [] }; order.push(by[v.source_id]); } by[v.source_id].items.push(v); }
+  return `<h2>✅ Chờ duyệt (${pend.length})<button class="btn small" data-a="rv-all">Duyệt tất cả</button></h2>
+    <p class="hint" style="margin-top:-4px">Bé chỉ xem được video sau khi bạn bấm ✅. Bấm vào ảnh để xem thử trên YouTube.</p>`
+    + order.map((g) => `<div class="card">
+      <div class="row" style="padding-top:0"><div class="info"><div class="t">${esc(g.source)}</div><div class="m">${g.items.length} video chờ duyệt</div></div>
+        <button class="btn small" data-a="rv-src" data-id="${g.sid}">✅ Duyệt cả kênh</button></div>
+      ${g.items.map((v) => `<div class="row" data-vid="${v.id}" data-title="${esc(v.title)}">
+        <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener"><img class="th" src="${thumb(v.id)}" alt="" loading="lazy"></a>
+        <div class="info"><div class="t" style="font-size:14px">${esc(v.title)}</div></div>
+        <div class="ctl"><button class="icon-btn" data-a="rv-ok" title="Cho xem">✅</button><button class="icon-btn" data-a="rv-tag" title="Thêm vào giáo trình">🏷</button><button class="icon-btn" data-a="rv-no" title="Không cho xem">🚫</button></div></div>`).join('')}
+    </div>`).join('');
+}
+
+// ---------- Tab Lịch sử ----------
+let hist = { items: [], today: 0, week: 0 };
+async function renderHistory() {
+  const box = $('#view');
+  box.innerHTML = '<div class="empty"><span class="spin"></span></div>';
+  try { hist = await rpc('ct_history', { p_days: 30 }); } catch (e) { return toast(e.message, true); }
+  if (tab === 'history') box.innerHTML = viewHistory();
+}
+const fmtDur = (sec) => {
+  sec = Math.round(sec || 0);
+  const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
+  return h ? `${h} giờ ${m} phút` : m ? `${m} phút` : `${sec} giây`;
+};
+const clock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+function dayLabel(d) {
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  return same(d, new Date()) ? 'Hôm nay' : same(d, new Date(Date.now() - 864e5)) ? 'Hôm qua'
+    : d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' });
+}
+function viewHistory() {
+  const head = `<h2>🕘 Bé đã xem</h2>
+    <div class="stats"><div><b>${fmtDur(hist.today)}</b><span>Hôm nay</span></div><div><b>${fmtDur(hist.week)}</b><span>7 ngày qua</span></div></div>`;
+  if (!hist.items.length) return head + '<div class="card"><div class="empty">Chưa có lịch sử.<br>Khi bé xem video trên TV, danh sách hiện ở đây.</div></div>';
+  const days = []; let cur = null;
+  for (const it of hist.items) {
+    const d = new Date(it.started_at), key = d.toDateString();
+    if (!cur || cur.key !== key) { cur = { key, label: dayLabel(d), list: [], sec: 0 }; days.push(cur); }
+    cur.list.push(it); cur.sec += it.seconds;
+  }
+  const hhmm = (t) => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+  return head + days.map((d) => `<h2 style="font-size:15px">${esc(d.label)} <span class="m" style="font-weight:400">· ${fmtDur(d.sec)}</span></h2>
+    <div class="card">${d.list.map((it) => `<div class="row" data-vid="${it.video_id}" data-title="${esc(it.title)}">
+      <img class="th" src="${thumb(it.video_id)}" alt="" loading="lazy">
+      <div class="info"><div class="t" style="font-size:14px">${esc(it.title)}</div>
+        <div class="m">${hhmm(it.started_at)} · xem ${clock(it.seconds)}${it.duration ? ' / ' + clock(it.duration) : ''}${it.finished ? ' · ✓ xem hết' : ''}${it.tv ? ' · ' + esc(it.tv) : ''}</div></div>
+      <div class="ctl"><button class="icon-btn ${it.fav ? 'on' : ''}" data-a="h-fav">${it.fav ? '❤️' : '🤍'}</button><button class="icon-btn" data-a="h-tag" title="Thêm vào giáo trình">🏷</button><button class="icon-btn ${it.hidden ? 'on' : ''}" data-a="h-hide" title="Không cho xem nữa">🚫</button></div></div>`).join('')}</div>`).join('')
+    + '<button class="btn danger" data-a="h-clear" style="width:100%;margin-top:8px">Xoá lịch sử</button><p class="hint" style="text-align:center">Lịch sử được giữ 90 ngày.</p>';
 }
 
 function newGroup(kind, after, g) {
@@ -359,10 +615,10 @@ function newGroup(kind, after, g) {
       emoji = b.textContent;
       document.querySelectorAll('.emoji-pick button').forEach((x) => x.classList.toggle('on', x === b));
     } else if (a === 'save') {
-      const ok = await act(() => rpc('ct_group_save', { p_id: g ? g.id : null, p_kind: kind, p_name: $('#g-name').value, p_emoji: emoji }));
-      if (!ok) return;
+      const gid = await act(() => rpc('ct_group_save', { p_id: g ? g.id : null, p_kind: kind, p_name: $('#g-name').value, p_emoji: emoji }));
+      if (!gid) return;
       await load();
-      if (after) after(); else closeSheet();
+      if (after) after(); else if (!g) openGroupEditor(gid); else closeSheet();
     }
   });
   setTimeout(() => $('#g-name') && $('#g-name').focus(), 50);
@@ -459,27 +715,43 @@ $('#view').addEventListener('click', async (e) => {
     for (const [n, em] of SUGGEST_TOPICS) await act(() => rpc('ct_group_save', { p_id: null, p_kind: 'topic', p_name: n, p_emoji: em }));
     return load();
   }
-  if (a === 'group') { openGroup = openGroup === b.dataset.id ? null : b.dataset.id; return render(); }
-  if (a === 'gremove') {
-    const g = S.groups.find((x) => x.id === b.dataset.g);
-    const it = g.items.find((x) => String(x.id) === b.dataset.item);
-    await act(() => rpc('ct_group_item', { p_group: g.id, p_source: it.source_id, p_video: it.video_id, p_title: '', p_on: false }));
-    return load();
+  if (a === 'gedit') return openGroupEditor(b.dataset.id);
+  if (a === 'gorev') return $('#tabs [data-tab="review"]').click();
+  // --- Tab Duyệt ---
+  if (a === 'rv-all') {
+    if (!confirm(`Cho bé xem tất cả ${pend.length} video đang chờ?`)) return;
+    await act(() => rpc('ct_approve', { p_videos: pend.map((v) => v.id), p_on: true }), 'Đã duyệt tất cả');
+    await quietLoad(); return renderReview();
   }
-  if (a === 'gup' || a === 'gdown') {
-    const g = S.groups.find((x) => x.id === b.dataset.g);
-    const ids = groupsOf(g.kind).map((x) => x.id);
-    const i = ids.indexOf(g.id), j = i + (a === 'gup' ? -1 : 1);
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-    await act(() => rpc('ct_reorder', { p_what: 'group', p_ids: ids }));
-    return load();
+  if (a === 'rv-src') {
+    const n = await act(() => rpc('ct_approve_source', { p_source: b.dataset.id }));
+    if (n !== undefined) toast(`Đã duyệt ${n} video`);
+    await quietLoad(); return renderReview();
   }
-  if (a === 'gedit') { const g = S.groups.find((x) => x.id === b.dataset.g); return newGroup(g.kind, null, g); }
-  if (a === 'gdel') {
-    const g = S.groups.find((x) => x.id === b.dataset.g);
-    if (!confirm(`Xoá nhóm "${g.name}"? (Kênh và video vẫn còn trong danh sách.)`)) return;
-    await act(() => rpc('ct_group_delete', { p_id: g.id }), 'Đã xoá nhóm');
-    return load();
+  if (a === 'rv-ok' || a === 'rv-no') {
+    const row = b.closest('.row'), vid = row.dataset.vid;
+    await act(() => a === 'rv-ok' ? rpc('ct_approve', { p_videos: [vid], p_on: true }) : rpc('ct_hide', { p_video: vid, p_on: true }));
+    pend = pend.filter((v) => v.id !== vid);
+    $('#view').innerHTML = viewReview();
+    return quietLoad();
+  }
+  if (a === 'rv-tag') {
+    const row = b.closest('.row');
+    return videoTags(row.dataset.vid, row.dataset.title, async () => { closeSheet(); await quietLoad(); renderReview(); });
+  }
+  // --- Tab Lịch sử ---
+  if (a === 'h-fav' || a === 'h-hide') {
+    const row = b.closest('.row'), vid = row.dataset.vid, on = !b.classList.contains('on');
+    await act(() => a === 'h-fav' ? rpc('ct_favorite', { p_video: vid, p_title: row.dataset.title, p_on: on }) : rpc('ct_hide', { p_video: vid, p_on: on }));
+    b.classList.toggle('on', on);
+    if (a === 'h-fav') b.textContent = on ? '❤️' : '🤍';
+    return quietLoad();
+  }
+  if (a === 'h-tag') { const row = b.closest('.row'); return videoTags(row.dataset.vid, row.dataset.title, () => closeSheet()); }
+  if (a === 'h-clear') {
+    if (!confirm('Xoá toàn bộ lịch sử xem? Việc này không hoàn tác được.')) return;
+    await act(() => rpc('ct_history_clear'), 'Đã xoá lịch sử');
+    return renderHistory();
   }
   if (a === 'unfav') { await act(() => rpc('ct_favorite', { p_video: b.dataset.vid, p_title: '', p_on: false })); return load(); }
   if (a === 'pair') {

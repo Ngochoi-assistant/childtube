@@ -104,3 +104,28 @@ h2 .btn { margin-left: auto; }
 .switch input { width: 22px; height: 22px; }
 .spin { display: inline-block; width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .7s linear infinite; }
 @keyframes sp { to { transform: rotate(360deg); } }
+
+/* ---- Duyệt / lịch sử / giáo trình ---- */
+.tabs button { position: relative; }
+.tabs .count { position: absolute; top: 3px; left: 54%; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--danger); color: #fff; font: 700 11px/18px system-ui, sans-serif; font-style: normal; text-align: center; }
+.card.warn { background: #fff4d6; border-color: #f0d98a; color: #3a2d00; }
+@media (prefers-color-scheme: dark) { .card.warn { background: #3a3010; border-color: #6b5a12; color: #fff1c4; } }
+.pend { color: var(--danger); font-weight: 600; }
+.ctl { display: flex; gap: 2px; flex-shrink: 0; }
+.lesson .ctl { display: grid; grid-template-columns: repeat(2, 34px); gap: 0; }
+.lesson .icon-btn { width: 34px; height: 34px; font-size: 16px; }
+.lesson.done .t { color: var(--mute); }
+.lesson-n { display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 8px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); margin-bottom: 2px; }
+.bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; margin: 8px 0 4px; }
+.bar.sm { height: 5px; margin: 6px 0 0; }
+.bar i { display: block; height: 100%; background: var(--ok); border-radius: 4px; }
+.stats { display: flex; gap: 10px; margin-bottom: 4px; }
+.stats > div { flex: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+.stats b { display: block; font-size: 20px; }
+.stats span { color: var(--mute); font-size: 13px; }
+.row.pick { cursor: pointer; }
+.row.pick input { width: 22px; height: 22px; flex-shrink: 0; }
+.row a { flex-shrink: 0; display: block; }
+.icon-btn:disabled { opacity: .3; }
+.switch { align-items: flex-start; }
+.switch input { margin-top: 2px; flex-shrink: 0; }

@@ -119,6 +119,23 @@
     focus();
   }
 
+  // Giáo trình: bài nào bé đã học, bài nào đang bị khoá (khi bật "học theo thứ tự").
+  function isLocked(g, i) {
+    if (!g || !g.locked) return false;
+    for (var k = 0; k < i; k++) if (!g.videos[k].done) return true;
+    return false;
+  }
+  function startIndex(g) {                                 // bài đầu tiên chưa học (hoặc bài 1)
+    if (!g || !g.numbered) return 0;
+    for (var k = 0; k < g.videos.length; k++) if (!g.videos[k].done) return k;
+    return 0;
+  }
+  function doneCount(g) {
+    var n = 0;
+    for (var k = 0; k < g.videos.length; k++) if (g.videos[k].done) n++;
+    return n;
+  }
+
   function renderSide() {
     var html = '', last = null;
     lib.forEach(function (g, i) {
@@ -133,14 +150,17 @@
 
   function renderGrid(family) {
     var g = lib[chIdx];
-    $('#ch-title').textContent = g ? (g.emoji ? g.emoji + ' ' : '') + g.title : '';
+    $('#ch-title').textContent = g ? (g.emoji ? g.emoji + ' ' : '') + g.title + (g.numbered ? '  ·  đã học ' + doneCount(g) + '/' + g.videos.length : '') : '';
+    $('#ch-note').textContent = g && g.note ? g.note : '';
     $('#empty').classList.toggle('hidden', !!lib.length);
     if (!lib.length) {
       $('#empty').innerHTML = 'Chưa có video nào' + (family ? ' cho <b>' + esc(family) + '</b>' : '') +
         '.<br>Bố mẹ hãy mở app ChildTube trên điện thoại<br>để chọn video cho bé nhé!';
     }
     $('#grid').innerHTML = g ? g.videos.map(function (v, i) {
-      return '<div class="card" data-i="' + i + '"><div class="thumb"><img src="' + thumb(v.id) + '" alt=""></div><div class="t">' + esc(v.title) + '</div></div>';
+      var locked = isLocked(g, i);
+      var badges = (g.numbered ? '<span class="num">Bài ' + (i + 1) + '</span>' : '') + (v.done ? '<span class="tick">✓</span>' : '') + (locked ? '<span class="lock-ic">🔒</span>' : '');
+      return '<div class="card' + (locked ? ' locked' : '') + (v.done ? ' done' : '') + '" data-i="' + i + '"><div class="thumb"><img src="' + thumb(v.id) + '" alt="">' + badges + '</div><div class="t">' + esc(v.title) + '</div></div>';
     }).join('') : '';
     $('#grid').scrollTop = 0;
   }
@@ -182,7 +202,7 @@
       if (k === K.UP && sideIdx > 0) sideIdx--;
       else if (k === K.DOWN && sideIdx < n - 1) sideIdx++;
       else if ((k === K.RIGHT || k === K.ENTER) && sideIdx < lib.length) {
-        if (gridItems().length) { zone = 'grid'; gridIdx = 0; }
+        if (gridItems().length) { zone = 'grid'; gridIdx = startIndex(lib[chIdx]); }
       } else if (k === K.ENTER && sideIdx === lib.length) { openPin(); return; }
       showChannel(sideIdx);
     } else if (zone === 'grid') {
@@ -191,10 +211,38 @@
       else if (k === K.RIGHT && gridIdx % COLS < COLS - 1 && gridIdx + 1 < n) gridIdx++;
       else if (k === K.UP && gridIdx >= COLS) gridIdx -= COLS;
       else if (k === K.DOWN && Math.floor(gridIdx / COLS) < Math.floor((n - 1) / COLS)) gridIdx = Math.min(gridIdx + COLS, n - 1);
-      else if (k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) { play(lib[chIdx].videos, gridIdx); return; }
+      else if (k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) {
+        if (isLocked(lib[chIdx], gridIdx)) { toast('Hãy xem bài trước nhé! 🔒'); return; }
+        play(lib[chIdx].videos, gridIdx); return;
+      }
       else if (BACK.indexOf(k) >= 0) { zone = 'side'; sideIdx = chIdx; }
     }
     focus();
+  }
+
+  // ---------- Lịch sử xem ----------
+  // Mỗi lần bé mở một video là một dòng; cập nhật số giây đã xem mỗi 30 giây và khi thoát/hết video.
+  var wl = null;
+
+  function watchStart(v) {
+    if (wl) watchFlush(wl, true);
+    wl = { id: null, video: v.id, title: v.title, played: 0, sent: 0, duration: 0, busy: false, final: false, done: false };
+  }
+
+  function watchFlush(w, final) {
+    if (!w) return;
+    if (final) w.final = true;
+    if (w.busy) return;                                   // đang gửi; gửi lại sau khi xong
+    if (!w.final && w.id && w.played - w.sent < 30) return;
+    if (!w.id && w.played < 3) { if (w.final && wl === w) wl = null; return; }  // mở chưa tới 3 giây: bỏ qua
+    w.busy = true;
+    var secs = Math.floor(w.played), sentFinal = w.final;
+    rpc('ct_tv_watch', { p_device: device.id, p_secret: device.secret, p_id: w.id, p_video: w.video, p_title: w.title,
+      p_seconds: secs, p_duration: Math.floor(w.duration), p_done: w.done }).then(function (id) {
+      w.id = id; w.sent = secs; w.busy = false;
+      if (w.final && !sentFinal) watchFlush(w, true);     // trong lúc gửi đã có lệnh kết thúc
+      else if (sentFinal && wl === w) wl = null;
+    }).catch(function () { w.busy = false; });
   }
 
   // ---------- Trình phát ----------
@@ -215,7 +263,7 @@
   };
 
   function play(videos, idx) {
-    queue = { videos: videos, idx: idx };
+    queue = { videos: videos, idx: idx, group: lib[chIdx] };
     zone = 'player';
     $('#player').classList.remove('hidden');
     $('#pause-icon').classList.add('hidden');
@@ -223,6 +271,7 @@
     $('#osd-time').textContent = '';
     $('#osd-title').textContent = videos[idx].title;
     showOsd();
+    watchStart(videos[idx]);
     if (playerReady) player.loadVideoById(videos[idx].id); else pending = videos[idx].id;
     clearInterval(tickTimer);
     tickTimer = setInterval(tick, 500);
@@ -230,23 +279,27 @@
 
   function next() {
     if (!queue || zone !== 'player') return;
-    if (queue.idx + 1 < queue.videos.length) {
+    if (queue.idx + 1 < queue.videos.length && !isLocked(queue.group, queue.idx + 1)) {
       play(queue.videos, queue.idx + 1);
       gridIdx = queue.idx;
     } else stop();
   }
 
   function stop() {
+    if (wl) watchFlush(wl, true);
     clearInterval(tickTimer);
     pending = null;
     if (playerReady) player.stopVideo();
     $('#player').classList.add('hidden');
+    var cg = lib[chIdx];
+    renderGrid();
+    if (cg && cg.numbered) gridIdx = startIndex(cg);
     zone = gridItems().length ? 'grid' : 'side';
     focus();
   }
 
   function onState(e) {
-    if (e.data === 0) next();
+    if (e.data === 0) { if (wl) wl.done = true; if (queue) queue.videos[queue.idx].done = true; next(); }
     else if (e.data === 1) { $('#pause-icon').classList.add('hidden'); showOsd(); }
     else if (e.data === 2) { $('#pause-icon').classList.remove('hidden'); showOsd(true); }
   }
@@ -274,6 +327,7 @@
   function tick() {
     if (!playerReady || !player.getDuration) return;
     var d = player.getDuration(), t = player.getCurrentTime();
+    if (wl && player.getPlayerState() === 1) { wl.played += 0.5; if (d > 0) wl.duration = d; watchFlush(wl, false); }
     if (d > 0) {
       $('#osd-fill').style.width = (t / d * 100) + '%';
       $('#osd-time').textContent = fmt(t) + ' / ' + fmt(d);
@@ -419,6 +473,7 @@
       showChannel(i); focus();
     } else if (card) {
       zone = 'grid'; gridIdx = +card.getAttribute('data-i'); focus();
+      if (isLocked(lib[chIdx], gridIdx)) { toast('Hãy xem bài trước nhé! 🔒'); return; }
       play(lib[chIdx].videos, gridIdx);
     }
   });
