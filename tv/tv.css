@@ -146,3 +146,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .thumb .lock-ic { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; font-size: 3vw; background: rgba(0, 0, 0, .35); }
 .card.locked .thumb img { -webkit-filter: grayscale(1) brightness(.55); filter: grayscale(1) brightness(.55); }
 .card.locked .t { opacity: .55; }
+
+/* Màn hình chờ khi mở app (trước đây màn hình đen trong lúc chờ mạng) */
+#loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+#loading-msg { font-size: 1.8vw; opacity: .8; margin-top: 2vw; }

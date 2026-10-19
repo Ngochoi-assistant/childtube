@@ -39,14 +39,19 @@
     try { localStorage.setItem('ct-device', JSON.stringify(device)); } catch (e) { /* vẫn chạy trong phiên này */ }
   }
 
+  // Mỗi lần hỏi cloud tối đa 12 giây: mạng treo (vd. TV vừa bật lại) thì báo lỗi và thử lại, không đứng im mãi.
   function rpc(fn, args) {
+    var ctl = window.AbortController ? new AbortController() : null;
+    var timer = ctl ? setTimeout(function () { ctl.abort(); }, 12000) : null;
     return fetch(CT_CONFIG.url + '/rest/v1/rpc/' + fn, {
       method: 'POST',
+      signal: ctl ? ctl.signal : undefined,
       headers: { 'Content-Type': 'application/json', apikey: CT_CONFIG.key, Authorization: 'Bearer ' + CT_CONFIG.key },
       body: JSON.stringify(args)
     }).then(function (r) {
+      clearTimeout(timer);
       return r.json().then(function (j) { if (!r.ok) throw new Error(j.message || 'Lỗi'); return j; });
-    });
+    }, function (e) { clearTimeout(timer); throw e; });
   }
 
   function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -61,14 +66,22 @@
   }
 
   // ---------- Hỏi cloud: đã ghép chưa, danh sách gì ----------
+  function showHome(rows, family) {
+    $('#loading').classList.add('hidden');
+    $('#pair').classList.add('hidden');
+    $('#home').classList.remove('hidden');
+    if (zone === 'loading' || zone === 'pair') zone = 'side';
+    setLib(rows, family);
+  }
   function hello() {
     return rpc('ct_tv_hello', { p_device: device.id, p_secret: device.secret }).then(function (r) {
-      if (!r.paired) return showPair(r.code);
-      $('#pair').classList.add('hidden');
-      $('#home').classList.remove('hidden');
-      if (zone === 'loading' || zone === 'pair') zone = 'side';
-      setLib(r.rows || [], r.family);
-    }).catch(function () {
+      if (!r.paired) { try { localStorage.removeItem('ct-lib'); } catch (e) { /* bỏ qua */ } return showPair(r.code); }
+      var rows = (r.rows || []).filter(function (g) { return g && g.videos && g.videos.length; });
+      try { localStorage.setItem('ct-lib', JSON.stringify({ rows: rows, family: r.family })); } catch (e) { /* bộ nhớ đầy */ }
+      showHome(rows, r.family);
+    }).catch(function (err) {
+      if (window.console) console.error('hello', err);
+      if (zone === 'loading' && cached) { showHome(cached.rows, cached.family); toast('Mạng chậm, đang dùng danh sách đã lưu'); return; }
       if (zone === 'loading' || zone === 'pair') {
         showPair(null);
         $('#pair-msg').textContent = 'Chưa kết nối được Internet, đang thử lại…';
@@ -90,6 +103,7 @@
 
   function showPair(code) {
     zone = 'pair';
+    $('#loading').classList.add('hidden');
     $('#home').classList.add('hidden');
     $('#pair').classList.remove('hidden');
     $('#pair-url').textContent = APP_URL.replace(/^https?:\/\//, '');
@@ -102,9 +116,18 @@
     // Chưa ghép: hỏi mỗi 4 giây. Đã ghép: mỗi 2 phút (chỉ khi bé đang ở trang chủ).
     var wait = zone === 'pair' || zone === 'loading' ? 4000 : 120000;
     pollTimer = setTimeout(function () {
-      if (zone === 'pair' || zone === 'loading' || zone === 'side' || zone === 'grid') hello().then(schedule); else schedule();
+      if (zone === 'pair' || zone === 'loading' || zone === 'side' || zone === 'grid') hello().then(schedule, schedule); else schedule();
     }, wait);
   }
+  // TV bật lại từ chế độ chờ / quay lại app: cập nhật ngay.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && zone !== 'player') hello().then(schedule, schedule);
+  });
+  // Lỗi bất ngờ không được làm đứng app: ghi lại và báo nhẹ.
+  window.addEventListener('error', function (e) {
+    if (window.console) console.error('tv error', e.message, e.filename, e.lineno);
+    if (zone === 'loading') { $('#loading-msg').textContent = 'Đang thử lại…'; }
+  });
 
   function setLib(rows, family) {
     var curId = lib[chIdx] && lib[chIdx].id;
@@ -479,5 +502,8 @@
   });
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
-  hello().then(schedule);
+  var cached = null;
+  try { cached = JSON.parse(localStorage.getItem('ct-lib')); } catch (e) { cached = null; }
+  if (cached && cached.rows && cached.rows.length) showHome(cached.rows, cached.family);
+  hello().then(schedule, schedule);
 })();

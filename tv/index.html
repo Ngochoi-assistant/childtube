@@ -6,10 +6,13 @@
 <title>ChildTube</title>
 <link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="tv.css">
+<!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="tv.css?v=2">
 </head>
 <body>
+<div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
+
 <div id="pair" class="hidden">
   <div class="logo"><span class="logo-play"></span>ChildTube</div>
   <h1>Ghép TV với điện thoại của bố mẹ</h1>
@@ -79,7 +82,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js"></script>
-<script src="https://www.youtube.com/iframe_api"></script>
+<script src="tv.js?v=2"></script>
+<script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
