@@ -57,7 +57,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .card {
   float: left; width: 23%; margin: 0 1% 1.6vw; border-radius: 1.2vw;
   background: rgba(255, 255, 255, .07);
-  transition: transform .15s, box-shadow .15s, background .15s;
+  transition: transform .15s;
 }
 .thumb { position: relative; width: 100%; padding-top: 56.25%; border-radius: 1.2vw 1.2vw 0 0; overflow: hidden; background: #22305f; }
 .thumb img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -69,7 +69,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 #empty b { color: #ffd23f; }
 
 /* Ô đang chọn bằng remote */
-.focus { transform: scale(1.07); box-shadow: 0 0 0 .32vw #ffd23f, 0 1vw 2.5vw rgba(0,0,0,.45); background: rgba(255,255,255,.2); position: relative; z-index: 2; }
+.focus { transform: scale(1.07); box-shadow: 0 0 0 .32vw #ffd23f; background: rgba(255,255,255,.2); position: relative; z-index: 2; }
 .ch.focus { transform: scale(1.04); background: #ffd23f; color: #2a1d00; box-shadow: none; opacity: 1; }
 
 /* ---- Trình phát ---- */
@@ -87,9 +87,8 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 #osd {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 6vw 4vw 2.5vw;
   background: linear-gradient(to top, rgba(0,0,0,.85), transparent);
-  transition: opacity .3s;
 }
-#osd.off { opacity: 0; }
+#osd.off { display: none; }  /* ẩn hẳn: không có lớp nào phủ lên video khi đang xem */
 #osd-back { position: fixed; left: 3vw; top: 3vw; display: none; font-size: 1.4vw; padding: .5vw 1.2vw; border-radius: 2vw; background: rgba(0,0,0,.5); }
 .mouse #osd-back { display: block; }
 #osd-title { font-size: 2vw; font-weight: 700; margin-bottom: 1.2vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -150,3 +149,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* Màn hình chờ khi mở app (trước đây màn hình đen trong lúc chờ mạng) */
 #loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
 #loading-msg { font-size: 1.8vw; opacity: .8; margin-top: 2vw; }
+
+/* Đang xem video: không vẽ trang chủ và nền phía sau, để TV dồn sức giải mã video */
+body.playing { background: #000; }
+body.playing #home { visibility: hidden; }

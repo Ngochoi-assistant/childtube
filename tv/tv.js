@@ -129,7 +129,11 @@
     if (zone === 'loading') { $('#loading-msg').textContent = 'Đang thử lại…'; }
   });
 
+  var libKey = '';
   function setLib(rows, family) {
+    var key = JSON.stringify(rows) + '|' + family;
+    if (key === libKey) return;                            // không đổi: giữ nguyên màn hình, không tải lại ảnh
+    libKey = key;
     var curId = lib[chIdx] && lib[chIdx].id;
     lib = rows;
     chIdx = 0;
@@ -183,7 +187,7 @@
     $('#grid').innerHTML = g ? g.videos.map(function (v, i) {
       var locked = isLocked(g, i);
       var badges = (g.numbered ? '<span class="num">Bài ' + (i + 1) + '</span>' : '') + (v.done ? '<span class="tick">✓</span>' : '') + (locked ? '<span class="lock-ic">🔒</span>' : '');
-      return '<div class="card' + (locked ? ' locked' : '') + (v.done ? ' done' : '') + '" data-i="' + i + '"><div class="thumb"><img src="' + thumb(v.id) + '" alt="">' + badges + '</div><div class="t">' + esc(v.title) + '</div></div>';
+      return '<div class="card' + (locked ? ' locked' : '') + (v.done ? ' done' : '') + '" data-i="' + i + '"><div class="thumb"><img src="' + thumb(v.id) + '" alt="" loading="lazy" decoding="async">' + badges + '</div><div class="t">' + esc(v.title) + '</div></div>';
     }).join('') : '';
     $('#grid').scrollTop = 0;
   }
@@ -273,9 +277,9 @@
     player = new YT.Player('yt', {
       host: 'https://www.youtube-nocookie.com',
       width: '100%', height: '100%',
-      playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, iv_load_policy: 3, playsinline: 1, cc_load_policy: 0, origin: location.origin },
+      playerVars: { autoplay: 1, controls: 0, disablekb: 1, fs: 0, rel: 0, modestbranding: 1, iv_load_policy: 3, playsinline: 1, cc_load_policy: 0, vq: 'hd720', origin: location.origin },
       events: {
-        onReady: function () { playerReady = true; window.ctPlayer = player; if (pending) { player.loadVideoById(pending); pending = null; } },
+        onReady: function () { playerReady = true; window.ctPlayer = player; try { player.setPlaybackQuality('hd720'); } catch (e) { /* YouTube tự chọn */ } if (pending) { player.loadVideoById(pending); pending = null; } },
         onStateChange: onState,
         onError: function () {
           toast('Video này không xem được, chuyển video khác…');
@@ -288,6 +292,7 @@
   function play(videos, idx) {
     queue = { videos: videos, idx: idx, group: lib[chIdx] };
     zone = 'player';
+    document.body.classList.add('playing');
     $('#player').classList.remove('hidden');
     $('#pause-icon').classList.add('hidden');
     $('#osd-fill').style.width = '0';
@@ -297,7 +302,7 @@
     watchStart(videos[idx]);
     if (playerReady) player.loadVideoById(videos[idx].id); else pending = videos[idx].id;
     clearInterval(tickTimer);
-    tickTimer = setInterval(tick, 500);
+    tickTimer = setInterval(tick, 1000);
   }
 
   function next() {
@@ -314,6 +319,7 @@
     pending = null;
     if (playerReady) player.stopVideo();
     $('#player').classList.add('hidden');
+    document.body.classList.remove('playing');
     var cg = lib[chIdx];
     renderGrid();
     if (cg && cg.numbered) gridIdx = startIndex(cg);
@@ -337,7 +343,6 @@
     if (!playerReady) return;
     var t = Math.max(0, Math.min(player.getDuration() - 1, player.getCurrentTime() + sec));
     player.seekTo(t, true);
-    tick();
     showOsd();
   }
 
@@ -349,8 +354,13 @@
 
   function tick() {
     if (!playerReady || !player.getDuration) return;
+    var d = player.getDuration();
+    if (wl && player.getPlayerState() === 1) { wl.played += 1; if (d > 0) wl.duration = d; watchFlush(wl, false); }
+    if (!$('#osd').classList.contains('off')) paintOsd();
+  }
+  function paintOsd() {
+    if (!playerReady || !player.getDuration) return;
     var d = player.getDuration(), t = player.getCurrentTime();
-    if (wl && player.getPlayerState() === 1) { wl.played += 0.5; if (d > 0) wl.duration = d; watchFlush(wl, false); }
     if (d > 0) {
       $('#osd-fill').style.width = (t / d * 100) + '%';
       $('#osd-time').textContent = fmt(t) + ' / ' + fmt(d);
@@ -359,6 +369,7 @@
 
   function showOsd(stay) {
     $('#osd').classList.remove('off');
+    paintOsd();
     clearTimeout(osdTimer);
     if (!stay) osdTimer = setTimeout(function () { $('#osd').classList.add('off'); }, 4000);
   }
