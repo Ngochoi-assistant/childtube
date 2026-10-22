@@ -1,6 +1,6 @@
 /* ChildTube TV — phong cách Apple TV (tvOS): nền tối, thanh bên kính mờ, thẻ bo góc lớn, ô đang chọn nổi lên.
    Thiết kế cho 1920x1080, đo theo vw để co giãn. Viết cho Chromium 76 (Tizen 6): không dùng flex gap, inset,
-   aspect-ratio, backdrop-filter; "kính mờ" chỉ là nền trắng trong suốt; bóng mờ chỉ ở một ô đang chọn. */
+   aspect-ratio, backdrop-filter; "kính mờ" chỉ là nền trắng trong suốt; ô đang chọn không có bóng mờ. */
 :root {
   --bg: #07070a;
   --panel: rgba(255, 255, 255, .06);
@@ -75,7 +75,6 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .ch.focus {
   -webkit-transform: scale(1.05); transform: scale(1.05); position: relative; z-index: 2;
   background: var(--focus); color: var(--on-focus);
-  box-shadow: 0 .6vw 1.4vw var(--shadow);
 }
 .ch.focus .emo, .ch.focus .lock { background: rgba(0, 0, 0, .08); }
 
@@ -128,7 +127,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* Lưới video */
 #grid { -webkit-flex: 1; flex: 1; overflow: hidden; position: relative; padding: 1.6vw .9vw 3vw; }  /* chừa chỗ cho ô đang chọn nổi lên */
 #grid:after { content: ''; display: block; clear: both; }
-.card { float: left; width: 23%; margin: 0 1% 1.5vw; transition: transform .15s, opacity .15s; }
+.card { float: left; width: 23%; margin: 0 1% 1.5vw; transition: transform .15s; }  /* chỉ animate transform: đo trên TV nhanh hơn */
 .thumb { position: relative; width: 100%; padding-top: 56.25%; border-radius: var(--r); overflow: hidden; background: var(--panel-2); }
 .thumb img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
 .card .t {
@@ -141,10 +140,10 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* Ô chung khi chọn bằng remote */
 .focus { position: relative; z-index: 2; }
 
-/* Video đang chọn nổi hẳn lên: nhấc cao, to hơn, viền trắng, bóng sâu, nút ▶; video khác mờ đi.
-   Chỉ đổi transform/opacity khi chuyển ô; bóng mờ chỉ vẽ ở đúng một ô. */
+/* Video đang chọn nổi hẳn lên: nhấc cao, to hơn, viền trắng, nút ▶; video khác mờ đi.
+   Không dùng bóng mờ (blur) ở ô đang chọn: đo trên TV làm phím chậm thêm 5–10 ms. */
 .card.focus { -webkit-transform: translateY(-.6vw) scale(1.1); transform: translateY(-.6vw) scale(1.1); z-index: 3; }
-.card.focus .thumb { box-shadow: 0 0 0 .28vw var(--focus), 0 1.4vw 2.4vw var(--shadow); }
+.card.focus .thumb { box-shadow: 0 0 0 .28vw var(--focus); }
 .card.focus .t { color: var(--text); font-weight: 700; }
 .card.focus.locked .t { color: var(--text-2); }
 .thumb .play {
@@ -246,6 +245,6 @@ body.playing #home { visibility: hidden; }
 .screen p, #end-title { font-size: 1.6vw; color: var(--text-2); margin-bottom: 3vw; max-width: 70vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #end-btns, #limit-btns { display: -webkit-flex; display: flex; -webkit-justify-content: center; justify-content: center; }
 .ebtn { font-size: 1.7vw; font-weight: 700; padding: 1.1vw 2.4vw; margin: 0 .8vw; border-radius: 2vw; background: var(--panel-2); white-space: nowrap; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; transition: transform .15s; }
-.ebtn.focus { background: var(--focus); color: var(--on-focus); -webkit-transform: scale(1.1); transform: scale(1.1); box-shadow: 0 1vw 2vw var(--shadow); }
+.ebtn.focus { background: var(--focus); color: var(--on-focus); -webkit-transform: scale(1.1); transform: scale(1.1); }
 #end-idea { font-size: 1.5vw; margin-top: 3vw; color: var(--text-2); }
 #end-left { font-size: 1.25vw; margin-top: 1vw; color: var(--text-3); min-height: 2vw; }

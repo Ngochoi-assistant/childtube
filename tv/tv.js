@@ -140,12 +140,28 @@
     $('#pair-msg').textContent = 'Màn hình sẽ tự chuyển khi ghép xong.';
   }
 
+  // index.html có thể bị TV giữ trong bộ nhớ đệm tới 10 phút sau khi xuất bản (GitHub Pages: max-age=600),
+  // nên TV vẫn chạy bản cũ. Mỗi lần hỏi cloud thì xem bản mới nhất; mới hơn thì tải lại (chỉ khi bé ở trang chủ).
+  var MY_V = (function () {
+    for (var i = 0; i < document.scripts.length; i++) { var m = /tv\.js\?v=(\d+)/.exec(document.scripts[i].src); if (m) return +m[1]; }
+    return 0;
+  })();
+  function checkVersion() {
+    if (!window.fetch || !MY_V) return;
+    fetch('./?nc=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
+      var m = /tv\.js\?v=(\d+)/.exec(html), v = m ? +m[1] : 0, tried = null;
+      if (v <= MY_V || !(zone === 'side' || zone === 'grid' || zone === 'pair' || zone === 'limit')) return;
+      try { tried = sessionStorage.getItem('ct-upd'); sessionStorage.setItem('ct-upd', String(v)); } catch (e) { /* bỏ qua */ }
+      if (tried !== String(v)) location.replace(location.pathname + '?v=' + v);   // mỗi bản chỉ thử một lần, tránh tải lại liên tục
+    }).catch(function () { /* mạng chậm: để lần sau */ });
+  }
+
   function schedule() {
     clearTimeout(pollTimer);
     // Chưa ghép: hỏi mỗi 4 giây. Đã ghép: mỗi 2 phút (chỉ khi bé đang ở trang chủ).
     var wait = zone === 'pair' || zone === 'loading' ? 4000 : 120000;
     pollTimer = setTimeout(function () {
-      if (zone === 'pair' || zone === 'loading' || zone === 'side' || zone === 'grid' || zone === 'limit') hello().then(schedule, schedule); else schedule();
+      if (zone === 'pair' || zone === 'loading' || zone === 'side' || zone === 'grid' || zone === 'limit') hello().then(checkVersion).then(schedule, schedule); else schedule();
     }, wait);
   }
   // TV bật lại từ chế độ chờ / quay lại app: cập nhật ngay.
@@ -704,5 +720,5 @@
   try { cached = JSON.parse(localStorage.getItem('ct-lib')); } catch (e) { cached = null; }
   if (cached && cached.screen) setQuota(cached.screen, true);
   if (cached && cached.rows && cached.rows.length) showHome(cached.rows, cached.family);
-  hello().then(schedule, schedule);
+  hello().then(checkVersion).then(schedule, schedule);
 })();
