@@ -852,6 +852,20 @@ function viewSettings() {
     <div class="add"><input id="pin" inputmode="numeric" maxlength="6" placeholder="PIN mới (4–6 số)"><button class="btn" data-a="pin">Đổi</button></div>
   </div>
 
+  <h2>⏱ Thời gian xem trên TV</h2>
+  <div class="card">
+    ${f.end_mode === undefined ? '<div class="hint" style="margin:0 0 8px">⚠ Cần chạy <b>cloud/004_screen_time.sql</b> trong SQL Editor trước khi dùng mục này.</div>' : ''}
+    <label>Mỗi ngày bé được xem</label>
+    <div class="chips">${[0, 20, 30, 45, 60, 90, 120].concat([0, 20, 30, 45, 60, 90, 120].indexOf(f.daily_minutes || 0) < 0 ? [f.daily_minutes] : [])
+      .map((m) => `<button class="chip ${(f.daily_minutes || 0) === m ? 'on' : ''}" data-a="daily" data-m="${m}">${m ? m + ' phút' : 'Không giới hạn'}</button>`).join('')}</div>
+    <div class="hint" style="margin:0 0 10px">Hôm nay bé đã xem <b>${Math.floor((f.today_seconds || 0) / 60)} phút</b> (cộng mọi TV).
+      WHO/AAP khuyên bé 2–5 tuổi xem tối đa 60 phút mỗi ngày; dưới 2 tuổi nên hạn chế và xem cùng bố mẹ.
+      Còn 5 phút TV sẽ báo trước; hết giờ bé được xem nốt video đang xem nếu còn ≤ 10 phút. Muốn cho xem thêm: vào "Bố mẹ" trên TV, nhập PIN.</div>
+    <label>Khi bé xem xong một video</label>
+    <label class="switch"><input type="radio" name="endmode" value="stop" ${f.end_mode !== 'next' ? 'checked' : ''}> Dừng lại cho bé chọn: về trang chủ, xem lại hay xem tiếp (khuyên dùng)</label>
+    <label class="switch"><input type="radio" name="endmode" value="next" ${f.end_mode === 'next' ? 'checked' : ''}> Tự chuyển sang video kế</label>
+  </div>
+
   <h2>🎬 Video</h2>
   <div class="card">
     <label class="switch"><input type="checkbox" id="shorts" ${f.skip_shorts ? 'checked' : ''}> Bỏ qua video Shorts</label>
@@ -984,6 +998,7 @@ $('#view').addEventListener('click', async (e) => {
     await act(() => rpc('ct_tv_remove', { p_id: b.dataset.id }));
     return load();
   }
+  if (a === 'daily') { await act(() => rpc('ct_family_update', { p: { daily_minutes: +b.dataset.m } }), 'Đã lưu'); return load(); }
   if (a === 'pin') { await act(() => rpc('ct_family_update', { p: { tv_pin: $('#pin').value.trim() } }), 'Đã đổi PIN'); return load(); }
   if (a === 'fname') { await act(() => rpc('ct_family_update', { p: { name: $('#fname').value } }), 'Đã lưu'); return load(); }
   if (a === 'refresh') {
@@ -1011,6 +1026,7 @@ $('#view').addEventListener('click', async (e) => {
   if (a === 'logout') { await sb.auth.signOut(); return; }
 });
 $('#view').addEventListener('change', async (e) => {
+  if (e.target.name === 'endmode') { await act(() => rpc('ct_family_update', { p: { end_mode: e.target.value } }), 'Đã lưu'); return load(); }
   if (e.target.id === 'shorts') {
     await act(() => rpc('ct_family_update', { p: { skip_shorts: e.target.checked } }));
     toast('Đã lưu, đang lấy lại video…');

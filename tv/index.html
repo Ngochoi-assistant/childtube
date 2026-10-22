@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="tv.css?v=3">
+<link rel="stylesheet" href="tv.css?v=6">
 </head>
 <body>
 <div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
@@ -51,7 +51,26 @@
     <div id="osd-title"></div>
     <div id="osd-bar"><div id="osd-fill"></div></div>
     <div id="osd-time"></div>
+    <div id="osd-warn" class="hidden"></div>
   </div>
+</div>
+
+<!-- Xem xong một video: dừng lại cho bé chọn, không tự phát tiếp -->
+<div id="end" class="screen hidden">
+  <div class="big">🎉</div>
+  <h1>Con xem xong rồi!</h1>
+  <div id="end-title"></div>
+  <div id="end-btns"></div>
+  <div id="end-idea"></div>
+  <div id="end-left"></div>
+</div>
+
+<!-- Hết thời gian xem trong ngày -->
+<div id="limit" class="screen hidden">
+  <div class="big">🌙</div>
+  <h1>Hôm nay con xem đủ rồi!</h1>
+  <p>Hẹn con ngày mai nhé. Giờ mình đi chơi thôi!</p>
+  <div id="limit-btns"><button class="ebtn" data-act="extra">🔒 Bố mẹ cho xem thêm</button></div>
 </div>
 
 <div id="pin" class="modal hidden">
@@ -69,11 +88,8 @@
     <h2>Bố mẹ</h2>
     <p>Thêm/bớt video bằng app ChildTube trên điện thoại:</p>
     <div id="admin-url"></div>
-    <div id="parent-btns">
-      <button class="pbtn" data-act="refresh">Tải lại danh sách</button>
-      <button class="pbtn" data-act="exit">Thoát ứng dụng</button>
-      <button class="pbtn" data-act="close">Đóng</button>
-    </div>
+    <div id="parent-time"></div>
+    <div id="parent-btns"></div>
     <div id="parent-msg"></div>
   </div>
 </div>
@@ -82,7 +98,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js?v=4"></script>
+<script src="tv.js?v=6"></script>
 <script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

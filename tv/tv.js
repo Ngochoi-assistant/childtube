@@ -19,6 +19,33 @@
   var queue = null;
   var osdTimer = null, tickTimer = null, toastTimer = null, pollTimer = null;
 
+  // ---------- Thời gian xem mỗi ngày ----------
+  // quota lấy từ cloud (ct_tv_hello → screen). Cloud chưa cập nhật: không giới hạn, dừng sau mỗi video.
+  // Giây đã xem = max(số cloud báo + số đếm từ lần hỏi đó, số TV tự đếm trong ngày) để vẫn đúng khi mất mạng.
+  var quota = { limit: null, used: 0, end: 'stop', day: '' };
+  var sinceHello = 0, warned = 0, grace = false;
+  function today() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function loadDay(key) {
+    var v = null;
+    try { v = JSON.parse(localStorage.getItem(key)); } catch (e) { v = null; }
+    return v && v.day === quota.day ? v : { day: quota.day, n: 0 };
+  }
+  function saveDay(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* bỏ qua */ } }
+  var usage, extra;                                        // giây đã xem hôm nay / phút bố mẹ cho thêm hôm nay
+  function setQuota(s, fromCache) {
+    var day = (s && s.day) || today(), stale = fromCache && day !== today();
+    quota = { limit: s && s.limit > 0 ? s.limit : null, used: s && !stale ? s.used || 0 : 0,
+              end: s && s.end === 'next' ? 'next' : 'stop', day: stale ? today() : day };
+    sinceHello = 0;
+    usage = loadDay('ct-usage');
+    extra = loadDay('ct-extra');
+  }
+  setQuota(null);
+  function usedSec() { return Math.max(quota.used + sinceHello, usage.n); }
+  function leftSec() { return quota.limit ? (quota.limit + extra.n) * 60 - usedSec() : Infinity; }
+  function timeUp() { return leftSec() <= 0; }
+  function mins(sec) { return Math.max(1, Math.ceil(sec / 60)); }
+
   try {
     tizen.tvinputdevice.registerKeyBatch(['MediaPlayPause', 'MediaPlay', 'MediaPause', 'MediaStop', 'MediaFastForward', 'MediaRewind',
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
@@ -72,12 +99,14 @@
     $('#home').classList.remove('hidden');
     if (zone === 'loading' || zone === 'pair') zone = 'side';
     setLib(rows, family);
+    checkLimit();
   }
   function hello() {
     return rpc('ct_tv_hello', { p_device: device.id, p_secret: device.secret }).then(function (r) {
       if (!r.paired) { try { localStorage.removeItem('ct-lib'); } catch (e) { /* bỏ qua */ } return showPair(r.code); }
       var rows = (r.rows || []).filter(function (g) { return g && g.videos && g.videos.length; });
-      try { localStorage.setItem('ct-lib', JSON.stringify({ rows: rows, family: r.family })); } catch (e) { /* bộ nhớ đầy */ }
+      try { localStorage.setItem('ct-lib', JSON.stringify({ rows: rows, family: r.family, screen: r.screen })); } catch (e) { /* bộ nhớ đầy */ }
+      setQuota(r.screen);
       showHome(rows, r.family);
     }).catch(function (err) {
       if (window.console) console.error('hello', err);
@@ -116,7 +145,7 @@
     // Chưa ghép: hỏi mỗi 4 giây. Đã ghép: mỗi 2 phút (chỉ khi bé đang ở trang chủ).
     var wait = zone === 'pair' || zone === 'loading' ? 4000 : 120000;
     pollTimer = setTimeout(function () {
-      if (zone === 'pair' || zone === 'loading' || zone === 'side' || zone === 'grid') hello().then(schedule, schedule); else schedule();
+      if (zone === 'pair' || zone === 'loading' || zone === 'side' || zone === 'grid' || zone === 'limit') hello().then(schedule, schedule); else schedule();
     }, wait);
   }
   // TV bật lại từ chế độ chờ / quay lại app: cập nhật ngay.
@@ -186,7 +215,7 @@
     }
     $('#grid').innerHTML = g ? g.videos.map(function (v, i) {
       var locked = isLocked(g, i);
-      var badges = (g.numbered ? '<span class="num">Bài ' + (i + 1) + '</span>' : '') + (v.done ? '<span class="tick">✓</span>' : '') + (locked ? '<span class="lock-ic">🔒</span>' : '');
+      var badges = (g.numbered ? '<span class="num">Bài ' + (i + 1) + '</span>' : '') + (v.done ? '<span class="tick">✓</span>' : '') + (locked ? '<span class="lock-ic">🔒</span>' : '<span class="play"></span>');
       return '<div class="card' + (locked ? ' locked' : '') + (v.done ? ' done' : '') + '" data-i="' + i + '"><div class="thumb"><img src="' + thumb(v.id) + '" alt="" loading="lazy" decoding="async">' + badges + '</div><div class="t">' + esc(v.title) + '</div></div>';
     }).join('') : '';
     $('#grid').scrollTop = 0;
@@ -209,7 +238,10 @@
     else if (zone === 'grid') { el = gridItems()[gridIdx]; if (el) reveal(el, $('#grid')); }
     else if (zone === 'pin') el = $('#pin-pad').children[pinIdx];
     else if (zone === 'parent') el = $('#parent-btns').children[parentIdx];
+    else if (zone === 'end') el = $('#end-btns').children[endIdx];
+    else if (zone === 'limit') el = $('#limit-btns').children[0];
     if (el) el.classList.add('focus');
+    $('#grid').classList.toggle('dim', zone === 'grid');   // đang chọn video: làm mờ các video còn lại
   }
 
   function showChannel(i) {
@@ -290,6 +322,10 @@
   };
 
   function play(videos, idx) {
+    if (timeUp()) { showLimit(); return; }
+    clearTimeout(endTimer);
+    $('#end').classList.add('hidden');
+    grace = false;
     queue = { videos: videos, idx: idx, group: lib[chIdx] };
     zone = 'player';
     document.body.classList.add('playing');
@@ -305,30 +341,110 @@
     tickTimer = setInterval(tick, 1000);
   }
 
+  function hasNext() { return queue && queue.idx + 1 < queue.videos.length && !isLocked(queue.group, queue.idx + 1); }
+
+  // Sang video kế: khi video lỗi, hoặc khi bố mẹ chọn "tự chuyển video kế".
   function next() {
     if (!queue || zone !== 'player') return;
-    if (queue.idx + 1 < queue.videos.length && !isLocked(queue.group, queue.idx + 1)) {
+    if (timeUp()) { showLimit(); return; }
+    if (hasNext()) {
       play(queue.videos, queue.idx + 1);
       gridIdx = queue.idx;
     } else stop();
   }
 
-  function stop() {
+  // Dừng phát, ghi lịch sử; chưa quyết định hiện màn nào.
+  function endPlayback() {
     if (wl) watchFlush(wl, true);
     clearInterval(tickTimer);
     pending = null;
     if (playerReady) player.stopVideo();
     $('#player').classList.add('hidden');
+  }
+
+  function stop() {
+    endPlayback();
+    clearTimeout(endTimer);
+    $('#end').classList.add('hidden');
     document.body.classList.remove('playing');
     var cg = lib[chIdx];
     renderGrid();
     if (cg && cg.numbered) gridIdx = startIndex(cg);
     zone = gridItems().length ? 'grid' : 'side';
+    if (timeUp()) showLimit(); else focus();
+  }
+
+  // Hết video: mặc định dừng lại cho bé chọn (không tự phát tiếp); hết giờ thì sang màn hết giờ.
+  function ended() {
+    if (!queue || zone !== 'player') return;
+    if (timeUp()) { showLimit(); return; }
+    if (quota.end === 'next') { next(); return; }
+    showEnd();
+  }
+
+  // ---------- Màn xem xong ----------
+  var endIdx = 0, endTimer = null;
+  var IDEAS = ['Giờ mình đi uống nước rồi chơi xếp hình nhé!', 'Con kể cho bố mẹ nghe con vừa xem gì nhé!',
+    'Mình cùng hát lại bài vừa rồi nhé!', 'Đứng dậy vươn vai, nhảy 5 cái nào!', 'Con vẽ lại điều con thích nhất nhé!',
+    'Đi tìm một đồ vật màu đỏ trong nhà nào!', 'Mình đọc một cuốn sách cùng nhau nhé!', 'Con giúp bố mẹ cất đồ chơi nhé!',
+    'Ra ngoài chơi một chút cho mắt nghỉ nhé!', 'Con thử đếm từ 1 đến 10 thật to nào!'];
+
+  function showEnd() {
+    endPlayback();
+    var g = queue.group, v = queue.videos[queue.idx], left = leftSec();
+    var btns = [['home', '🏠 Về trang chủ'], ['again', '🔁 Xem lại']];
+    if (hasNext() && left > 0) {
+      btns.push(['next', left < 300 ? '▶ Xem video cuối cùng' : g && g.numbered ? '▶ Bài tiếp: Bài ' + (queue.idx + 2) : '▶ Video tiếp']);
+    }
+    $('#end-title').textContent = (g && g.numbered ? 'Bài ' + (queue.idx + 1) + ' · ' : '') + v.title;
+    $('#end-btns').innerHTML = btns.map(function (b) { return '<button class="ebtn" data-act="' + b[0] + '">' + esc(b[1]) + '</button>'; }).join('');
+    $('#end-idea').textContent = IDEAS[Math.floor(Math.random() * IDEAS.length)];
+    $('#end-left').textContent = quota.limit ? '⏱ Hôm nay còn ' + mins(left) + ' phút' : '';
+    $('#end').classList.remove('hidden');
+    zone = 'end';
+    endIdx = 0;                                               // chọn sẵn "Về trang chủ": bé bấm OK theo thói quen thì dừng lại
+    focus();
+    clearTimeout(endTimer);
+    endTimer = setTimeout(function () { if (zone === 'end') stop(); }, 180000);   // để yên 3 phút: về trang chủ
+  }
+
+  function endAct(act) {
+    clearTimeout(endTimer);
+    if (act === 'again') play(queue.videos, queue.idx);
+    else if (act === 'next') { play(queue.videos, queue.idx + 1); gridIdx = queue.idx; }
+    else stop();
+  }
+
+  function endKey(k) {
+    var n = $('#end-btns').children.length;
+    if (k === K.LEFT && endIdx > 0) endIdx--;
+    else if (k === K.RIGHT && endIdx < n - 1) endIdx++;
+    else if (k === K.ENTER) { endAct($('#end-btns').children[endIdx].getAttribute('data-act')); return; }
+    else if (BACK.indexOf(k) >= 0) { endAct('home'); return; }
     focus();
   }
 
+  // ---------- Màn hết giờ ----------
+  function showLimit() {
+    endPlayback();
+    clearTimeout(endTimer);
+    $('#end').classList.add('hidden');
+    document.body.classList.remove('playing');
+    $('#limit').classList.remove('hidden');
+    zone = 'limit';
+    focus();
+  }
+  function checkLimit() {
+    if (timeUp() && (zone === 'side' || zone === 'grid')) showLimit();
+    else if (zone === 'limit' && !timeUp()) { $('#limit').classList.add('hidden'); zone = 'side'; sideIdx = chIdx; focus(); }
+  }
+  function limitKey(k) {
+    if (k === K.ENTER) openPin();
+    else if (k === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* không phải TV */ } }
+  }
+
   function onState(e) {
-    if (e.data === 0) { if (wl) wl.done = true; if (queue) queue.videos[queue.idx].done = true; next(); }
+    if (e.data === 0) { if (wl) wl.done = true; if (queue) queue.videos[queue.idx].done = true; ended(); }
     else if (e.data === 1) { $('#pause-icon').classList.add('hidden'); showOsd(); }
     else if (e.data === 2) { $('#pause-icon').classList.remove('hidden'); showOsd(true); }
   }
@@ -355,8 +471,24 @@
   function tick() {
     if (!playerReady || !player.getDuration) return;
     var d = player.getDuration();
-    if (wl && player.getPlayerState() === 1) { wl.played += 1; if (d > 0) wl.duration = d; watchFlush(wl, false); }
-    if (!$('#osd').classList.contains('off')) paintOsd();
+    if (wl && player.getPlayerState() === 1) { wl.played += 1; if (d > 0) wl.duration = d; watchFlush(wl, false); countSec(d); }
+    if (zone === 'player' && !$('#osd').classList.contains('off')) paintOsd();
+  }
+
+  // Đếm giờ xem; báo trước lúc còn 5 phút và 1 phút (qua OSD, lớp duy nhất được hiện trên video).
+  function countSec(d) {
+    sinceHello++;
+    usage.n++;
+    if (usage.n % 10 === 0) saveDay('ct-usage', usage);
+    if (!quota.limit) return;
+    var left = leftSec();
+    if (left > 360) warned = 0;
+    else if (left <= 60 && left > 0 && warned < 2) { warned = 2; showOsd(); }
+    else if (left <= 300 && left > 0 && warned < 1) { warned = 1; showOsd(); }
+    if (left <= 0 && !grace) {
+      if (d > 0 && d - player.getCurrentTime() <= 600) { grace = true; showOsd(); }   // còn ≤ 10 phút: cho xem nốt video này
+      else showLimit();
+    }
   }
   function paintOsd() {
     if (!playerReady || !player.getDuration) return;
@@ -368,6 +500,11 @@
   }
 
   function showOsd(stay) {
+    var left = leftSec(), w = $('#osd-warn');
+    if (quota.limit && left <= 300) {
+      w.textContent = left > 0 ? '⏰ Còn ' + mins(left) + ' phút nữa thôi nhé' : '⏰ Xem nốt video này rồi nghỉ nhé';
+      w.classList.remove('hidden');
+    } else w.classList.add('hidden');
     $('#osd').classList.remove('off');
     paintOsd();
     clearTimeout(osdTimer);
@@ -403,8 +540,11 @@
   function closeModal() {
     $('#pin').classList.add('hidden');
     $('#parent').classList.add('hidden');
+    var fromLimit = !$('#limit').classList.contains('hidden');
     zone = 'side';
-    sideIdx = lib.length;
+    sideIdx = fromLimit ? chIdx : lib.length;
+    if (timeUp()) { showLimit(); return; }
+    $('#limit').classList.add('hidden');
     focus();
   }
 
@@ -443,6 +583,10 @@
   function openParent() {
     $('#admin-url').textContent = APP_URL.replace(/^https?:\/\//, '');
     $('#parent-msg').textContent = '';
+    var btns = quota.limit ? [['more15', 'Cho xem thêm 15 phút'], ['more30', 'Cho xem thêm 30 phút']] : [];
+    btns.push(['refresh', 'Tải lại danh sách'], ['exit', 'Thoát ứng dụng'], ['close', 'Đóng']);
+    $('#parent-btns').innerHTML = btns.map(function (b) { return '<button class="pbtn" data-act="' + b[0] + '">' + b[1] + '</button>'; }).join('');
+    $('#parent-time').textContent = quota.limit ? 'Hôm nay bé đã xem ' + Math.floor(usedSec() / 60) + ' / ' + (quota.limit + extra.n) + ' phút' : '';
     $('#parent').classList.remove('hidden');
     zone = 'parent';
     parentIdx = 0;
@@ -451,6 +595,11 @@
 
   function parentAct(act) {
     if (act === 'close') return closeModal();
+    if (act === 'more15' || act === 'more30') {
+      extra.n += act === 'more15' ? 15 : 30;
+      saveDay('ct-extra', extra);
+      return closeModal();
+    }
     if (act === 'refresh') {
       $('#parent-msg').textContent = 'Đang tải lại…';
       hello().then(function () { $('#parent-msg').textContent = 'Đã cập nhật.'; });
@@ -481,6 +630,8 @@
     else if (zone === 'pin') pinKey(k);
     else if (zone === 'parent') parentKey(k);
     else if (zone === 'side' || zone === 'grid') homeKey(k);
+    else if (zone === 'end') endKey(k);
+    else if (zone === 'limit') limitKey(k);
     else if (zone === 'pair' && k === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* không phải TV */ } }
   });
 
@@ -499,6 +650,8 @@
     if (zone === 'player') { if (t.closest('#osd-back')) stop(); else toggle(); return; }
     if (zone === 'pin') { if (key) { pinIdx = +key.getAttribute('data-i'); focus(); pressPad(PAD[pinIdx]); } else if (t === $('#pin')) closeModal(); return; }
     if (zone === 'parent') { if (pb) parentAct(pb.getAttribute('data-act')); else if (t === $('#parent')) closeModal(); return; }
+    if (zone === 'end') { var eb = t.closest('.ebtn'); if (eb) endAct(eb.getAttribute('data-act')); return; }
+    if (zone === 'limit') { if (t.closest('.ebtn')) openPin(); return; }
     if (ch) {
       var i = +ch.getAttribute('data-i');
       if (i === lib.length) { openPin(); return; }
@@ -515,6 +668,7 @@
 
   var cached = null;
   try { cached = JSON.parse(localStorage.getItem('ct-lib')); } catch (e) { cached = null; }
+  if (cached && cached.screen) setQuota(cached.screen, true);
   if (cached && cached.rows && cached.rows.length) showHome(cached.rows, cached.family);
   hello().then(schedule, schedule);
 })();

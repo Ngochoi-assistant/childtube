@@ -52,12 +52,12 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* ---- Lưới video ---- */
 #main { -webkit-flex: 1; flex: 1; height: 100%; padding: 2.2vw 2vw 0 2vw; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
 #ch-title { font-size: 2.3vw; font-weight: 800; margin: 0 0 1vw .8vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#grid { -webkit-flex: 1; flex: 1; overflow: hidden; position: relative; padding: .8vw .4vw 3vw; }
+#grid { -webkit-flex: 1; flex: 1; overflow: hidden; position: relative; padding: 1.8vw 1vw 3vw; }  /* chừa chỗ cho ô đang chọn nổi lên, không bị cắt mép */
 #grid:after { content: ''; display: block; clear: both; }
 .card {
   float: left; width: 23%; margin: 0 1% 1.6vw; border-radius: 1.2vw;
   background: rgba(255, 255, 255, .07);
-  transition: transform .15s;
+  transition: transform .15s, opacity .15s;
 }
 .thumb { position: relative; width: 100%; padding-top: 56.25%; border-radius: 1.2vw 1.2vw 0 0; overflow: hidden; background: #22305f; }
 .thumb img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -70,6 +70,28 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 
 /* Ô đang chọn bằng remote */
 .focus { transform: scale(1.07); box-shadow: 0 0 0 .32vw #ffd23f; background: rgba(255,255,255,.2); position: relative; z-index: 2; }
+
+/* Video đang chọn nổi hẳn lên: nhấc cao, to hơn, thẻ vàng chữ đậm, nút ▶ ở giữa; video khác mờ đi.
+   Chỉ đổi transform/opacity khi chuyển ô, viền là bóng không mờ (spread) để TV yếu vẽ nhanh. */
+.card.focus {
+  -webkit-transform: translateY(-.7vw) scale(1.12); transform: translateY(-.7vw) scale(1.12); z-index: 3;
+  background: #ffd23f; color: #2a1d00;
+  box-shadow: 0 0 0 .35vw #ffd23f, 0 0 0 .8vw rgba(255, 210, 63, .3);
+}
+.card.focus .t { font-weight: 800; }
+.card.focus.locked .t { opacity: .7; }
+.thumb .play {
+  position: absolute; left: 50%; top: 50%; width: 4.4vw; height: 4.4vw; margin: -2.2vw 0 0 -2.2vw;
+  border-radius: 50%; background: rgba(255, 255, 255, .92); opacity: 0;
+  -webkit-transform: scale(.6); transform: scale(.6); transition: opacity .15s, transform .15s;
+}
+.thumb .play:after {
+  content: ''; position: absolute; left: 1.7vw; top: 1.25vw;
+  border-left: 1.5vw solid #2a1d00; border-top: .95vw solid transparent; border-bottom: .95vw solid transparent;
+}
+.card.focus .play { opacity: 1; -webkit-transform: scale(1); transform: scale(1); }
+#grid.dim .card { opacity: .45; }
+#grid.dim .card.focus { opacity: 1; }
 .ch.focus { transform: scale(1.04); background: #ffd23f; color: #2a1d00; box-shadow: none; opacity: 1; }
 
 /* ---- Trình phát ---- */
@@ -153,3 +175,16 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 /* Đang xem video: không vẽ trang chủ và nền phía sau, để TV dồn sức giải mã video */
 body.playing { background: #000; }
 body.playing #home { visibility: hidden; }
+
+/* ---- Màn xem xong / hết giờ (thay cho tự phát video kế) ---- */
+.screen { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 12; background: #101a3d; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; text-align: center; padding: 0 8vw; }
+.screen .big { font-size: 7vw; line-height: 1.1; }
+.screen h1 { font-size: 3.4vw; font-weight: 800; margin: .8vw 0 .6vw; }
+.screen p, #end-title { font-size: 1.8vw; opacity: .85; margin-bottom: 3vw; max-width: 70vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#end-btns, #limit-btns { display: -webkit-flex; display: flex; -webkit-justify-content: center; justify-content: center; }
+.ebtn { font-size: 1.9vw; font-weight: 800; padding: 1.2vw 2.6vw; margin: 0 .9vw; border-radius: 2vw; background: rgba(255,255,255,.12); white-space: nowrap; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; transition: transform .15s; }
+.ebtn.focus { background: #ffd23f; color: #2a1d00; -webkit-transform: scale(1.1); transform: scale(1.1); box-shadow: 0 0 0 .35vw #ffd23f, 0 0 0 .8vw rgba(255, 210, 63, .3); }
+#end-idea { font-size: 1.7vw; margin-top: 3.2vw; color: #c9d3ff; }
+#end-left { font-size: 1.4vw; margin-top: 1.2vw; opacity: .7; min-height: 2vw; }
+#osd-warn { display: inline-block; margin-top: .8vw; font-size: 1.5vw; font-weight: 800; color: #2a1d00; background: #ffd23f; padding: .3vw 1.2vw; border-radius: 1.2vw; }
+#parent-time { font-size: 1.3vw; opacity: .8; margin: -.6vw 0 1vw; min-height: 1.6vw; }
