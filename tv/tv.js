@@ -163,6 +163,7 @@
     var key = JSON.stringify(rows) + '|' + family;
     if (key === libKey) return;                            // không đổi: giữ nguyên màn hình, không tải lại ảnh
     libKey = key;
+    paintWho(family);
     var curId = lib[chIdx] && lib[chIdx].id;
     lib = rows;
     chIdx = 0;
@@ -206,8 +207,7 @@
 
   function renderGrid(family) {
     var g = lib[chIdx];
-    $('#ch-title').textContent = g ? (g.emoji ? g.emoji + ' ' : '') + g.title + (g.numbered ? '  ·  đã học ' + doneCount(g) + '/' + g.videos.length : '') : '';
-    $('#ch-note').textContent = g && g.note ? g.note : '';
+    paintHero(g);
     $('#empty').classList.toggle('hidden', !!lib.length);
     if (!lib.length) {
       $('#empty').innerHTML = 'Chưa có video nào' + (family ? ' cho <b>' + esc(family) + '</b>' : '') +
@@ -219,6 +219,40 @@
       return '<div class="card' + (locked ? ' locked' : '') + (v.done ? ' done' : '') + '" data-i="' + i + '"><div class="thumb"><img src="' + thumb(v.id) + '" alt="" loading="lazy" decoding="async">' + badges + '</div><div class="t">' + esc(v.title) + '</div></div>';
     }).join('') : '';
     $('#grid').scrollTop = 0;
+  }
+
+  // Banner của nhóm đang chọn: loại nhóm, tên, ghi chú, tiến độ giáo trình, ảnh bài nên xem tiếp.
+  var heroImg = '';
+  function paintHero(g) {
+    $('#hero').classList.toggle('hidden', !g);
+    if (!g) return;
+    var n = g.videos.length;
+    $('#hero-kicker').innerHTML = '<i></i>' + esc((g.section === 'fav' ? 'Yêu thích' : SEC[g.section] || 'Video') + ' · ' + n + (g.numbered ? ' bài' : ' video'));
+    $('#ch-title').textContent = (g.emoji ? g.emoji + ' ' : '') + g.title;
+    $('#ch-note').textContent = g.note || '';
+    $('#hero-prog').classList.toggle('hidden', !g.numbered);
+    if (g.numbered) {
+      var d = doneCount(g);
+      $('#hero-fill').style.width = (n ? d / n * 100 : 0) + '%';
+      $('#hero-done').textContent = 'Đã học ' + d + '/' + n + ' bài';
+    }
+    var v = g.videos[startIndex(g)], src = v ? 'https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg' : '';
+    if (src !== heroImg) { heroImg = src; $('#hero-img').src = src; }   // chỉ tải ảnh khi đổi bài
+  }
+
+  // Đồng hồ + tên gia đình ở thanh trên. Đồng hồ đổi mỗi phút (đúng đầu phút) để không vẽ lại liên tục.
+  var DAYS = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  function tickClock() {
+    var d = new Date();
+    $('#clock-time').textContent = d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2);
+    $('#clock-date').textContent = DAYS[d.getDay()] + ', ' + d.getDate() + ' tháng ' + (d.getMonth() + 1);
+    setTimeout(tickClock, 60000 - d.getSeconds() * 1000 - d.getMilliseconds() + 50);
+  }
+  tickClock();
+  function paintWho(family) {
+    var name = family || 'Gia đình', w = name.replace(/^(nhà|gia đình)\s+/i, '').split(/\s+/);
+    $('#who-name').textContent = name;
+    $('#who-av').textContent = (w.length > 1 ? w[w.length - 2].charAt(0) + w[w.length - 1].charAt(0) : w[0].charAt(0)).toUpperCase();
   }
 
   function sideItems() { return document.querySelectorAll('#channels .ch'); }

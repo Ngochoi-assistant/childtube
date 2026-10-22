@@ -7,8 +7,8 @@
 <link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="tv.css?v=6">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link rel="stylesheet" href="tv.css?v=7">
 </head>
 <body>
 <div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
@@ -35,8 +35,19 @@
     <div id="channels"></div>
   </aside>
   <main id="main">
-    <h1 id="ch-title"></h1>
-    <div id="ch-note"></div>
+    <header id="top">
+      <div id="clock"><span id="clock-time"></span><span id="clock-date"></span></div>
+      <div id="who"><span id="who-av"></span><span id="who-name"></span></div>
+    </header>
+    <section id="hero">
+      <div id="hero-text">
+        <span id="hero-kicker"></span>
+        <h1 id="ch-title"></h1>
+        <div id="ch-note"></div>
+        <div id="hero-prog" class="hidden"><span id="hero-bar"><span id="hero-fill"></span></span><span id="hero-done"></span></div>
+      </div>
+      <div id="hero-pic"><img id="hero-img" alt=""></div>
+    </section>
     <div id="grid"></div>
     <div id="empty" class="hidden"></div>
   </main>
@@ -98,7 +109,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js?v=6"></script>
+<script src="tv.js?v=7"></script>
 <script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
