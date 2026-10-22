@@ -7,7 +7,7 @@
   var K = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, PLAY: 415, PAUSE: 19, PLAYPAUSE: 10252, STOP: 413, FF: 417, RW: 412 };
   var BACK = [10009, 27, 8, 461];
   var COLS = 4;
-  var SEC = { collection: 'Bộ sưu tập', topic: 'Chủ đề', source: 'Kênh' };
+  var SEC = { collection: 'Giáo trình', topic: 'Playlist', source: 'Kênh' };
   var APP_URL = new URL('../app/', location.href).href;
 
   var lib = [];           // [{section,id,title,emoji,thumb,videos:[{id,title}]}]

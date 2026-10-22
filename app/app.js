@@ -261,7 +261,7 @@ async function openSource(id, justAdded) {
     ${justAdded ? '<div class="hint">Đã thêm!' + (isVideo ? '' : ' Mặc định bé <b>chỉ xem video bạn duyệt</b>: bấm ✅ ở từng video bên dưới, hoặc <b>Duyệt tất cả</b>.') + '</div>' : ''}
     ${modeBox}
     <label>Bộ sưu tập</label><div class="chips">${chips('collection')}</div>
-    <label>Chủ đề</label><div class="chips">${chips('topic')}</div>
+    <label>Playlist & chủ đề</label><div class="chips">${chips('topic')}</div>
     <div class="toolbar">
       ${isVideo ? `<button class="btn small" data-a="fav">${fav ? '❤️ Bỏ yêu thích' : '🤍 Yêu thích'}</button>` : ''}
       <button class="btn small" data-a="up" ${idx === 0 ? 'disabled' : ''}>↑ Lên</button>
@@ -340,7 +340,7 @@ function videoTags(vid, title, back) {
     + `<button class="chip add-chip" data-a="newgroup" data-kind="${kind}">+ Tạo mới</button>`;
   sheet(`<div class="head"><img src="${thumb(vid)}" alt="" style="width:96px;height:54px"><h3 style="font-size:15px">${esc(title)}</h3></div>
     <label>Bộ sưu tập</label><div class="chips">${chips('collection')}</div>
-    <label>Chủ đề</label><div class="chips">${chips('topic')}</div>
+    <label>Playlist & chủ đề</label><div class="chips">${chips('topic')}</div>
     <button class="btn primary" data-a="done">Xong</button>`,
   async (a, b) => {
     if (a === 'done') return back();
@@ -372,7 +372,7 @@ function viewGroups() {
     <div class="card">${list.length ? list.map(card).join('') : `<div class="empty">${hint}</div>`}</div>`;
   };
   return block('collection', '📚 Giáo trình', 'Chưa có giáo trình. Bấm <b>+ Tạo</b> để chọn mẫu theo tuổi của bé.')
-    + block('topic', '🏷️ Chủ đề', `Gắn nhãn cho video: Âm nhạc, Tiếng Anh, Toán…<br><button class="btn small" data-a="suggest" style="margin-top:10px">Tạo chủ đề gợi ý</button>`)
+    + block('topic', '🎵 Playlist & chủ đề', `Danh sách phát bố mẹ tự tạo, ví dụ: Nhạc trước giờ ngủ, Tiếng Anh, Khủng long. Mỗi playlist là một mục trên TV.<br><button class="btn small" data-a="suggest" style="margin-top:10px">Tạo nhanh vài playlist gợi ý</button>`)
     + viewFavs();
 }
 
@@ -437,7 +437,7 @@ function openGroupEditor(gid, keepScroll) {
     }
     if (a === 'gadd') return addLinkToGroup(gid, $('#g-link').value);
     if (a === 'gpick') return openPicker(gid);
-    if (a === 'gsearch') { srch.target = gid; closeSheet(); return $('#tabs [data-tab="search"]').click(); }
+    if (a === 'gsearch') { srchTargets = [gid]; saveTargets(); closeSheet(); return $('#tabs [data-tab="search"]').click(); }
     if (a === 'gren') return newGroup(g.kind, () => openGroupEditor(gid), g);
     if (a === 'gup' || a === 'gdown') {
       const ids = groupsOf(g.kind).map((x) => x.id), i = ids.indexOf(gid), j = i + (a === 'gup' ? -1 : 1);
@@ -544,14 +544,22 @@ async function pickVideos(gid, sid) {
 // ---------- Tab Tìm (tìm trực tiếp trên YouTube) ----------
 const srchCache = new Map();
 let srchSeq = 0;
+let srchTargets = [];
+try { srchTargets = JSON.parse(localStorage.getItem('ct_targets') || '[]'); } catch (e) { srchTargets = []; }
+const saveTargets = () => { try { localStorage.setItem('ct_targets', JSON.stringify(srchTargets)); } catch (e) { /* bỏ qua */ } };
+const targetGroups = () => { srchTargets = srchTargets.filter((id) => S.groups.some((g) => g.id === id)); return srchTargets.map((id) => S.groups.find((g) => g.id === id)); };
 let srch = { q: '', type: 'video', lang: 'vi', results: null, busy: false, err: '', target: null };
 
 function viewSearch() {
   const chips = (list, cur, a) => list.map(([v, label]) => `<button class="chip ${cur === v ? 'on' : ''}" data-a="${a}" data-v="${v}">${label}</button>`).join('');
   const ideas = ['bảng chữ cái tiếng Việt', 'học đếm số cho bé', 'bài hát thiếu nhi', 'truyện cổ tích cho bé', 'khoa học cho bé', 'Super Simple Songs'];
-  const tg = srch.target && S.groups.find((g) => g.id === srch.target);
-  if (srch.target && !tg) srch.target = null;
-  return `${tg ? `<div class="card warn target"><span>Đang thêm vào <b>${esc(tg.emoji + ' ' + tg.name)}</b> (${tg.items.length})</span><span><button class="btn small" data-a="starget-open">Xem</button> <button class="btn small" data-a="starget-clear">Xong</button></span></div>` : ''}
+  const tg = targetGroups();
+  const order = [...groupsOf('topic'), ...groupsOf('collection')];
+  const bar = `<div class="card tbar"><div class="m">Thêm nhanh vào (chọn một hoặc nhiều):</div><div class="chips">${order.map((g) => {
+    const on = srchTargets.includes(g.id);
+    return `<button class="chip ${on ? 'on' : ''}" data-a="stg" data-g="${g.id}">${on ? '✓ ' : ''}${esc(g.emoji)} ${esc(g.name)}</button>`;
+  }).join('')}<button class="chip add-chip" data-a="stg-new">+ Playlist mới</button></div></div>`;
+  return `${bar}
     <form class="add" id="search-form" onsubmit="return false">
       <input id="sq" value="${esc(srch.q)}" placeholder="Tìm trên YouTube…" enterkeyhint="search" autocomplete="off">
       <button class="btn" data-a="sgo" type="button">Tìm</button>
@@ -565,7 +573,9 @@ function viewSearch() {
 }
 
 function searchRow(r, i) {
-  const inTarget = srch.target && S.groups.find((g) => g.id === srch.target)?.items.some((x) => x.video_id === r.id);
+  const tg = targetGroups();
+  const allIn = tg.length && tg.every((g) => g.items.some((x) => x.video_id === r.id));
+  const addLabel = tg.length === 1 ? `➕ Thêm vào «${esc(tg[0].name)}»` : `➕ Thêm vào ${tg.length} playlist`;
   if (r.type === 'video') {
     const bad = r.embed === false;
     return `<div class="row" data-i="${i}">
@@ -574,7 +584,8 @@ function searchRow(r, i) {
         <div class="m">${esc(r.channel)} · ${esc(r.durationText)}${r.viewsText ? ' · ' + esc(r.viewsText) : ''}${r.published ? ' · ' + esc(r.published) : ''}</div>
         ${bad ? '<div class="m pend">⚠ Không phát được trên TV</div>' : ''}
         <div class="toolbar" style="margin:6px 0 0">
-          ${bad ? '' : inTarget ? '<button class="btn small" disabled>✓ Đã thêm</button>' : `<button class="btn small" data-a="sadd">➕ Thêm vào giáo trình</button>`}
+          ${bad ? '' : !tg.length ? '<button class="btn small" data-a="spick">➕ Thêm vào playlist…</button>'
+            : `${allIn ? '<button class="btn small" disabled>✓ Đã thêm</button>' : `<button class="btn small primary-s" data-a="sadd">${addLabel}</button>`}<button class="btn small" data-a="spick">Chọn khác…</button>`}
           ${r.channelId ? '<button class="btn small" data-a="sch">📺 Thêm kênh</button>' : ''}
         </div></div></div>`;
   }
@@ -608,21 +619,26 @@ async function doSearch() {
   if (tab === 'search') $('#view').innerHTML = viewSearch();
 }
 
+function wzToggleTarget(id) { const i = srchTargets.indexOf(id); if (i >= 0) srchTargets.splice(i, 1); else srchTargets.push(id); saveTargets(); }
+// Vẽ lại tab Tìm, giữ nguyên vị trí cuộn.
+function repaintSearch() { if (tab !== 'search') return; const y = window.scrollY; $('#view').innerHTML = viewSearch(); window.scrollTo(0, y); }
+
 // Chọn giáo trình để thêm một video vào (có thể tạo giáo trình mới ngay tại đây).
 function chooseGroup(v, back) {
   const rows = (kind) => groupsOf(kind).map((g) => {
     const has = g.items.some((i) => i.video_id === v.id);
     return `<button class="choice" data-a="gp" data-g="${g.id}" ${has ? 'disabled' : ''}>${esc(g.emoji)} ${esc(g.name)}<small>${g.items.length} mục${has ? ' · ✓ đã có trong nhóm này' : ''}</small></button>`;
   }).join('');
-  sheet(`<h3>Thêm vào giáo trình nào?</h3>
+  sheet(`<h3>Thêm vào playlist / giáo trình nào?</h3>
     <div class="head"><img src="${thumb(v.id)}" alt="" style="width:96px;height:54px;border-radius:8px"><div class="t" style="font-size:14px">${esc(v.title)}</div></div>
-    ${rows('collection')}${rows('topic')}
-    <button class="choice" data-a="gnew">➕ Tạo giáo trình mới…</button>
+    ${groupsOf('topic').length ? '<label>Playlist & chủ đề</label>' : ''}${rows('topic')}
+    ${groupsOf('collection').length ? '<label>Giáo trình</label>' : ''}${rows('collection')}
+    <button class="choice" data-a="gnew">➕ Tạo playlist mới…</button>
     <button class="btn link" data-a="gx">Đóng</button>`,
   async (a, b) => {
     if (a === 'gx') return closeSheet();
-    if (a === 'gnew') return newGroup('collection', async (gid) => {
-      await act(() => rpc('ct_group_item', { p_group: gid, p_source: null, p_video: v.id, p_title: v.title, p_on: true }), 'Đã thêm vào giáo trình mới');
+    if (a === 'gnew') return newGroup('topic', async (gid) => {
+      await act(() => rpc('ct_group_item', { p_group: gid, p_source: null, p_video: v.id, p_title: v.title, p_on: true }), 'Đã thêm vào playlist mới');
       await quietLoad(); (back || closeSheet)();
     });
     if (a === 'gp') {
@@ -779,8 +795,8 @@ function viewHistory() {
 
 function newGroup(kind, after, g) {
   let emoji = g ? g.emoji : (kind === 'topic' ? '🎵' : '⭐');
-  sheet(`<h3>${g ? 'Sửa' : 'Tạo'} ${kind === 'topic' ? 'chủ đề' : 'bộ sưu tập'}</h3>
-    <label>Tên</label><input id="g-name" value="${esc(g ? g.name : '')}" placeholder="${kind === 'topic' ? 'Ví dụ: Tiếng Anh' : 'Ví dụ: Trước giờ ngủ'}">
+  sheet(`<h3>${g ? 'Sửa' : 'Tạo'} ${kind === 'topic' ? 'playlist' : 'bộ sưu tập'}</h3>
+    <label>Tên</label><input id="g-name" value="${esc(g ? g.name : '')}" placeholder="${kind === 'topic' ? 'Ví dụ: Nhạc trước giờ ngủ' : 'Ví dụ: Bảng chữ cái'}">
     <label>Biểu tượng</label><div class="emoji-pick">${EMOJI.map((e) => `<button data-a="emoji" class="${e === emoji ? 'on' : ''}">${e}</button>`).join('')}</div>
     <button class="btn primary" data-a="save">${g ? 'Lưu' : 'Tạo'}</button>`,
   async (a, b) => {
@@ -898,18 +914,19 @@ $('#view').addEventListener('click', async (e) => {
     return q.length >= 2 ? doSearch() : ($('#view').innerHTML = viewSearch());
   }
   if (a === 'sidea') { srch.q = b.dataset.q; return doSearch(); }
-  if (a === 'starget-clear') { srch.target = null; return ($('#view').innerHTML = viewSearch()); }
-  if (a === 'starget-open') return openGroupEditor(srch.target);
+  if (a === 'stg') { wzToggleTarget(b.dataset.g); return repaintSearch(); }
+  if (a === 'stg-new') return newGroup('topic', async (gid) => { srchTargets.push(gid); saveTargets(); closeSheet(); repaintSearch(); });
+  if (a === 'spick') { const r = srch.results[+b.closest('[data-i]').dataset.i]; return chooseGroup({ id: r.id, title: r.title }, () => { closeSheet(); repaintSearch(); }); }
   if (a === 'sadd' || a === 'sch' || a === 'spl') {
     const r = srch.results[+b.closest('[data-i]').dataset.i];
     if (a === 'sadd') {
-      if (!srch.target) return chooseGroup({ id: r.id, title: r.title });
-      const g = S.groups.find((x) => x.id === srch.target);
-      b.disabled = true;
-      const ok = await act(() => rpc('ct_group_item', { p_group: g.id, p_source: null, p_video: r.id, p_title: r.title, p_on: true }));
-      if (ok === undefined) toast(`Đã thêm vào «${g.name}»`);
+      const tg = targetGroups().filter((g) => !g.items.some((x) => x.video_id === r.id));
+      b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+      let n = 0;
+      for (const g of tg) { const ok = await act(() => rpc('ct_group_item', { p_group: g.id, p_source: null, p_video: r.id, p_title: r.title, p_on: true })); if (ok === undefined) n++; }
+      if (n) toast(n === 1 ? `Đã thêm vào «${tg[0].name}»` : `Đã thêm vào ${n} playlist`);
       await quietLoad();
-      return ($('#view').innerHTML = viewSearch());
+      return repaintSearch();
     }
     b.disabled = true; const keep = b.textContent; b.innerHTML = '<span class="spin"></span>';
     try {
