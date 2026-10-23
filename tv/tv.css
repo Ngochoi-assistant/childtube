@@ -248,3 +248,6 @@ body.playing #home { visibility: hidden; }
 .ebtn.focus { background: var(--focus); color: var(--on-focus); -webkit-transform: scale(1.1); transform: scale(1.1); }
 #end-idea { font-size: 1.5vw; margin-top: 3vw; color: var(--text-2); }
 #end-left { font-size: 1.25vw; margin-top: 1vw; color: var(--text-3); min-height: 2vw; }
+
+/* Mỗi ô là một lớp riêng: phóng to do GPU làm, không vẽ lại ảnh/viền. Đo trên TV 23/10: lưới 17–24 ms (không có: 21–34 ms). */
+.card, .ch, .key, .pbtn, .ebtn { will-change: transform; }
