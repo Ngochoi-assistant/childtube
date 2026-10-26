@@ -454,6 +454,7 @@
         '</div>';
     }).join('') : familyCard();
     var btns = ['<button class="obtn main" data-act="lib">📚 Chọn chương trình</button>'];
+    if (curList().length) btns.push('<button class="obtn" data-act="road">🧭 Xem lộ trình</button>');
     kids.forEach(function (k, i) { if (k.next && findLesson(k.next)) btns.push('<button class="obtn" data-act="next" data-i="' + i + '">▶ ' + esc(k.name) + ' học tiếp: ' + esc(k.next.lesson) + '</button>'); });
     $('#ov-btns').innerHTML = btns.join('');
     if (ovIdx >= btns.length) ovIdx = 0;
@@ -481,6 +482,7 @@
   function ovAct(b) {
     var act = b.getAttribute('data-act');
     if (act === 'lib') { hideOverview(); return; }
+    if (act === 'road') { showRoad('ov'); return; }
     var k = ov && ov.kids[+b.getAttribute('data-i')], at = k && findLesson(k.next);
     if (!at) { hideOverview(); return; }
     $('#ov').classList.add('hidden');
@@ -499,19 +501,77 @@
     focus();
   }
 
-  // ---------- Lộ trình (mục riêng, mở từ nút "Lộ trình của bé" trên cột trái) ----------
-  // Gọn, 3 khối: Đang học (giáo trình hiện tại) · Mốc năm nay · Mục tiêu & kỹ năng; trên cùng là hành trình theo tuổi.
-  var rmKid = 0, rmIdx = 0;
-  function showRoad() {
+  // ---------- Lộ trình (mục riêng: nút "Lộ trình của bé" ở cột trái, hoặc nút ở màn mở đầu) ----------
+  // Vẽ giáo trình thành một con đường chia chặng: đã đi (xanh), đang ở (đỏ, có bé), phía trước (xám), đích 🏁.
+  // Dưới đường: bài đang học · các bài tiếp theo · định hướng (mục tiêu, mốc của bé nếu bố mẹ đã nhập; nếu chưa thì đã xong / còn lại).
+  var rmCur = 0, rmIdx = 0, rmFrom = 'side';
+  function curList() { var a = []; for (var i = 0; i < lib.length; i++) if (lib[i].numbered && lib[i].videos.length) a.push(i); return a; }
+  function curLessons(g) {
+    var ls = [], map = {}, i, v, key, l;
+    for (i = 0; i < g.videos.length; i++) {
+      v = g.videos[i];
+      key = v.ln ? 'l' + v.ln : 'v' + i;
+      l = map[key];
+      if (!l) { l = map[key] = { n: v.ln || ls.length + 1, title: v.lt || v.title, mt: v.mt || '', idx: i, vid: v.id, done: true, main: 0 }; ls.push(l); }
+      if (v.role !== 'extra') { l.main++; if (!v.done) l.done = false; }
+    }
+    for (i = 0; i < ls.length; i++) if (!ls[i].main) ls[i].done = false;
+    return ls;
+  }
+  function curStages(ls) {
+    var st = [], mts = [], i, k;
+    for (i = 0; i < ls.length; i++) if (ls[i].mt && mts.indexOf(ls[i].mt) < 0) mts.push(ls[i].mt);
+    if (mts.length >= 2 && mts.length <= 8) {
+      for (i = 0; i < ls.length; i++) { if (!st.length || st[st.length - 1].name !== ls[i].mt) st.push({ name: ls[i].mt || 'Chặng', ls: [] }); st[st.length - 1].ls.push(ls[i]); }
+    } else {
+      k = Math.max(1, Math.min(4, Math.ceil(ls.length / 5)));
+      var size = Math.ceil(ls.length / k);
+      for (i = 0; i < ls.length; i++) { if (i % size === 0) st.push({ name: 'Chặng ' + (st.length + 1), ls: [] }); st[st.length - 1].ls.push(ls[i]); }
+    }
+    return st;
+  }
+  // Con đường SVG
+  function roadSvg(st, ls, cur, emoji) {
+    var W = 1500, H = 190, L = 40, R = 1380, Y = 78, total = ls.length || 1, out = '', x = L, i, s, w, d, isNow, col, done = 0;
+    for (i = 0; i < ls.length; i++) if (ls[i].done) done++;
+    out += '<line x1="' + L + '" y1="' + Y + '" x2="' + R + '" y2="' + Y + '" stroke="rgba(255,255,255,.14)" stroke-width="18" stroke-linecap="round"/>';
+    if (done) out += '<line x1="' + L + '" y1="' + Y + '" x2="' + (L + (R - L) * done / total) + '" y2="' + Y + '" stroke="#30d158" stroke-width="18" stroke-linecap="round"/>';
+    for (i = 0; i < st.length; i++) {
+      s = st[i]; w = (R - L) * s.ls.length / total;
+      d = 0; for (var j = 0; j < s.ls.length; j++) if (s.ls[j].done) d++;
+      isNow = cur && s.ls.indexOf(cur) >= 0;
+      col = d === s.ls.length ? '#30d158' : isNow ? '#ff453a' : 'rgba(255,255,255,.35)';
+      if (i > 0) out += '<circle cx="' + x + '" cy="' + Y + '" r="13" fill="#1c1c1e" stroke="' + (st[i - 1].ls.every(function (q) { return q.done; }) ? '#30d158' : 'rgba(255,255,255,.35)') + '" stroke-width="5"/>';
+      out += '<text x="' + (x + w / 2) + '" y="' + (Y + 46) + '" text-anchor="middle" font-size="21" font-weight="' + (isNow ? 800 : 600) + '" fill="' + (isNow ? '#fff' : 'rgba(235,235,245,.65)') + '">' + esc(s.name.length > 22 ? s.name.slice(0, 21) + '…' : s.name) + '</text>';
+      out += '<text x="' + (x + w / 2) + '" y="' + (Y + 72) + '" text-anchor="middle" font-size="16" fill="' + col + '">Bài ' + s.ls[0].n + '–' + s.ls[s.ls.length - 1].n + ' · ' + d + '/' + s.ls.length + (d === s.ls.length ? ' ✓' : '') + '</text>';
+      x += w;
+    }
+    out += '<text x="' + (R + 60) + '" y="' + (Y + 13) + '" text-anchor="middle" font-size="40">🏁</text>';
+    out += '<text x="' + (R + 60) + '" y="' + (Y + 46) + '" text-anchor="middle" font-size="16" fill="rgba(235,235,245,.6)">Hoàn thành</text>';
+    if (cur) {
+      var ci = ls.indexOf(cur), cx = L + (R - L) * (ci + 0.5) / total, lab = 'Bé đang ở đây · Bài ' + cur.n;
+      out += '<circle cx="' + cx + '" cy="' + Y + '" r="27" fill="#fff"/><text x="' + cx + '" y="' + (Y + 11) + '" text-anchor="middle" font-size="30">' + esc(emoji || '🧒') + '</text>';
+      out += '<text x="' + Math.max(L + 120, Math.min(R - 120, cx)) + '" y="' + (Y - 40) + '" text-anchor="middle" font-size="19" font-weight="800" fill="#ff6961">' + lab + '</text>';
+    } else {
+      out += '<text x="' + ((L + R) / 2) + '" y="' + (Y - 40) + '" text-anchor="middle" font-size="19" font-weight="800" fill="#30d158">Bé đã học xong cả giáo trình 🎉</text>';
+    }
+    return '<svg class="rm-road" viewBox="0 0 ' + W + ' ' + H + '" width="100%">' + out + '</svg>';
+  }
+  function showRoad(from) {
+    rmFrom = from || 'side';
     $('#home').classList.add('hidden');
+    $('#ov').classList.add('hidden');
     $('#rm').classList.remove('hidden');
     zone = 'rm';
     rmIdx = 0;
+    var cs = curList();
+    for (var i = 0; i < cs.length; i++) if (cs[i] === chIdx) rmCur = i;   // đang chọn giáo trình nào thì mở lộ trình của giáo trình đó
     paintRoad();
     loadOverview().then(function () { if (zone === 'rm') paintRoad(); });
   }
   function hideRoad() {
     $('#rm').classList.add('hidden');
+    if (rmFrom === 'ov') { showOverview(); return; }
     $('#home').classList.remove('hidden');
     zone = 'side';
     sideIdx = chIdx < 0 ? 0 : chIdx;
@@ -520,41 +580,50 @@
   function rmCard(title, right, body) {
     return '<section class="rm-card"><div class="rm-h"><b>' + title + '</b>' + (right ? '<span>' + right + '</span>' : '') + '</div>' + body + '</section>';
   }
+  function rmLi(cls, ic, text) { return '<div class="rm-li ' + cls + '"><i>' + ic + '</i><span>' + text + '</span></div>'; }
   function paintRoad() {
-    var kids = (ov && ov.kids) || [];
-    if (rmKid >= kids.length) rmKid = 0;
-    $('#rm-kids').innerHTML = kids.length > 1 ? kids.map(function (k, i) {
-      return '<span class="rm-kid' + (i === rmKid ? ' on' : '') + '">' + esc((k.emoji || '🧒') + ' ' + k.name) + '</span>'; }).join('') + '<em>◀ ▶ đổi bé</em>' : '';
-    var k = kids[rmKid], html = '', btns = [];
-    if (!k) {
-      html = '<div class="rm-grid">' + familyCard() + '</div>';
+    var cs = curList(), kid = ov && ov.kids && ov.kids[0], btns = [];
+    if (rmCur >= cs.length) rmCur = 0;
+    var gi = cs[rmCur], g = lib[gi];
+    $('#rm-kids').innerHTML = cs.length > 1 ? cs.map(function (c, i) {
+      return '<span class="rm-kid' + (i === rmCur ? ' on' : '') + '">' + esc((lib[c].emoji ? lib[c].emoji + ' ' : '') + lib[c].title) + '</span>'; }).join('') + '<em>◀ ▶ đổi giáo trình</em>' : '';
+    if (!g) {
+      $('#rm-body').innerHTML = '<div class="rm-empty">Chưa có giáo trình nào.<br>Bố mẹ tạo giáo trình trong app ChildTube (tab Học) để thấy lộ trình của bé ở đây.</div>';
     } else {
-      var now = null, st = (k.road && k.road.stages) || [], i;
-      for (i = 0; i < st.length; i++) if (st[i].state === 'now') now = st[i];
-      var head = '<div class="rm-who"><span class="ov-av">' + esc(k.emoji || '🧒') + '</span><div><h2>' + esc(k.name) + '</h2><div class="ov-sub">' +
-        (k.age != null ? k.age + ' tuổi' : 'chưa có ngày sinh') + (now ? ' · giai đoạn ' + esc(now.name) : '') + '</div></div>' +
-        '<div class="rm-stats"><div><b>' + k.lessons_week.done + '/' + k.lessons_week.target + '</b><span>bài tuần này</span></div>' +
-        '<div><b>' + (k.streak ? '🔥 ' + k.streak : '0') + '</b><span>ngày liên tiếp</span></div></div></div>';
-      var p = (k.road && k.road.progress) || { done: 0, total: 0 }, ms = (k.road && k.road.milestones) || [];
-      var msList = ms.length ? ms.slice(0, 6).map(function (m) {
-        return '<div class="rm-li ' + m.status + '"><i>' + (m.status === 'done' ? '✓' : m.status === 'doing' ? '◐' : '○') + '</i><span>' + esc(m.title) + '</span></div>'; }).join('')
-        : '<div class="ov-none">Chưa có mốc năm nay. Bố mẹ thêm trong app: Học → Lộ trình.</div>';
-      var goals = (k.road && k.road.goals) || [];
-      var gList = goals.length ? goals.map(function (g) {
-        return '<div class="rm-li goal"><i>🎯</i><span>' + esc(g.title) + (g.target_age ? '<em> · đến ' + g.target_age + ' tuổi</em>' : '') + '</span></div>'; }).join('')
-        : '<div class="ov-none">Chưa đặt mục tiêu. Bố mẹ thêm trong app: Học → Lộ trình.</div>';
-      var sk = ((k.skills && k.skills.list) || []).filter(function (x) { return x.level; }).slice(0, 6);
-      var skHtml = sk.length ? '<div class="rm-sub">Kỹ năng nổi bật</div><div class="ov-sks">' + sk.map(function (x) {
-        return '<div class="ov-sk"><span>' + esc(x.icon + ' ' + x.name) + '</span><b><i style="width:' + x.level * 20 + '%"></i></b></div>'; }).join('') + '</div>' : '';
-      html = head + '<div class="rm-journey">' + journey(k, 1500) + '</div><div class="rm-grid">' +
-        rmCard('📘 Đang học', (k.paths || []).length ? k.paths.length + ' giáo trình' : '', tvPaths(k) +
-          (k.next ? '<div class="ov-next"><img src="' + thumb(k.next.video) + '" alt=""><div><span>Bài tiếp theo</span><b>' + esc(k.next.lesson) + '</b><em>' + esc((k.next.emoji || '📘') + ' ' + k.next.group) + '</em></div></div>' : '')) +
-        rmCard('🏁 Mốc năm nay', p.done + '/' + p.total, '<span class="ov-bar rm-bar"><i style="width:' + (p.total ? p.done / p.total * 100 : 0) + '%"></i></span>' + msList) +
-        rmCard('🧭 Định hướng', goals.length ? goals.length + ' mục tiêu' : '', gList + skHtml) + '</div>';
-      if (k.next && findLesson(k.next)) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp: ' + esc(k.next.lesson) + '</button>');
+      var ls = curLessons(g), st = curStages(ls), cur = null, i, done = 0;
+      for (i = 0; i < ls.length; i++) { if (ls[i].done) done++; else if (!cur) cur = ls[i]; }
+      var pct = ls.length ? Math.round(done / ls.length * 100) : 0;
+      var who = kid ? esc((kid.emoji || '🧒') + ' ' + kid.name) + (kid.age != null ? ' · ' + kid.age + ' tuổi' : '') : '';
+      var head = '<div class="rm-who"><div><h2>' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + '</h2><div class="ov-sub">' + (who ? who + ' · ' : '') +
+        st.length + ' chặng · ' + ls.length + ' bài' + (g.note ? ' · ' + esc(g.note.length > 90 ? g.note.slice(0, 89) + '…' : g.note) : '') + '</div></div>' +
+        '<div class="rm-stats"><div><b>' + pct + '%</b><span>đã đi được</span></div><div><b>' + done + '/' + ls.length + '</b><span>bài đã học</span></div>' +
+        (kid ? '<div><b>' + (kid.streak ? '🔥 ' + kid.streak : '0') + '</b><span>ngày liên tiếp</span></div>' : '') + '</div></div>';
+      // Khối 1: bài đang học
+      var c1 = cur ? '<div class="rm-now"><img src="' + thumb(cur.vid) + '" alt=""><div><span>Bài ' + cur.n + (cur.mt ? ' · ' + esc(cur.mt) : '') + '</span><b>' + esc(cur.title) + '</b></div></div>'
+        : '<div class="ov-none">Đã học xong mọi bài. Bố mẹ có thể thêm giáo trình mới trong app.</div>';
+      // Khối 2: các bài tiếp theo
+      var nx = [], ci = cur ? ls.indexOf(cur) : ls.length;
+      for (i = ci + 1; i < ls.length && nx.length < 5; i++) nx.push(rmLi('', '○', 'Bài ' + ls[i].n + ' · ' + esc(ls[i].title)));
+      var c2 = nx.length ? nx.join('') + (ls.length - ci - 1 > 5 ? '<div class="rm-more">+ ' + (ls.length - ci - 6) + ' bài nữa tới đích 🏁</div>' : '') : '<div class="ov-none">Đây là bài cuối cùng 🏁</div>';
+      // Khối 3: định hướng (từ hồ sơ bé nếu có), nếu chưa có thì tóm tắt đã xong
+      var gl = kid && kid.road ? kid.road.goals || [] : [], ms = kid && kid.road ? (kid.road.milestones || []).filter(function (m) { return m.status !== 'done'; }) : [];
+      var c3 = '';
+      if (gl.length || ms.length) {
+        c3 = gl.map(function (x) { return rmLi('goal', '🎯', esc(x.title) + (x.target_age ? '<em> · đến ' + x.target_age + ' tuổi</em>' : '')); }).join('') +
+          ms.slice(0, 4).map(function (m) { return rmLi(m.status, m.status === 'doing' ? '◐' : '○', esc(m.title)); }).join('');
+      } else {
+        var last = [];
+        for (i = ls.length - 1; i >= 0 && last.length < 3; i--) if (ls[i].done) last.push(rmLi('done', '✓', 'Bài ' + ls[i].n + ' · ' + esc(ls[i].title)));
+        c3 = (last.length ? last.join('') : '<div class="ov-none">Bé chưa học xong bài nào.</div>') +
+          '<div class="rm-more">Thêm hồ sơ bé, mục tiêu và mốc trong app (Gia đình, Học → Lộ trình) để thấy định hướng ở đây.</div>';
+      }
+      $('#rm-body').innerHTML = head + '<div class="rm-journey">' + roadSvg(st, ls, cur, kid && kid.emoji) + '</div><div class="rm-grid">' +
+        rmCard('▶ Đang học', cur ? 'Bài ' + cur.n + '/' + ls.length : '', c1) +
+        rmCard('🛤 Tiếp theo', ls.length - done > 0 ? 'còn ' + (ls.length - done) + ' bài' : '', c2) +
+        rmCard(gl.length || ms.length ? '🧭 Định hướng' : '✓ Đã hoàn thành', gl.length || ms.length ? '' : done + ' bài', c3) + '</div>';
+      if (cur) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp: Bài ' + cur.n + '</button>');
     }
-    btns.push('<button class="obtn" data-act="rm-back">← Về thư viện</button>');
-    $('#rm-body').innerHTML = html;
+    btns.push('<button class="obtn" data-act="rm-back">' + (rmFrom === 'ov' ? '← Quay lại' : '← Về thư viện') + '</button>');
     $('#rm-btns').innerHTML = btns.join('');
     if (rmIdx >= btns.length) rmIdx = 0;
     focus();
@@ -562,19 +631,22 @@
   function rmAct(b) {
     var act = b.getAttribute('data-act');
     if (act === 'rm-back') return hideRoad();
-    var k = ov && ov.kids[rmKid], at = k && findLesson(k.next);
-    if (!at) return hideRoad();
+    var gi = curList()[rmCur], g = lib[gi];
+    if (!g) return hideRoad();
+    var ls = curLessons(g), cur = null;
+    for (var i = 0; i < ls.length; i++) if (!ls[i].done) { cur = ls[i]; break; }
     $('#rm').classList.add('hidden');
     $('#home').classList.remove('hidden');
     zone = 'side';
-    chIdx = -1; showChannel(at.ch); sideIdx = at.ch;
-    if (isLocked(lib[at.ch], at.idx)) { focus(); toast('Hãy xem bài trước nhé! 🔒'); return; }
-    play(lib[at.ch].videos, at.idx);
+    chIdx = -1; showChannel(gi); sideIdx = gi;
+    if (!cur) { focus(); return; }
+    if (isLocked(g, cur.idx)) { focus(); toast('Hãy xem bài trước nhé! 🔒'); return; }
+    play(g.videos, cur.idx);
   }
   function rmKey(k) {
-    var n = $('#rm-btns').children.length, kids = (ov && ov.kids) || [];
-    if (k === K.LEFT && kids.length > 1 && rmKid > 0 && rmIdx === 0) { rmKid--; paintRoad(); return; }
-    if (k === K.RIGHT && kids.length > 1 && rmKid < kids.length - 1 && rmIdx === n - 1) { rmKid++; paintRoad(); return; }
+    var n = $('#rm-btns').children.length, cs = curList();
+    if (k === K.LEFT && cs.length > 1 && rmIdx === 0) { rmCur = (rmCur + cs.length - 1) % cs.length; paintRoad(); return; }
+    if (k === K.RIGHT && cs.length > 1 && rmIdx === n - 1) { rmCur = (rmCur + 1) % cs.length; paintRoad(); return; }
     if ((k === K.LEFT || k === K.UP) && rmIdx > 0) rmIdx--;
     else if ((k === K.RIGHT || k === K.DOWN) && rmIdx < n - 1) rmIdx++;
     else if (k === K.ENTER) { rmAct($('#rm-btns').children[rmIdx]); return; }
@@ -940,7 +1012,7 @@
     else if (zone === 'ov') ovKey(k);
     else if (zone === 'rm') rmKey(k);
     else if (zone === 'rmbtn') {
-      if (k === K.ENTER) showRoad();
+      if (k === K.ENTER) showRoad('side');
       else if (k === K.DOWN || k === K.RIGHT) { zone = 'side'; sideIdx = 0; focus(); }
       else if (BACK.indexOf(k) >= 0) showOverview();
     }
@@ -964,7 +1036,7 @@
     if (zone === 'player') { if (t.closest('#osd-back')) stop(); else toggle(); return; }
     if (zone === 'ov') { var ob = t.closest('.obtn'); if (ob) ovAct(ob); return; }
     if (zone === 'rm') { var rb = t.closest('.obtn'); if (rb) rmAct(rb); return; }
-    if (t.closest('#rm-btn')) { showRoad(); return; }
+    if (t.closest('#rm-btn')) { showRoad('side'); return; }
     if (t.closest('#who')) { showOverview(); return; }
     if (zone === 'pin') { if (key) { pinIdx = +key.getAttribute('data-i'); focus(); pressPad(PAD[pinIdx]); } else if (t === $('#pin')) closeModal(); return; }
     if (zone === 'parent') { if (pb) parentAct(pb.getAttribute('data-act')); else if (t === $('#parent')) closeModal(); return; }

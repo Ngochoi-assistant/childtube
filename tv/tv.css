@@ -360,7 +360,7 @@ body.playing #home { visibility: hidden; }
 .rm-stats div { text-align: right; margin-left: 2.4vw; }
 .rm-stats b { display: block; font-size: 1.7vw; font-weight: 800; }
 .rm-stats span { font-size: .9vw; color: var(--text-2); }
-.rm-journey { margin: .6vw 0 .4vw; height: 8.5vw; }
+.rm-journey { margin: 1vw 0 .6vw; height: 11.5vw; }
 .rm-journey svg { height: 100%; }
 .rm-grid { -webkit-flex: 1; flex: 1; min-height: 0; display: -webkit-flex; display: flex; }
 .rm-grid > .ov-kid { margin-right: 0; }
@@ -380,3 +380,10 @@ body.playing #home { visibility: hidden; }
 .rm-sub { font-size: .95vw; color: var(--text-3); margin: .9vw 0 .4vw; text-transform: uppercase; letter-spacing: .08vw; }
 .rm-card .ov-sk { width: 48%; }
 #rm-btns { text-align: center; margin-top: 1.1vw; }
+.rm-road { height: 100%; }
+.rm-now { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+.rm-now img { width: 13vw; height: 7.3vw; object-fit: cover; border-radius: .8vw; margin-right: 1vw; -webkit-flex-shrink: 0; flex-shrink: 0; }
+.rm-now span { display: block; font-size: .95vw; color: #ff6961; font-weight: 700; margin-bottom: .3vw; }
+.rm-now b { font-size: 1.25vw; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+.rm-more { font-size: .95vw; color: var(--text-3); margin-top: .6vw; }
+.rm-empty { margin: 6vw auto; font-size: 1.6vw; line-height: 1.6; text-align: center; color: var(--text-2); }
