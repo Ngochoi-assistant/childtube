@@ -194,3 +194,25 @@ textarea { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px sol
 .tbar { padding: 10px 12px; margin-bottom: 10px; }
 .tbar .chips { margin: 6px 0 0; }
 .btn.primary-s { background: var(--accent); color: var(--accent-ink); }
+
+/* ---- Bố cục khổ hẹp / chữ phóng to: chữ không bị ép, không xuống dòng giữa nút ---- */
+.btn, .chip { white-space: nowrap; }
+.tabs button { min-width: 0; white-space: nowrap; overflow: hidden; }
+/* hàng có nút thao tác: khi tên còn quá hẹp (< 140px) thì các nút xuống dòng dưới, tên giữ đủ rộng */
+.row { flex-wrap: wrap; row-gap: 6px; }
+.row .info { flex: 1 1 140px; }
+.row .info + .icon-btn, .row .info + .btn, .row .info + a { margin-left: auto; }
+h2 { flex-wrap: wrap; row-gap: 6px; }
+h2 .btn { flex-shrink: 0; }
+/* dải nút cuộn ngang một hàng (thay cho xếp nhiều tầng) */
+.strip { display: flex; gap: 8px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.strip::-webkit-scrollbar { display: none; }
+.strip > * { flex-shrink: 0; }
+@media (max-width: 340px) {
+  .tabs button { font-size: 9.5px; letter-spacing: -.2px; }
+  h2 { font-size: 16px; }
+}
+
+/* Logo "Mầm yêu thương": sách mở → mầm non → trái tim */
+.logo { width: 28px; height: 28px; border-radius: 0; background: url(logo.svg) center / contain no-repeat; }
+.logo:after { display: none; }

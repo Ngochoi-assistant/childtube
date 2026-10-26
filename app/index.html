@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ChildTube</title>
 <meta name="description" content="Chọn video YouTube cho bé xem trên TV">
-<meta name="theme-color" content="#101a3d">
+<meta name="theme-color" content="#f6f4ef">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ChildTube">
@@ -14,11 +14,14 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="library.css">
+<link rel="stylesheet" href="v2.css">
 </head>
 <body>
 <header class="top">
   <div class="brand"><span class="logo"></span>ChildTube</div>
   <div class="fam" id="fam-name"></div>
+  <button class="v-bell" id="v-bell" data-a="V-bell" aria-label="Việc cần bạn">🔔<b class="hidden">0</b></button>
 </header>
 
 <!-- Đăng nhập -->
@@ -31,6 +34,10 @@
       <input id="email" type="email" autocomplete="username" inputmode="email" placeholder="ban@gmail.com" required>
       <label for="password">Mật khẩu</label>
       <input id="password" type="password" autocomplete="current-password" minlength="6" placeholder="Ít nhất 6 ký tự" required>
+      <div id="setup-box" class="hidden">
+        <label for="setup-code">Mã thiết lập</label>
+        <input id="setup-code" autocomplete="one-time-code" autocapitalize="characters" maxlength="12" placeholder="8 ký tự, được gửi riêng cho bạn">
+      </div>
       <button class="btn primary" type="submit" id="login-btn">Đăng nhập</button>
       <button class="btn link" type="button" id="mode-btn">Chưa có tài khoản? Tạo tài khoản mới</button>
     </form>
@@ -44,12 +51,10 @@
 </main>
 
 <nav id="tabs" class="tabs hidden">
-  <button data-tab="list" class="on"><span>📺</span>Danh sách</button>
-  <button data-tab="search"><span>🔎</span>Tìm</button>
-  <button data-tab="review"><span>✅</span>Duyệt<i class="count hidden" id="pend-count"></i></button>
-  <button data-tab="history"><span>🕘</span>Lịch sử</button>
-  <button data-tab="groups"><span>📚</span>Giáo trình</button>
-  <button data-tab="settings"><span>⚙️</span>Cài đặt</button>
+  <button data-tab="today" class="on"><span>☀️</span>Hôm nay<i class="count hidden" id="pend-count"></i></button>
+  <button data-tab="learn"><span>📚</span>Học</button>
+  <button data-tab="feed"><span>📸</span>Kỷ niệm</button>
+  <button data-tab="family"><span>👨‍👩‍👧</span>Gia đình</button>
 </nav>
 
 <div id="sheet" class="sheet hidden"><div class="sheet-box"><div class="sheet-grip"></div><div class="sheet-bar"><button id="sheet-x" class="sheet-x" aria-label="Đóng">✕</button></div><div id="sheet-body"></div></div></div>
@@ -57,7 +62,18 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../config.js"></script>
+<script src="../ct-client.js"></script>
 <script src="app.js"></script>
 <script src="wizard.js"></script>
+<script src="library.js"></script>
+<script src="ai-chat.js"></script>
+<script src="family.js"></script>
+<script src="portal.js"></script>
+<script src="charts.js"></script>
+<script src="shell.js"></script>
+<script src="today.js"></script>
+<script src="learn.js"></script>
+<script src="feed.js"></script>
+<script src="familyhub.js"></script>
 </body>
 </html>

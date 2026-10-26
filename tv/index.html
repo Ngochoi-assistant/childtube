@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="tv.css?v=9">
+<link rel="stylesheet" href="tv.css?v=14">
 </head>
 <body>
 <div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
@@ -27,6 +27,14 @@
     </div>
   </div>
   <div id="pair-msg"></div>
+</div>
+
+<!-- Tổng quan: hiện đầu tiên khi mở TV — bé đang ở đâu trên lộ trình, hôm nay thế nào; rồi bố mẹ chọn chương trình -->
+<div id="ov" class="hidden">
+  <header id="ov-top"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="ov-clock"></div></header>
+  <div id="ov-hi"></div>
+  <div id="ov-kids"></div>
+  <div id="ov-btns"></div>
 </div>
 
 <div id="home" class="hidden">
@@ -109,7 +117,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js?v=9"></script>
+<script src="tv.js?v=14"></script>
 <script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

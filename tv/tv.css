@@ -251,3 +251,92 @@ body.playing #home { visibility: hidden; }
 
 /* Mỗi ô là một lớp riêng: phóng to do GPU làm, không vẽ lại ảnh/viền. Đo trên TV 23/10: lưới 17–24 ms (không có: 21–34 ms). */
 .card, .ch, .key, .pbtn, .ebtn { will-change: transform; }
+
+/* ---- Màn tổng quan (mở TV) ---- */
+#ov { height: 100%; padding: 1.6vw 2.6vw 1.4vw; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column;
+  background: radial-gradient(circle at 15% 0%, rgba(255, 69, 58, .18), transparent 45%), var(--bg); }
+#ov-top { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: space-between; justify-content: space-between; }
+#ov-clock { text-align: right; }
+#ov-clock b { display: block; font-size: 2vw; font-weight: 800; }
+#ov-clock span { font-size: .95vw; color: var(--text-2); }
+#ov-hi { margin: 1vw 0 1.2vw; }
+#ov-hi h1 { font-size: 2.5vw; font-weight: 800; letter-spacing: -.05vw; }
+.ov-today { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; font-size: 1.15vw; color: var(--text-2); margin-top: .5vw; }
+.ov-today > * { margin-right: 1vw; }
+.ov-today b { color: var(--text); }
+.ov-bar { display: inline-block; width: 14vw; height: .55vw; border-radius: .3vw; background: var(--panel-2); overflow: hidden; vertical-align: middle; }
+.ov-bar i { display: block; height: 100%; background: var(--green); border-radius: .3vw; }
+#ov-kids { -webkit-flex: 1; flex: 1; display: -webkit-flex; display: flex; min-height: 0; }
+.ov-kid { -webkit-flex: 1; flex: 1; min-width: 0; margin-right: 1.4vw; padding: 1.3vw 1.5vw; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.ov-kid:last-child { margin-right: 0; }
+.ov-empty { font-size: 1.4vw; color: var(--text-2); display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; -webkit-justify-content: center; justify-content: center; }
+.ov-kh { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; }
+.ov-av { width: 3.6vw; height: 3.6vw; line-height: 3.6vw; text-align: center; font-size: 2.3vw; border-radius: 50%; background: var(--panel-2); margin-right: 1vw; -webkit-flex: none; flex: none; }
+.ov-kh h2 { font-size: 1.9vw; font-weight: 800; line-height: 1.1; }
+.ov-sub { font-size: 1vw; color: var(--text-2); margin-top: .2vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-sub b { color: #ff6961; }
+.ov-road { display: block; margin: .6vw 0 .2vw; }
+.ov-stats { display: -webkit-flex; display: flex; margin: .3vw 0 .8vw; }
+.ov-stats > div { -webkit-flex: 1; flex: 1; min-width: 0; background: var(--panel); border-radius: var(--r); padding: .7vw .9vw; margin-right: .7vw; }
+.ov-stats > div:last-child { margin-right: 0; }
+.ov-stats b { display: block; font-size: 1.6vw; font-weight: 800; white-space: nowrap; }
+.ov-stats span { display: block; font-size: .85vw; color: var(--text-2); margin-top: .15vw; }
+.ov-stats .ov-bar { width: 100%; height: .4vw; margin-top: .4vw; }
+.ov-moods b { font-size: 1vw; white-space: nowrap; overflow: hidden; }
+.ov-moods i { font-style: normal; display: inline-block; width: 14.28%; text-align: center; }
+.ov-chips { max-height: 4.4vw; overflow: hidden; }
+.ov-chip { display: inline-block; font-size: .95vw; padding: .35vw .8vw; border-radius: 1vw; background: var(--panel-2); margin: 0 .5vw .5vw 0; white-space: nowrap; }
+.ov-chip.done { background: rgba(48, 209, 88, .2); color: #7ee2a0; }
+.ov-chip.doing { background: rgba(255, 214, 10, .18); color: #ffe066; }
+.ov-none { font-size: .95vw; color: var(--text-3); }
+.ov-sks { margin: .4vw 0 .2vw; }
+.ov-sk { display: inline-block; width: 32%; margin-right: 1.3%; font-size: .85vw; color: var(--text-2); margin-bottom: .45vw; vertical-align: top; }
+.ov-sk span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-sk b { display: block; height: .4vw; margin-top: .2vw; border-radius: .2vw; background: var(--panel-2); overflow: hidden; }
+.ov-sk b i { display: block; height: 100%; background: #bf5af2; }
+.ov-next { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; margin-top: .6vw; background: var(--panel); border-radius: var(--r); padding: .6vw; }
+.ov-next img { width: 7.5vw; height: 4.2vw; object-fit: cover; border-radius: .7vw; margin-right: 1vw; -webkit-flex: none; flex: none; }
+.ov-next div { min-width: 0; }
+.ov-next span { display: block; font-size: .8vw; color: var(--text-3); text-transform: uppercase; letter-spacing: .08vw; font-weight: 700; }
+.ov-next b { display: block; font-size: 1.3vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-next em { display: block; font-style: normal; font-size: .9vw; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ov-kids.n3 .ov-stats b { font-size: 1.3vw; }
+#ov-kids.n3 .ov-sk { width: 48%; }
+#ov-btns { display: -webkit-flex; display: flex; -webkit-justify-content: center; justify-content: center; margin-top: 1.3vw; }
+.obtn { font-size: 1.45vw; font-weight: 700; padding: .9vw 2.2vw; margin: 0 .6vw; border-radius: 2vw; background: var(--panel-2); white-space: nowrap; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; transition: transform .15s; will-change: transform; }
+.obtn.main { background: rgba(255, 69, 58, .85); }
+.obtn.focus { background: var(--focus); color: var(--on-focus); -webkit-transform: scale(1.08); transform: scale(1.08); }
+
+/* Tổng quan khi chưa có hồ sơ bé */
+.ov-fam .ov-sub { white-space: normal; }
+.ov-cur { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; background: var(--panel); border-radius: var(--r); padding: .8vw; margin-top: 1vw; }
+.ov-cur img { width: 12vw; height: 6.75vw; object-fit: cover; border-radius: .8vw; margin-right: 1.4vw; -webkit-flex: none; flex: none; }
+.ov-cur > div { min-width: 0; -webkit-flex: 1; flex: 1; }
+.ov-cur b { display: block; font-size: 1.6vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-cur .ov-bar { width: 100%; height: .6vw; margin: .7vw 0 .5vw; }
+.ov-cur em { display: block; font-style: normal; font-size: 1vw; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ov-plh { font-size: .85vw; font-weight: 700; letter-spacing: .12vw; text-transform: uppercase; color: var(--text-3); margin: 1.4vw 0 .6vw; }
+
+/* Logo "Mầm yêu thương" (bản nền tối) thay nút play đỏ */
+.logo-play { width: 2.3vw; height: 2.3vw; vertical-align: -.5vw; background: url(logo.svg) center / contain no-repeat; border-radius: 0; }
+.logo-play:after { display: none; }
+
+/* Lộ trình ngắn của giáo trình trên màn tổng quan */
+.tp { margin: 1vw 0 .6vw; }
+.tp-h { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: baseline; align-items: baseline; }
+.tp-h b { font-size: 1.25vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 1vw; }
+.tp-h span { font-size: 1vw; color: var(--text-2); white-space: nowrap; }
+.tp-bar { width: 100%; height: .45vw; margin: .5vw 0 .9vw; }
+.tp-row { display: -webkit-flex; display: flex; }
+.tp-s { -webkit-flex: 1; flex: 1; min-width: 0; position: relative; text-align: center; }
+.tp-s:before { content: ''; position: absolute; top: 1.05vw; left: -50%; width: 100%; height: .2vw; background: var(--panel-3); }
+.tp-s:first-child:before { display: none; }
+.tp-s.done:before, .tp-s.now:before { background: var(--green); }
+.tp-s i { position: relative; display: inline-block; width: 2.3vw; height: 2.3vw; line-height: 2.1vw; border-radius: 50%; font-style: normal; font-size: .95vw; font-weight: 800;
+  background: #1c1c22; border: .12vw solid var(--panel-3); color: var(--text-2); }
+.tp-s.done i { background: var(--green); border-color: var(--green); color: #04210f; }
+.tp-s.now i { background: var(--red); border-color: var(--red); color: #fff; box-shadow: 0 0 0 .35vw rgba(255, 69, 58, .25); }
+.tp-s.more i { border-style: dashed; }
+.tp-s span { display: block; margin-top: .5vw; font-size: .85vw; line-height: 1.25; color: var(--text-2); max-height: 2.2vw; overflow: hidden; padding: 0 .2vw; }
+.tp-s.now span { color: #fff; font-weight: 700; }
+.ov-pnone { display: block; margin: 1vw 0; }

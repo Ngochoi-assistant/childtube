@@ -11,7 +11,7 @@ const EMOJI = ['⭐', '🎵', '🔤', '🔢', '🔬', '🦁', '📚', '🎨', '�
 const SUGGEST_TOPICS = [['Âm nhạc', '🎵'], ['Tiếng Anh', '🔤'], ['Toán', '🔢'], ['Khoa học', '🔬'], ['Động vật', '🦁'], ['Truyện', '📚']];
 
 let S = null;          // trạng thái gia đình (ct_state)
-let tab = 'list';
+let tab = 'today';
 let pendingLink = '';  // link nhận từ "Chia sẻ" hoặc extension
 
 // ---------- Tiện ích ----------
@@ -112,6 +112,7 @@ const AUTH_ERR = {
   'User already registered': 'Email này đã có tài khoản, hãy bấm "Đăng nhập".',
   'Password should be at least 6 characters.': 'Mật khẩu phải có ít nhất 6 ký tự.',
   'Unable to validate email address: invalid format': 'Email không hợp lệ.',
+  'NEED_SETUP': 'Tài khoản này đã chuyển sang máy chủ mới. Nhập mã thiết lập (8 ký tự) vào ô Mã thiết lập rồi bấm lại — mật khẩu vừa gõ sẽ là mật khẩu mới.',
 };
 function setMode(isSignup) {
   signup = isSignup;
@@ -123,13 +124,14 @@ function setMode(isSignup) {
 $('#mode-btn').addEventListener('click', () => setMode(!signup));
 $('#login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const email = $('#email').value.trim(), password = $('#password').value;
+  const email = $('#email').value.trim(), password = $('#password').value, setupCode = $('#setup-code').value.trim();
   $('#login-btn').disabled = true;
   loginMsg(signup ? 'Đang tạo tài khoản…' : 'Đang đăng nhập…', true);
   const { data, error } = signup
     ? await sb.auth.signUp({ email, password })
-    : await sb.auth.signInWithPassword({ email, password });
+    : await sb.auth.signInWithPassword({ email, password, setupCode });
   $('#login-btn').disabled = false;
+  if (error && error.message === 'NEED_SETUP') { $('#setup-box').classList.remove('hidden'); $('#setup-code').focus(); $('#login-btn').textContent = 'Đặt mật khẩu & đăng nhập'; }
   if (error) return loginMsg(AUTH_ERR[error.message] || error.message);
   if (signup && !data.session) loginMsg('Đã tạo tài khoản nhưng cần xác nhận email. Hãy báo người cài đặt tắt "Confirm email" trên Supabase.');
   else loginMsg('');
@@ -146,7 +148,10 @@ sb.auth.onAuthStateChange((ev, session) => {
   if (session) {
     showApp(true);
     // Gọi Supabase ngay trong callback này có thể bị treo, nên đẩy ra ngoài.
-    if (!S) setTimeout(() => load().catch((e) => toast(e.message, true)), 0);
+    // Chờ mọi tệp script (library, family, portal…) chạy xong rồi mới tải: không thì có lúc vẽ màn hình khi tệp sau chưa có.
+    const start = () => { if (!S) load().catch((e) => toast(e.message, true)); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(start, 0), { once: true });
+    else setTimeout(start, 0);
   } else {
     S = null;
     showApp(false);
@@ -877,11 +882,9 @@ function viewSettings() {
   <div class="card">
     <label>Tên gia đình (hiện trên TV)</label>
     <div class="add"><input id="fname" value="${esc(f.name)}"><button class="btn" data-a="fname">Lưu</button></div>
-    <label>Bố mẹ trong gia đình</label>
-    ${S.members.map((m) => `<div class="row"><div class="av">👤</div><div class="info"><div class="t">${esc(m.email)}${m.me ? ' (bạn)' : ''}</div></div></div>`).join('')}
-    <div class="toolbar"><button class="btn small" data-a="invite">Mời bố/mẹ cùng quản lý</button><button class="btn small" data-a="join">Nhập mã mời</button></div>
-    ${f.invite_code ? `<div class="hint">Mã mời hiện tại: <b style="letter-spacing:2px">${esc(f.invite_code)}</b> — người kia đăng nhập app rồi bấm "Nhập mã mời".</div>` : ''}
+    ${familyMembersHtml()}
   </div>
+  ${privacyHtml()}
 
   <h2>🔑 Tài khoản của bạn</h2>
   <div class="card">
