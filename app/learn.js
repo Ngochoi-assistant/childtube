@@ -83,7 +83,8 @@ const Learn = {
 
   // ---------- Lộ trình ----------
   async roadView(k, head) {
-    const rm = this.rm[k.id] = await rpc('ct_roadmap', { p_child: k.id });
+    const [rm, jd] = await Promise.all([rpc('ct_roadmap', { p_child: k.id }), Journey.load(k).catch(() => null)]);
+    this.rm[k.id] = rm;
     if (tab !== 'learn' || this.seg !== 'road') return;
     const st = { todo: '○', doing: '◐', done: '✓' };
     const ms = rm.milestones.map((x) => `<div class="item"><button class="lr-chk ${x.status}" data-a="L2-mtog" data-id="${x.id}" aria-label="Đánh dấu">${st[x.status]}</button>
@@ -91,7 +92,8 @@ const Learn = {
       <button class="icon-btn" data-a="L2-mdel" data-id="${x.id}" title="Xoá">✕</button></div>`).join('');
     const gs = rm.goals.map((g) => `<div class="item tap" data-a="L2-goal" data-id="${g.id}"><div class="ic">${{ school: '🏫', field: '🔭', career: '💼', skill: '⭐', personal: '🌱' }[g.kind] || '🎯'}</div>
       <div class="info"><div class="t">${esc(g.title)}</div><div class="m">${{ parent: '💭 Kỳ vọng của bố mẹ', child: '💖 Bé muốn', ai: '🤖 AI gợi ý' }[g.proposed_by]} · ${{ exploring: 'đang tìm hiểu', active: 'đang theo', paused: 'tạm dừng', completed: 'đã xong' }[g.status] || ''}${g.target_age ? ' · ' + g.target_age + ' tuổi' : ''}</div></div><span class="chev">›</span></div>`).join('');
-    $('#view').innerHTML = `${head}<div class="v-subt">Định hướng dài hạn — cập nhật theo sở thích và năng lực thật của ${esc(k.name)}</div>
+    $('#view').innerHTML = `${head}<h2>🗺 Hành trình của ${esc(k.name)}</h2>${jd ? Journey.block(jd, true) : ''}
+      <div class="v-subt">Định hướng dài hạn — cập nhật theo sở thích và năng lực thật của ${esc(k.name)}</div>
       <div class="card">${ch.timeline(rm)}<div class="v-legend"><span><i style="background:var(--ok)"></i>Đã qua</span><span><i style="background:var(--brand)"></i>Hiện tại</span><span><i style="background:var(--blue)"></i>Định hướng</span><span><i style="background:var(--vio)"></i>Mục tiêu</span></div></div>
       <h2>Mốc năm nay<button class="btn link" data-a="L2-madd">＋ Thêm mốc</button></h2><div class="card">${ms || '<div class="empty">Đặt 3–5 mốc nhỏ cho năm nay, ví dụ “Đọc được 20 chữ cái”.</div>'}</div>
       <h2>Mục tiêu dài hạn<button class="btn link" data-a="L2-gadd">＋ Thêm</button></h2><div class="card">${gs || '<div class="empty">Chưa có mục tiêu. Mục tiêu có thể là trường, ngành, nghề hay một năng lực.</div>'}</div>

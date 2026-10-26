@@ -227,3 +227,41 @@ body.v2 .switch, body.v2 label { color: var(--ink); }
 .pth-s.now span { color: var(--ink); font-weight: 700; }
 .td-mile2 b { font-size: 14px; }
 .td-mile2 .td-chips { margin-top: 8px; }
+
+/* ---- Hành trình của bé (bản đồ kiểu game) + thẻ thành tích ---- */
+:root { --jr-road: #e9e4da; --jr-dash: #c9c1b3; --jr-goal: #f4f1ea; }
+.jr { padding: 14px 12px 10px; overflow: hidden; }
+.jr-hud { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.jr-lv { flex-shrink: 0; font-weight: 800; font-size: 13px; padding: 5px 11px; border-radius: 999px; background: linear-gradient(90deg, #ffd60a, #ff9f0a); color: #3a2800; }
+.jr-xp { flex: 1; height: 8px; border-radius: 4px; background: var(--jr-road); overflow: hidden; }
+.jr-xp i { display: block; height: 100%; border-radius: 4px; background: #ffb400; }
+.jr-left { flex-shrink: 0; font-size: 12px; color: var(--mute, #888); }
+.jr-head { display: flex; align-items: center; justify-content: space-between; margin: 2px 0 8px; }
+.jr-head b { font-size: 16px; }
+.jr-svg { display: block; max-width: 420px; margin: 0 auto; }
+.jr-svg .jr-node { cursor: pointer; }
+.jr-l { font-size: 14px; font-weight: 700; fill: #6b6355; }
+.jr-l.win { fill: #8a6100; }
+.jr-l.now { fill: #e5372d; font-weight: 800; }
+.jr-d { font-size: 11px; fill: #a39a8b; }
+.jr-cards { display: flex; gap: 10px; overflow-x: auto; margin: 0 -12px 12px; padding: 2px 12px 4px; scroll-snap-type: x mandatory; }
+.jr-card { position: relative; flex: 0 0 150px; height: 170px; border: 0; border-radius: 18px; overflow: hidden; color: #fff; text-align: left; padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; scroll-snap-align: start; }
+.jr-card.c0 { background: linear-gradient(135deg, #ff9f0a, #ff375f); } .jr-card.c1 { background: linear-gradient(135deg, #30d158, #0a84ff); }
+.jr-card.c2 { background: linear-gradient(135deg, #bf5af2, #5e5ce6); } .jr-card.c3 { background: linear-gradient(135deg, #ffcc00, #ff9f0a); }
+.jr-card.c4 { background: linear-gradient(135deg, #64d2ff, #30d158); }
+.jr-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .5; }
+.jr-card b, .jr-card em { position: relative; text-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.jr-card b { font-size: 15px; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.jr-card em { font-style: normal; font-size: 11px; opacity: .9; margin-top: 4px; }
+.jr-badge { position: absolute; left: 10px; top: 10px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.95); display: flex; align-items: center; justify-content: center; font-size: 21px; }
+.jr-new { position: absolute; right: 10px; top: 12px; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 8px; background: #fff; color: #ff375f; }
+.jr-sh { text-align: center; padding-top: 4px; }
+.jr-sh h3 { padding: 0 !important; margin: 6px 0 4px; font-size: 20px; }
+.jr-sh p { margin: 8px 0 0; color: var(--mute, #666); }
+.jr-big { width: 76px; height: 76px; margin: 4px auto 8px; border-radius: 50%; background: #ffd60a; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+.jr-big.goal { background: var(--jr-goal); border: 2px dashed var(--jr-dash); }
+.jr-photo { width: 100%; max-height: 260px; object-fit: cover; border-radius: 14px; margin-bottom: 8px; }
+.jr-tag { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 9px; border-radius: 8px; background: var(--jr-goal); color: #6b6355; }
+.jr-tag.win { background: #fff3c4; color: #8a6100; }
+.jr-tip { text-align: left; margin-top: 12px; padding: 12px; border-radius: 12px; background: #eefaf1; font-size: 14px; line-height: 1.45; }
+.jr-tip b { display: block; margin-bottom: 4px; }

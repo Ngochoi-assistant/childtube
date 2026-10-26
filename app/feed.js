@@ -31,7 +31,14 @@ const Feed = {
     }).join('')}</div>` : '';
     const chips = [['', 'Tất cả'], ['photo', 'Ảnh'], ['mile', 'Cột mốc'], ['teacher', 'Thầy cô']].map(([v2, t]) => `<button class="chip ${this.filter === v2 ? 'on' : ''}" data-a="F2-filter" data-v="${v2}">${t}</button>`).join('');
     const posts = (this.list || []).map((e) => this.post(e)).join('');
-    return `${pageHead('')}${composer}${stories}<div class="chips strip fd-filter">${chips}</div>
+    // Kiểu game: bé đã làm được gì (Cột mốc, Thành tích) — cùng dữ liệu với bản đồ Hành trình và TV
+    const wins = (this.list || []).filter((e) => e.kind === 'milestone' || e.kind === 'achievement').map((e) => {
+      const img = (e.media || []).find((m) => m.url && /^image\/(jpeg|png|webp|gif)/.test(m.mime));
+      return { id: e.id, kind: e.kind, title: e.title || e.body || 'Điều mới', text: e.title ? e.body : '', day: e.day, by: e.author ? e.author.name : '', photo: img ? mediaUrl(img.url) : '' };
+    });
+    Journey.feedWins = wins;
+    const game = wins.length ? `<div class="card jr">${Journey.hud({ wins })}<div class="jr-head"><b>🏆 ${name === 'các bé' ? 'Các bé' : name} đã làm được</b>${k ? '<button class="btn link" data-a="J-road">🗺 Xem hành trình ›</button>' : ''}</div>${Journey.cards({ wins })}</div>` : '';
+    return `${pageHead('')}${composer}${game}${stories}<div class="chips strip fd-filter">${chips}</div>
       ${posts || `<div class="card"><div class="empty">${canWrite ? 'Bài đăng đầu tiên: một bức ảnh, một câu nói ngộ nghĩnh, hay việc bé tự làm được.' : 'Chưa có bài đăng nào được chia sẻ.'}</div></div>`}`;
   },
   post(e) {
