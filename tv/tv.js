@@ -316,6 +316,8 @@
     else if (zone === 'ov') el = $('#ov-btns').children[ovIdx];
     else if (zone === 'rm') el = $('#rm-btns').children[rmIdx];
     else if (zone === 'rmbtn') el = $('#rm-btn');
+    else if (zone === 'phbtn') el = $('#ph-btn');
+    else if (zone === 'ph') { el = ph.at === 'chips' ? $('#ph-chips').children[ph.chip] : phCells()[ph.idx]; if (el && ph.at === 'grid') reveal(el, $('#ph-grid')); }
     if (el) el.classList.add('focus');
     $('#grid').classList.toggle('dim', zone === 'grid');   // đang chọn video: làm mờ các video còn lại
   }
@@ -334,7 +336,7 @@
     var n;
     if (zone === 'side') {
       n = sideItems().length;
-      if (k === K.UP && sideIdx === 0) { zone = 'rmbtn'; focus(); return; }
+      if (k === K.UP && sideIdx === 0) { zone = 'phbtn'; focus(); return; }
       if (k === K.UP && sideIdx > 0) sideIdx--;
       else if (k === K.DOWN && sideIdx < n - 1) sideIdx++;
       else if (BACK.indexOf(k) >= 0) { showOverview(); return; }
@@ -455,6 +457,7 @@
     }).join('') : familyCard();
     var btns = ['<button class="obtn main" data-act="lib">📚 Chọn chương trình</button>'];
     if (curList().length) btns.push('<button class="obtn" data-act="road">🧭 Xem lộ trình</button>');
+    btns.push('<button class="obtn" data-act="photos">📷 Ảnh kỷ niệm</button>');
     kids.forEach(function (k, i) { if (k.next && findLesson(k.next)) btns.push('<button class="obtn" data-act="next" data-i="' + i + '">▶ ' + esc(k.name) + ' học tiếp: ' + esc(k.next.lesson) + '</button>'); });
     $('#ov-btns').innerHTML = btns.join('');
     if (ovIdx >= btns.length) ovIdx = 0;
@@ -483,6 +486,7 @@
     var act = b.getAttribute('data-act');
     if (act === 'lib') { hideOverview(); return; }
     if (act === 'road') { showRoad('ov'); return; }
+    if (act === 'photos') { showPhotos('ov'); return; }
     var k = ov && ov.kids[+b.getAttribute('data-i')], at = k && findLesson(k.next);
     if (!at) { hideOverview(); return; }
     $('#ov').classList.add('hidden');
@@ -645,6 +649,129 @@
     // Di chuyển qua các nút giai đoạn: xem luôn nội dung giai đoạn đó
     var b = $('#rm-btns').children[rmIdx];
     if (b && b.getAttribute('data-act') === 'rm-st' && +b.getAttribute('data-k') !== rmStage) { rmStage = +b.getAttribute('data-k'); paintRoad(); }
+  }
+
+  // ---------- Ảnh kỷ niệm (kiểu Google Photos) ----------
+  // Ảnh trong bảng tin ChildTube ở mức "Gia đình": bố mẹ, ông bà, người thân đăng. Lọc theo người đăng; trình chiếu tự chạy.
+  var ph = { list: [], who: '', idx: 0, chip: 0, at: 'grid', timer: null, vIdx: 0, vAuto: false, vTimer: null, from: 'side' };
+  try { ph.list = (JSON.parse(localStorage.getItem('ct-ph')) || {}).photos || []; } catch (e) { ph.list = []; }
+  var ROLE = { owner: 'Bố mẹ', parent: 'Bố mẹ', relative: 'Người thân', teacher: 'Giáo viên' };
+  function phUrl(p) { return /^https?:/.test(p.url) ? p.url : CT_CONFIG.url + p.url; }
+  function phShown() { return ph.who ? ph.list.filter(function (p) { return (p.by || '') === ph.who; }) : ph.list; }
+  function phDay(d) { var x = (d || '').split('-'); return x.length === 3 ? +x[2] + '/' + +x[1] + '/' + x[0] : ''; }
+  function phCap(p) {
+    return '<b>' + esc(p.title || (p.child ? 'Khoảnh khắc của ' + p.child : 'Khoảnh khắc gia đình')) + '</b>' +
+      '<span>' + phDay(p.day) + (p.by ? ' · 📸 ' + esc(p.by) + (ROLE[p.role] && p.by !== ROLE[p.role] ? ' (' + ROLE[p.role] + ')' : '') : '') + '</span>';
+  }
+  function showPhotos(from) {
+    ph.from = from || 'side';
+    $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#ph').classList.remove('hidden');
+    zone = 'ph'; ph.at = 'grid'; ph.idx = 0;
+    paintPhotos();
+    rpc('ct_tv_photos', { p_device: device.id, p_secret: device.secret }).then(function (r) {
+      ph.enabled = r.enabled; ph.list = r.photos || [];
+      try { localStorage.setItem('ct-ph', JSON.stringify({ photos: ph.list })); } catch (e) { /* bộ nhớ đầy */ }
+      if (zone === 'ph') paintPhotos();
+    }).catch(function () { ph.err = true; if (zone === 'ph') paintPhotos(); });
+  }
+  function hidePhotos() {
+    clearInterval(ph.timer);
+    $('#ph').classList.add('hidden');
+    if (ph.from === 'ov') { showOverview(); return; }
+    $('#home').classList.remove('hidden');
+    zone = 'side'; sideIdx = chIdx < 0 ? 0 : chIdx; focus();
+  }
+  function paintPhotos() {
+    var whos = [], i, list;
+    for (i = 0; i < ph.list.length; i++) if (ph.list[i].by && whos.indexOf(ph.list[i].by) < 0) whos.push(ph.list[i].by);
+    if (ph.who && whos.indexOf(ph.who) < 0) ph.who = '';
+    var chips = [['', 'Tất cả · ' + ph.list.length]].concat(whos.map(function (w) { return [w, '📸 ' + w]; }));
+    $('#ph-chips').innerHTML = chips.map(function (c) { return '<button class="obtn ph-chip' + (c[0] === ph.who ? ' on' : '') + '" data-who="' + esc(c[0]) + '">' + esc(c[1]) + '</button>'; }).join('') +
+      '<button class="obtn main ph-chip" data-act="show">▶ Trình chiếu</button>';
+    list = phShown();
+    if (!list.length) {
+      $('#ph-hero').classList.add('hidden');
+      $('#ph-grid').innerHTML = '<div class="rm-empty">' + (ph.err ? 'Chưa tải được ảnh, hãy thử lại sau.' : ph.enabled === false
+        ? 'Gia đình chưa bật lưu ảnh.<br>Trong app ChildTube: Cài đặt → Quyền riêng tư → bật "Lưu ảnh, video của bé".'
+        : 'Chưa có ảnh nào.<br>Bố mẹ, ông bà đăng ảnh vào Bảng tin trong app ChildTube (mức "Gia đình") để ảnh hiện ở đây.') + '</div>';
+      clearInterval(ph.timer);
+    } else {
+      $('#ph-hero').classList.remove('hidden');
+      // Lưới theo tháng
+      var html = '', month = '';
+      list.forEach(function (p, k) {
+        var m = (p.day || '').slice(0, 7);
+        if (m !== month) { month = m; html += '<div class="ph-month">Tháng ' + +m.slice(5, 7) + ', ' + m.slice(0, 4) + '</div>'; }
+        html += '<div class="ph-cell" data-k="' + k + '"><img src="' + phUrl(p) + '" alt=""' + (k > 17 ? ' loading="lazy"' : '') + ' decoding="async"></div>';
+      });
+      $('#ph-grid').innerHTML = html;
+      phHero(0);
+      clearInterval(ph.timer);
+      ph.timer = setInterval(function () { if (zone === 'ph') phHero(ph.hero + 1); }, 7000);
+    }
+    if (ph.idx >= list.length) ph.idx = 0;
+    focus();
+  }
+  // Ảnh lớn phía trên: hai lớp ảnh chuyển mờ dần
+  function phHero(k) {
+    var list = phShown(); if (!list.length) return;
+    ph.hero = (k + list.length) % list.length;
+    var p = list[ph.hero], a = $('#ph-a'), b = $('#ph-b'), top = a.classList.contains('on') ? b : a, old = top === a ? b : a;
+    top.onload = function () { top.classList.add('on'); old.classList.remove('on'); };
+    top.src = phUrl(p);
+    $('#ph-cap').innerHTML = phCap(p);
+  }
+  function phCells() { return document.querySelectorAll('#ph-grid .ph-cell'); }
+  var PH_COLS = 6;
+  function phKey(k) {
+    var cells = phCells(), chips = $('#ph-chips').children;
+    if (BACK.indexOf(k) >= 0) { hidePhotos(); return; }
+    if (ph.at === 'chips') {
+      if (k === K.LEFT && ph.chip > 0) ph.chip--;
+      else if (k === K.RIGHT && ph.chip < chips.length - 1) ph.chip++;
+      else if (k === K.DOWN && cells.length) ph.at = 'grid';
+      else if (k === K.ENTER) {
+        var c = chips[ph.chip];
+        if (c.getAttribute('data-act') === 'show') { openViewer(0, true); return; }
+        ph.who = c.getAttribute('data-who'); ph.idx = 0; paintPhotos(); return;
+      }
+    } else {
+      if (k === K.UP && ph.idx < PH_COLS) { ph.at = 'chips'; }
+      else if (k === K.UP) ph.idx -= PH_COLS;
+      else if (k === K.DOWN && ph.idx + PH_COLS < cells.length) ph.idx += PH_COLS;
+      else if (k === K.LEFT && ph.idx > 0) ph.idx--;
+      else if (k === K.RIGHT && ph.idx < cells.length - 1) ph.idx++;
+      else if (k === K.ENTER && cells.length) { openViewer(ph.idx, false); return; }
+    }
+    focus();
+  }
+  // Xem toàn màn hình: ◀ ▶ đổi ảnh, OK bật/tắt trình chiếu tự động
+  function openViewer(k, auto) {
+    zone = 'phv'; ph.vAuto = !!auto;
+    $('#phv').classList.remove('hidden');
+    phShow(k);
+  }
+  function phShow(k) {
+    var list = phShown(); if (!list.length) return closeViewer();
+    ph.vIdx = (k + list.length) % list.length;
+    var p = list[ph.vIdx];
+    $('#phv-img').src = phUrl(p);
+    $('#phv-cap').innerHTML = phCap(p) + (p.text ? '<em>' + esc(p.text) + '</em>' : '');
+    $('#phv-n').textContent = (ph.vIdx + 1) + ' / ' + list.length + (ph.vAuto ? ' · ▶ đang trình chiếu' : ' · OK: trình chiếu');
+    clearTimeout(ph.vTimer);
+    if (ph.vAuto) ph.vTimer = setTimeout(function () { if (zone === 'phv') phShow(ph.vIdx + 1); }, 6000);
+  }
+  function closeViewer() {
+    clearTimeout(ph.vTimer);
+    $('#phv').classList.add('hidden');
+    zone = 'ph'; ph.idx = Math.min(ph.vIdx, phCells().length - 1); ph.at = 'grid';
+    focus();
+  }
+  function phvKey(k) {
+    if (BACK.indexOf(k) >= 0 || k === K.STOP) { closeViewer(); return; }
+    if (k === K.LEFT || k === K.RW) phShow(ph.vIdx - 1);
+    else if (k === K.RIGHT || k === K.FF) phShow(ph.vIdx + 1);
+    else if (k === K.ENTER || k === K.PLAYPAUSE || k === K.PLAY || k === K.PAUSE) { ph.vAuto = !ph.vAuto; phShow(ph.vIdx); }
   }
 
   // ---------- Lịch sử xem ----------
@@ -1004,9 +1131,17 @@
     else if (zone === 'side' || zone === 'grid') homeKey(k);
     else if (zone === 'ov') ovKey(k);
     else if (zone === 'rm') rmKey(k);
+    else if (zone === 'ph') phKey(k);
+    else if (zone === 'phv') phvKey(k);
+    else if (zone === 'phbtn') {
+      if (k === K.ENTER) showPhotos('side');
+      else if (k === K.UP) { zone = 'rmbtn'; focus(); }
+      else if (k === K.DOWN || k === K.RIGHT) { zone = 'side'; sideIdx = 0; focus(); }
+      else if (BACK.indexOf(k) >= 0) showOverview();
+    }
     else if (zone === 'rmbtn') {
       if (k === K.ENTER) showRoad('side');
-      else if (k === K.DOWN || k === K.RIGHT) { zone = 'side'; sideIdx = 0; focus(); }
+      else if (k === K.DOWN || k === K.RIGHT) { zone = 'phbtn'; focus(); }
       else if (BACK.indexOf(k) >= 0) showOverview();
     }
     else if (zone === 'end') endKey(k);
@@ -1030,6 +1165,9 @@
     if (zone === 'ov') { var ob = t.closest('.obtn'); if (ob) ovAct(ob); return; }
     if (zone === 'rm') { var rb = t.closest('.obtn'); if (rb) rmAct(rb); return; }
     if (t.closest('#rm-btn')) { showRoad('side'); return; }
+    if (t.closest('#ph-btn')) { showPhotos('side'); return; }
+    if (zone === 'phv') { closeViewer(); return; }
+    if (zone === 'ph') { var pc = t.closest('.ph-cell'), pk = t.closest('.ph-chip'); if (pc) openViewer(+pc.getAttribute('data-k'), false); else if (pk) { if (pk.getAttribute('data-act') === 'show') openViewer(0, true); else { ph.who = pk.getAttribute('data-who'); paintPhotos(); } } return; }
     if (t.closest('#who')) { showOverview(); return; }
     if (zone === 'pin') { if (key) { pinIdx = +key.getAttribute('data-i'); focus(); pressPad(PAD[pinIdx]); } else if (t === $('#pin')) closeModal(); return; }
     if (zone === 'parent') { if (pb) parentAct(pb.getAttribute('data-act')); else if (t === $('#parent')) closeModal(); return; }
