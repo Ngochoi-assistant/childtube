@@ -216,3 +216,13 @@ h2 .btn { flex-shrink: 0; }
 /* Logo "Mầm yêu thương": sách mở → mầm non → trái tim */
 .logo { width: 28px; height: 28px; border-radius: 0; background: url(logo.svg) center / contain no-repeat; }
 .logo:after { display: none; }
+
+/* ---- Xem thử video tại chỗ (tìm trong nhóm, tab Tìm) ---- */
+.pv-box { position: relative; width: 100%; padding-top: 56.25%; border-radius: 12px; overflow: hidden; background: #000; cursor: pointer; margin-bottom: 6px; }
+.pv-box img, .pv-box iframe { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border: 0; object-fit: cover; }
+.pv-play { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 22px; display: flex; align-items: center; justify-content: center; }
+.pv-box.on { cursor: default; }
+.gs-item { padding: 12px 0; border-top: 1px solid var(--line); }
+.gs-item:first-child { border-top: 0; }
+.gs-t { font-weight: 600; font-size: 15px; line-height: 1.35; margin: 2px 0; }
+.gs-item .btn { margin-top: 8px; }

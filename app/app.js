@@ -442,7 +442,7 @@ function openGroupEditor(gid, keepScroll) {
     }
     if (a === 'gadd') return addLinkToGroup(gid, $('#g-link').value);
     if (a === 'gpick') return openPicker(gid);
-    if (a === 'gsearch') { srchTargets = [gid]; saveTargets(); closeSheet(); return $('#tabs [data-tab="search"]').click(); }
+    if (a === 'gsearch') return groupSearch(gid);
     if (a === 'gren') return newGroup(g.kind, () => openGroupEditor(gid), g);
     if (a === 'gup' || a === 'gdown') {
       const ids = groupsOf(g.kind).map((x) => x.id), i = ids.indexOf(gid), j = i + (a === 'gup' ? -1 : 1);
@@ -584,8 +584,7 @@ function searchRow(r, i) {
   if (r.type === 'video') {
     const bad = r.embed === false;
     return `<div class="row" data-i="${i}">
-      <a href="https://www.youtube.com/watch?v=${r.id}" target="_blank" rel="noopener"><img class="th" src="${thumb(r.id)}" alt="" loading="lazy" decoding="async"></a>
-      <div class="info"><div class="t" style="font-size:14px">${esc(r.title)}</div>
+      <div class="info" style="width:100%">${previewBox(r.id)}<div class="t" style="font-size:14px">${esc(r.title)}</div>
         <div class="m">${esc(r.channel)} · ${esc(r.durationText)}${r.viewsText ? ' · ' + esc(r.viewsText) : ''}${r.published ? ' · ' + esc(r.published) : ''}</div>
         ${bad ? '<div class="m pend">⚠ Không phát được trên TV</div>' : ''}
         <div class="toolbar" style="margin:6px 0 0">
@@ -627,6 +626,67 @@ async function doSearch() {
 function wzToggleTarget(id) { const i = srchTargets.indexOf(id); if (i >= 0) srchTargets.splice(i, 1); else srchTargets.push(id); saveTargets(); }
 // Vẽ lại tab Tìm, giữ nguyên vị trí cuộn.
 function repaintSearch() { if (tab !== 'search') return; const y = window.scrollY; $('#view').innerHTML = viewSearch(); window.scrollTo(0, y); }
+
+// ---------- Tìm YouTube ngay trong một nhóm: xem thử tại chỗ + thêm vào nhóm ----------
+// Ô xem thử: bấm ảnh để phát ngay trong danh sách (chỉ một video phát cùng lúc).
+const previewBox = (id) => `<div class="pv-box" data-pv="${id}"><img src="${thumb(id)}" alt="" loading="lazy" decoding="async"><span class="pv-play">▶</span></div>`;
+function playPreview(box) {
+  document.querySelectorAll('.pv-box.on').forEach((x) => { if (x !== box) { x.classList.remove('on'); x.innerHTML = `<img src="${thumb(x.dataset.pv)}" alt=""><span class="pv-play">▶</span>`; } });
+  if (box.classList.contains('on')) return;
+  box.classList.add('on');
+  box.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${box.dataset.pv}?autoplay=1&rel=0&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+}
+let gsr = { gid: null, q: '', results: null, busy: false, err: '' };
+async function groupSearch(gid, q) {
+  const g = S.groups.find((x) => x.id === gid);
+  if (!g) return closeSheet();
+  if (gsr.gid !== gid) gsr = { gid, q: '', results: null, busy: false, err: '' };
+  const paint = () => {
+    const gg = S.groups.find((x) => x.id === gid) || g;
+    const has = (id) => gg.items.some((x) => x.video_id === id);
+    const body = gsr.busy ? '<div class="empty"><span class="spin"></span><br>Đang tìm…</div>'
+      : gsr.err ? `<div class="empty">${esc(gsr.err)}</div>`
+      : gsr.results === null ? '<div class="hint">Gõ từ khoá rồi bấm Tìm. Bấm vào ảnh để xem thử ngay tại đây.</div>'
+      : !gsr.results.length ? '<div class="empty">Không có kết quả. Thử từ khoá khác.</div>'
+      : gsr.results.map((r, i) => `<div class="gs-item" data-i="${i}">${previewBox(r.id)}
+          <div class="gs-t">${esc(r.title)}</div>
+          <div class="m">${esc(r.channel)}${r.durationText ? ' · ' + esc(r.durationText) : ''}${r.viewsText ? ' · ' + esc(r.viewsText) : ''}</div>
+          ${r.embed === false ? '<div class="m pend">⚠ Video này không phát được trên TV</div>'
+            : has(r.id) ? '<button class="btn small" disabled>✓ Đã có trong nhóm</button>'
+            : `<button class="btn small primary-s" data-a="gs-add">➕ Thêm vào «${esc(gg.name)}»</button>`}
+        </div>`).join('');
+    sheet(`<h3>Tìm video cho «${esc(gg.emoji + ' ' + gg.name)}»</h3>
+      <form class="add" onsubmit="return false"><input id="gs-q" value="${esc(gsr.q)}" placeholder="Tìm trên YouTube…" enterkeyhint="search" autocomplete="off"><button class="btn" data-a="gs-go" type="button">Tìm</button></form>
+      <div class="gs-list">${body}</div>
+      <button class="btn link" data-a="gs-back">← Quay lại nhóm (${gg.items.length} bài)</button>`,
+    async (a, b) => {
+      if (a === 'gs-back') return openGroupEditor(gid);
+      if (a === 'gs-go') return groupSearch(gid, $('#gs-q').value);
+      if (a === 'gs-add') {
+        const r = gsr.results[+b.closest('[data-i]').dataset.i];
+        b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+        try {
+          await rpc('ct_group_item', { p_group: gid, p_source: null, p_video: r.id, p_title: r.title, p_on: true });
+          toast(`Đã thêm vào «${gg.name}»`); b.textContent = '✓ Đã có trong nhóm'; await quietLoad();
+        } catch (e) { toast(e.message, true); b.disabled = false; b.textContent = `➕ Thêm vào «${gg.name}»`; }
+      }
+    });
+    const box = $('.sheet-box');
+    $('.gs-list') && $('.gs-list').addEventListener('click', (e) => { const pv = e.target.closest('.pv-box'); if (pv) playPreview(pv); });
+    const inp = $('#gs-q'); if (inp) inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); groupSearch(gid, inp.value); } });
+    return box;
+  };
+  q = (q || '').trim();
+  if (!q) { paint(); setTimeout(() => $('#gs-q') && $('#gs-q').focus(), 50); return; }
+  gsr.q = q; gsr.busy = true; gsr.err = ''; paint();
+  try {
+    const { data, error } = await sb.functions.invoke('ct-search', { body: { q, type: 'video', lang: /[a-z]/i.test(q) && !/[ăâđêôơưáàảãạéèẻẽẹíìỉĩịóòỏõọúùủũụýỳỷỹỵ]/i.test(q) ? 'en' : 'vi' } });
+    if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch (e) { /* giữ */ } throw new Error(m); }
+    gsr.results = (data.results || []).filter((r) => r.type === 'video' || !r.type);
+  } catch (e) { gsr.err = e.message; gsr.results = []; }
+  gsr.busy = false;
+  if (!$('#sheet').classList.contains('hidden') && $('#gs-q')) paint();
+}
 
 // Chọn giáo trình để thêm một video vào (có thể tạo giáo trình mới ngay tại đây).
 function chooseGroup(v, back) {
@@ -1057,3 +1117,6 @@ $('#view').addEventListener('submit', (e) => { e.preventDefault(); if (e.target.
 })();
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+// Tab Tìm: bấm ảnh video để xem thử ngay trong danh sách.
+$('#view').addEventListener('click', (e) => { const pv = e.target.closest('.pv-box'); if (pv) playPreview(pv); });
