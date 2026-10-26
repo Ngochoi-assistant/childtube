@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="tv.css?v=18">
+<link rel="stylesheet" href="tv.css?v=19">
 </head>
 <body>
 <div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
@@ -39,14 +39,15 @@
 
 <!-- Lộ trình: bé đang ở đâu, đang học gì, mốc và mục tiêu phía trước -->
 <div id="rm" class="hidden">
-  <header id="rm-top"><h1>🧭 Lộ trình giáo dục</h1><div id="rm-kids"></div></header>
+  <header id="rm-top"><h1>🗺 Hành trình của bé</h1><div id="rm-kids"></div></header>
   <div id="rm-body"></div>
   <div id="rm-btns"></div>
 </div>
 
 <!-- Ảnh kỷ niệm: ảnh bố mẹ, ông bà… đăng trong bảng tin ChildTube (mức "Gia đình") -->
 <div id="ph" class="hidden">
-  <header id="ph-top"><h1>📷 Ảnh kỷ niệm</h1><div id="ph-chips"></div></header>
+  <header id="ph-top"><h1>🏆 Bảng tin của bé</h1><div id="ph-chips"></div></header>
+  <div id="ph-wins" class="hidden"></div>
   <div id="ph-hero"><img id="ph-a" alt=""><img id="ph-b" alt=""><div id="ph-cap"></div></div>
   <div id="ph-grid"></div>
 </div>
@@ -55,8 +56,8 @@
 <div id="home" class="hidden">
   <aside id="side">
     <div class="logo"><span class="logo-play"></span>ChildTube</div>
-    <div id="rm-btn"><span>🧭</span>Lộ trình giáo dục</div>
-    <div id="ph-btn"><span>📷</span>Ảnh kỷ niệm</div>
+    <div id="rm-btn"><span>🗺</span>Hành trình của bé</div>
+    <div id="ph-btn"><span>🏆</span>Bảng tin của bé</div>
     <div id="channels"></div>
   </aside>
   <main id="main">
@@ -134,7 +135,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js?v=18"></script>
+<script src="tv.js?v=19"></script>
 <script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

@@ -314,7 +314,7 @@
     else if (zone === 'end') el = $('#end-btns').children[endIdx];
     else if (zone === 'limit') el = $('#limit-btns').children[0];
     else if (zone === 'ov') el = $('#ov-btns').children[ovIdx];
-    else if (zone === 'rm') el = $('#rm-btns').children[rmIdx];
+    else if (zone === 'rm') el = mapRow === 'btn' ? $('#rm-btns').children[rmIdx2] : null;
     else if (zone === 'rmbtn') el = $('#rm-btn');
     else if (zone === 'phbtn') el = $('#ph-btn');
     else if (zone === 'ph') { el = ph.at === 'chips' ? $('#ph-chips').children[ph.chip] : phCells()[ph.idx]; if (el && ph.at === 'grid') reveal(el, $('#ph-grid')); }
@@ -456,8 +456,8 @@
         '</div>';
     }).join('') : familyCard();
     var btns = ['<button class="obtn main" data-act="lib">📚 Chọn chương trình</button>'];
-    if (curList().length) btns.push('<button class="obtn" data-act="road">🧭 Xem lộ trình</button>');
-    btns.push('<button class="obtn" data-act="photos">📷 Ảnh kỷ niệm</button>');
+    if (curList().length) btns.push('<button class="obtn" data-act="road">🗺 Hành trình của bé</button>');
+    btns.push('<button class="obtn" data-act="photos">🏆 Bảng tin của bé</button>');
     kids.forEach(function (k, i) { if (k.next && findLesson(k.next)) btns.push('<button class="obtn" data-act="next" data-i="' + i + '">▶ ' + esc(k.name) + ' học tiếp: ' + esc(k.next.lesson) + '</button>'); });
     $('#ov-btns').innerHTML = btns.join('');
     if (ovIdx >= btns.length) ovIdx = 0;
@@ -506,7 +506,7 @@
   }
 
   // ---------- Lộ trình (mục riêng: nút "Lộ trình của bé" ở cột trái, hoặc nút ở màn mở đầu) ----------
-  var rmIdx = 0, rmFrom = 'side';
+  var rmFrom = 'side';
   function curList() { var a = []; for (var i = 0; i < lib.length; i++) if (lib[i].numbered && lib[i].videos.length) a.push(i); return a; }
   function curLessons(g) {
     var ls = [], map = {}, i, v, key, l;
@@ -522,7 +522,7 @@
   }
   // Lộ trình giáo dục: theo tuổi của bé, 3 giai đoạn Nền tảng → Củng cố → Mở rộng; mỗi giai đoạn nói rõ
   // bé cần đạt gì (theo khung năng lực 6 lĩnh vực) và BỐ MẸ LÀM GÌ mỗi ngày; kèm cách dùng màn hình hợp tuổi.
-  var comp = null, rmStage = 0;
+  var comp = null;
   try { comp = JSON.parse(localStorage.getItem('ct-comp')); } catch (e) { comp = null; }
   function loadComp() {
     if (comp && comp.items) return Promise.resolve(comp);
@@ -555,106 +555,152 @@
       { name: 'Mở rộng', sub: 'Bước tiếp theo khi bé đã vững', items: pick(function (x) { return x.a > age && x.a <= age + 2; }, function (p, q) { return p.a - q.a; }, 4) },
     ];
   }
-  function screenRule(age) {
-    if (age <= 2) return ['Xem cùng bố mẹ, không để bé xem một mình', 'Tối đa 15–20 phút, chia 2–3 lần', 'Vừa xem vừa nói chuyện, chỉ vào hình'];
-    if (age <= 5) return ['Tổng cộng không quá 1 giờ mỗi ngày', 'Xem cùng và hỏi lại bé sau mỗi bài', 'Không xem trong bữa ăn và 1 giờ trước khi ngủ'];
-    return ['Giờ xem cố định, xong bài tập mới xem', 'Cân bằng: mỗi 30 phút xem có 30 phút vận động', 'Không xem 1 giờ trước khi ngủ'];
+  // ---------- Hành trình của bé: bản đồ kiểu game ----------
+  // Con đường uốn lượn với các chấm mốc: ⭐ điều bé ĐÃ LÀM ĐƯỢC (bố mẹ, ông bà ghi trong bảng tin) → bé đang ở đây → 🎯 mốc tiếp theo → 🏁.
+  // Chọn chấm bằng ◀ ▶: chấm đã đạt hiện ngày, người ghi, ảnh; chấm phía trước hiện việc bố mẹ làm cùng bé để đạt được.
+  var feed = null, mapSel = 0, mapRow = 'map', rmIdx2 = 0, mapMoved = false;
+  try { feed = JSON.parse(localStorage.getItem('ct-feed')); } catch (e) { feed = null; }
+  function loadFeed() {
+    return rpc('ct_tv_feed', { p_device: device.id, p_secret: device.secret }).then(function (r) {
+      feed = r;
+      try { localStorage.setItem('ct-feed', JSON.stringify(r)); } catch (e) { /* bộ nhớ đầy */ }
+      return r;
+    });
+  }
+  var LEVELS = ['Hạt mầm', 'Chồi non', 'Lá xanh', 'Cây nhỏ', 'Nhà thám hiểm', 'Ngôi sao nhỏ', 'Siêu sao'];
+  function mapNodes() {
+    var cs = curList(), g = cs.length ? lib[cs[0]] : null, kid = ov && ov.kids && ov.kids[0], age = kidAge(kid, g);
+    var wins = (feed && feed.wins) || [], plan = (feed && feed.plan) || [], nodes = [], i;
+    var past = wins.slice(0, 5).reverse();
+    if (!past.length) nodes.push({ t: 'start', title: 'Bắt đầu hành trình' });
+    for (i = 0; i < past.length; i++) nodes.push({ t: 'win', w: past[i], title: past[i].title });
+    nodes.push({ t: 'now', title: kid ? kid.name : 'Bé' });
+    var next = [], seen = {};
+    for (i = 0; i < wins.length; i++) seen[(wins[i].title || '').toLowerCase()] = 1;
+    for (i = 0; i < plan.length && next.length < 5; i++) next.push({ t: 'goal', title: plan[i].title, due: plan[i].due_on, doing: plan[i].status === 'doing' });
+    if (comp) {
+      var st = roadStages(age), items = st[0].items.concat(st[1].items, st[2].items);
+      for (i = 0; i < items.length && next.length < 5; i++) if (!seen[items[i].t.toLowerCase()]) next.push({ t: 'goal', title: items[i].t, tip: items[i].tip, d: items[i].d });
+    }
+    nodes = nodes.concat(next);
+    nodes.push({ t: 'end', title: 'Đích đến' });
+    return { nodes: nodes, wins: wins, age: age, kid: kid, g: g };
+  }
+  // Đường uốn lượn: y theo hình sin, chia đều theo x
+  function mapSvg(nodes, sel) {
+    var W = 1600, H = 520, L = 90, R = 1510, n = nodes.length, pts = [], i, x, y, out = '';
+    var yAt = function (t) { return 260 + 88 * Math.sin(t * Math.PI * 2.2 - 0.6); };
+    for (i = 0; i < n; i++) { x = n > 1 ? L + (R - L) * i / (n - 1) : (L + R) / 2; pts.push([x, yAt(n > 1 ? i / (n - 1) : 0.5)]); }
+    var path = '', k;
+    for (k = 0; k <= 80; k++) { var tt = k / 80; path += (k ? ' L' : 'M') + (L + (R - L) * tt).toFixed(1) + ' ' + yAt(tt).toFixed(1); }
+    var nowI = 0; for (i = 0; i < n; i++) if (nodes[i].t === 'now') nowI = i;
+    var walkTo = n > 1 ? nowI / (n - 1) : 0, walked = '';
+    for (k = 0; k <= 80 * walkTo; k++) { var t2 = k / 80; walked += (k ? ' L' : 'M') + (L + (R - L) * t2).toFixed(1) + ' ' + yAt(t2).toFixed(1); }
+    out += '<path d="' + path + '" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="34" stroke-linecap="round"/>';
+    out += '<path d="' + path + '" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="4" stroke-dasharray="2 18" stroke-linecap="round"/>';
+    if (walked) out += '<path d="' + walked + '" fill="none" stroke="url(#gw)" stroke-width="34" stroke-linecap="round"/>';
+    for (i = 0; i < n; i++) {
+      var nd = nodes[i], p = pts[i], sz = nd.t === 'now' ? 50 : 34, fill, ic, col;
+      if (nd.t === 'win') { fill = '#ffd60a'; ic = nd.w.kind === 'achievement' ? '🏆' : '⭐'; col = '#ffe680'; }
+      else if (nd.t === 'now') { fill = '#ffffff'; ic = (nodes.kidEmoji || '🧒'); col = '#ff6961'; }
+      else if (nd.t === 'goal') { fill = nd.doing ? '#3a3a3c' : '#2c2c2e'; ic = nd.doing ? '◐' : '🎯'; col = 'rgba(235,235,245,.7)'; }
+      else if (nd.t === 'end') { fill = '#2c2c2e'; ic = '🏁'; col = 'rgba(235,235,245,.6)'; }
+      else { fill = '#30d158'; ic = '🚩'; col = '#7ee2a0'; }
+      if (i === sel) out += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (sz + 13) + '" fill="none" stroke="#fff" stroke-width="5"/>';
+      if (nd.t === 'now') out += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (sz + 6) + '" fill="none" stroke="#ff453a" stroke-width="5"><animate attributeName="r" values="' + (sz + 4) + ';' + (sz + 16) + ';' + (sz + 4) + '" dur="2.4s" repeatCount="indefinite"/><animate attributeName="opacity" values="1;0.2;1" dur="2.4s" repeatCount="indefinite"/></circle>';
+      out += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + sz + '" fill="' + fill + '"' + (nd.t === 'goal' ? ' stroke="rgba(255,255,255,.35)" stroke-width="3" stroke-dasharray="6 6"' : '') + '/>';
+      out += '<text x="' + p[0] + '" y="' + (p[1] + sz * 0.36) + '" text-anchor="middle" font-size="' + Math.round(sz * 1.05) + '">' + esc(ic) + '</text>';
+      // Nhãn đặt phía ngoài đường cong (trên đỉnh thì ghi lên trên, dưới đáy thì ghi xuống dưới) để không đè nhau
+      var words = String(nd.t === 'now' ? 'Bé đang ở đây' : nd.title || '').split(' '), l1 = '', l2 = '';
+      for (k = 0; k < words.length; k++) { if ((l1 + ' ' + words[k]).length <= 15 && !l2) l1 = (l1 ? l1 + ' ' : '') + words[k]; else if ((l2 + ' ' + words[k]).length <= 15) l2 = (l2 ? l2 + ' ' : '') + words[k]; else { l2 += '…'; break; } }
+      var lines = [[l1, 19, nd.t === 'now' || i === sel ? 800 : 600, col]];
+      if (l2) lines.push([l2, 19, 600, col]);
+      if (nd.t === 'win' && nd.w.day) lines.push([phDay(nd.w.day), 15, 400, 'rgba(235,235,245,.45)']);
+      if (nd.t === 'goal' && nd.due) lines.push(['hẹn ' + phDay(nd.due), 15, 400, 'rgba(235,235,245,.45)']);
+      var above = p[1] < 260, gap = sz + (i === sel ? 22 : 14) + (i % 2) * 50, yy = above ? p[1] - gap - (lines.length - 1) * 23 : p[1] + gap + 18;
+      for (k = 0; k < lines.length; k++) out += '<text x="' + p[0] + '" y="' + (yy + k * 23) + '" text-anchor="middle" font-size="' + lines[k][1] + '" font-weight="' + lines[k][2] + '" fill="' + lines[k][3] + '">' + esc(lines[k][0]) + '</text>';
+    }
+    return '<svg class="mp-svg" viewBox="0 0 ' + W + ' ' + H + '" width="100%"><defs><linearGradient id="gw" x1="0" x2="1"><stop offset="0" stop-color="#ffd60a"/><stop offset="1" stop-color="#30d158"/></linearGradient></defs>' + out + '</svg>';
   }
   function showRoad(from) {
     rmFrom = from || 'side';
-    $('#home').classList.add('hidden');
-    $('#ov').classList.add('hidden');
-    $('#rm').classList.remove('hidden');
-    zone = 'rm';
-    $('#rm-body').innerHTML = '<div class="rm-empty">Đang tải lộ trình…</div>';
-    $('#rm-btns').innerHTML = '';
-    loadComp().then(function () {
-      rmStage = -1; rmIdx = 0;
-      paintRoad();
-    }, function () { $('#rm-body').innerHTML = '<div class="rm-empty">Chưa tải được lộ trình, hãy thử lại sau.</div>'; });
-    loadOverview().then(function () { if (zone === 'rm' && comp) paintRoad(); });
+    $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#rm').classList.remove('hidden');
+    zone = 'rm'; mapRow = 'map'; mapSel = -1; mapMoved = false;
+    paintRoad();
+    loadComp().then(function () { if (zone === 'rm') paintRoad(); }, function () {});
+    loadFeed().then(function () { if (zone === 'rm') paintRoad(); }, function () { if (zone === 'rm') paintRoad(); });
+    loadOverview().then(function () { if (zone === 'rm') paintRoad(); });
   }
   function hideRoad() {
     $('#rm').classList.add('hidden');
     if (rmFrom === 'ov') { showOverview(); return; }
     $('#home').classList.remove('hidden');
-    zone = 'side';
-    sideIdx = chIdx < 0 ? 0 : chIdx;
-    focus();
+    zone = 'side'; sideIdx = chIdx < 0 ? 0 : chIdx; focus();
   }
-  function rmLi(cls, ic, text) { return '<div class="rm-li ' + cls + '"><i>' + ic + '</i><span>' + text + '</span></div>'; }
   function paintRoad() {
-    if (!comp) return;
-    var cs = curList(), g = cs.length ? lib[cs[0]] : null, kid = ov && ov.kids && ov.kids[0];
-    var age = kidAge(kid, g), st = roadStages(age), ls = g ? curLessons(g) : [], done = 0, cur = null, i;
-    for (i = 0; i < ls.length; i++) { if (ls[i].done) done++; else if (!cur) cur = ls[i]; }
-    // Bé đang ở giai đoạn nào: theo mốc đã đạt (nếu bố mẹ đã nhập) hoặc tiến độ học
-    // Chỉ dựa vào mốc phát triển bố mẹ đã ghi nhận (không dựa vào số video đã xem); chưa có mốc thì bắt đầu từ giai đoạn 1.
-    var hasMs = kid && kid.road && kid.road.progress && kid.road.progress.total, prog = hasMs ? kid.road.progress.done / kid.road.progress.total : 0;
-    var now = prog >= 0.67 ? 2 : prog >= 0.34 ? 1 : 0;
-    if (rmStage < 0) { rmStage = now; rmIdx = now; }
-    var S = st[rmStage];
-    $('#rm-kids').innerHTML = '<em>' + (kid ? esc((kid.emoji || '🧒') + ' ' + kid.name) + ' · ' : '') + (age <= 2 ? '1–2' : age >= 7 ? '7–8' : age) + ' tuổi</em>';
-    // Đường 3 giai đoạn
-    var road = '<div class="rg-road">' + st.map(function (x, k) {
-      return '<div class="rg-st' + (k < now ? ' past' : k === now ? ' now' : '') + (k === rmStage ? ' sel' : '') + '"><div class="rg-dot">' + (k < now ? '✓' : k === now ? '★' : k + 1) + '</div>' +
-        '<b>Giai đoạn ' + (k + 1) + ' · ' + x.name + '</b><span>' + (k === now ? (hasMs ? 'Bé đang ở đây' : 'Bắt đầu từ đây') : x.sub) + '</span></div>'; }).join('') + '</div>';
-    // Mục tiêu (bé cần đạt) + hành động (bố mẹ làm)
-    var goals = S.items.map(function (x) { var d = domOf(x.d); return rmLi('goal', d.emoji, esc(x.t) + '<em> · ' + esc(d.short || d.name) + '</em>'); }).join('');
-    var kg = rmStage === now && kid && kid.road ? (kid.road.goals || []).slice(0, 2).map(function (x) { return rmLi('goal', '🎯', esc(x.title)); }).join('') : '';
-    var acts = S.items.map(function (x, k) { return '<div class="rg-act"><b>' + (k + 1) + '</b><span>' + esc(x.tip) + '</span></div>'; }).join('');
-    // Màn hình: quy tắc theo tuổi + bài nên học tiếp
-    var used = Math.floor(usedSec() / 60), rule = screenRule(age);
-    var scr = rule.map(function (r) { return rmLi('', '•', esc(r)); }).join('') +
-      '<div class="rm-more">Hôm nay đã xem ' + used + ' phút' + (quota.limit ? ' / ' + (quota.limit + extra.n) + ' phút' : '') + '.</div>' +
-      (cur ? '<div class="rm-sub">Bài học tiếp theo</div>' + rmLi('', '▶', 'Bài ' + cur.n + ' · ' + esc(cur.title)) : '');
-    $('#rm-body').innerHTML =
-      '<div class="rg-head"><h2>Giai đoạn ' + (rmStage + 1) + ' · ' + S.name + '</h2><span>' + S.sub + '</span></div>' + road +
-      '<div class="rm-grid">' +
-        '<section class="rm-card"><div class="rm-h"><b>🎯 Bé cần đạt</b><span>' + S.items.length + ' mục tiêu</span></div>' + kg + goals + '</section>' +
-        '<section class="rm-card rg-wide"><div class="rm-h"><b>👨‍👩‍👧 Bố mẹ làm cùng bé mỗi ngày</b></div>' + acts +
-          '<div class="rm-more">Khen sự cố gắng của bé (“con đã thử nhiều cách”) thay vì khen thông minh.</div></section>' +
-        '<section class="rm-card"><div class="rm-h"><b>📺 Dùng màn hình đúng cách</b></div>' + scr + '</section>' +
-      '</div>';
-    var btns = st.map(function (x, k) { return '<button class="obtn rg-tab' + (k === rmStage ? ' on' : '') + '" data-act="rm-st" data-k="' + k + '">' + (k + 1) + '. ' + x.name + '</button>'; });
-    if (cur) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp: Bài ' + cur.n + '</button>');
+    var m = mapNodes(), nodes = m.nodes, i, nowI = 0;
+    nodes.kidEmoji = m.kid && m.kid.emoji;
+    for (i = 0; i < nodes.length; i++) if (nodes[i].t === 'now') nowI = i;
+    if (mapSel < 0 || mapSel >= nodes.length || !mapMoved) mapSel = nowI;
+    var nW = m.wins.length, lv = Math.min(LEVELS.length, Math.floor(nW / 3) + 1), toNext = 3 - nW % 3;
+    $('#rm-kids').innerHTML = '<span class="hud-lv">Cấp ' + lv + ' · ' + LEVELS[lv - 1] + '</span><span class="hud-xp"><i style="width:' + (nW % 3) / 3 * 100 + '%"></i></span><em>còn ' + toNext + ' ⭐ lên cấp</em>';
+    var nd = nodes[mapSel], det = '';
+    if (nd.t === 'win') {
+      var w = nd.w;
+      det = (w.photo ? '<img class="mp-pic" src="' + phUrl({ url: w.photo }) + '" alt="">' : '<div class="mp-badge">' + (w.kind === 'achievement' ? '🏆' : '⭐') + '</div>') +
+        '<div class="mp-txt"><span class="mp-tag win">Bé đã làm được!</span><b>' + esc(w.title) + '</b><em>' + phDay(w.day) + (w.by ? ' · ghi bởi ' + esc(w.by) : '') + (w.child ? ' · ' + esc(w.child) : '') + '</em>' + (w.text ? '<p>' + esc(w.text) + '</p>' : '') + '</div>';
+    } else if (nd.t === 'goal') {
+      det = '<div class="mp-badge goal">🎯</div><div class="mp-txt"><span class="mp-tag">' + (nd.doing ? 'Đang tập' : 'Mốc tiếp theo') + '</span><b>' + esc(nd.title) + '</b>' +
+        (nd.due ? '<em>Hẹn đạt: ' + phDay(nd.due) + '</em>' : '') + '<p>' + (nd.tip ? '👨‍👩‍👧 Bố mẹ làm cùng bé: ' + esc(nd.tip) : 'Khi bé làm được, bố mẹ ghi “Cột mốc” trong Bảng tin của app để thắp sáng chấm này ⭐') + '</p></div>';
+    } else if (nd.t === 'now') {
+      det = '<div class="mp-badge now">' + esc(m.kid && m.kid.emoji || '🧒') + '</div><div class="mp-txt"><span class="mp-tag now">Bé đang ở đây</span><b>' + (nW ? 'Đã đạt ' + nW + ' thành tích ⭐' : 'Hành trình vừa bắt đầu') + '</b>' +
+        '<p>' + (nW ? 'Gần nhất: ' + esc(m.wins[0].title) + ' (' + phDay(m.wins[0].day) + ').' : 'Mỗi khi bé làm được điều mới (biết đếm 1–10, nhảy lò cò, nói từ mới…), bố mẹ hoặc ông bà ghi vào Bảng tin trong app — chấm ⭐ sẽ hiện trên đường.') + '</p></div>';
+    } else {
+      det = '<div class="mp-badge goal">' + (nd.t === 'end' ? '🏁' : '🚩') + '</div><div class="mp-txt"><b>' + esc(nd.title) + '</b><p>' + (nd.t === 'end' ? 'Hoàn thành các mốc của giai đoạn này.' : 'Điểm xuất phát.') + '</p></div>';
+    }
+    $('#rm-body').innerHTML = '<div class="mp-map">' + mapSvg(nodes, mapRow === 'map' ? mapSel : -1) + '</div><div class="mp-det">' + det + '</div>';
+    var btns = [], cs = curList();
+    if (cs.length) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp</button>');
+    btns.push('<button class="obtn" data-act="rm-feed">🏆 Bảng tin của bé</button>');
     btns.push('<button class="obtn" data-act="rm-back">' + (rmFrom === 'ov' ? '← Quay lại' : '← Thư viện') + '</button>');
     $('#rm-btns').innerHTML = btns.join('');
-    if (rmIdx >= btns.length) rmIdx = rmStage;
+    if (rmIdx2 >= btns.length) rmIdx2 = 0;
     focus();
   }
   function rmAct(b) {
     var act = b.getAttribute('data-act');
     if (act === 'rm-back') return hideRoad();
-    if (act === 'rm-st') { rmStage = +b.getAttribute('data-k'); rmIdx = rmStage; paintRoad(); return; }
+    if (act === 'rm-feed') { $('#rm').classList.add('hidden'); showPhotos(rmFrom === 'ov' ? 'ov' : 'side'); return; }
     var gi = curList()[0], g = lib[gi];
     if (!g) return hideRoad();
     var ls = curLessons(g), cur = null;
     for (var i = 0; i < ls.length; i++) if (!ls[i].done) { cur = ls[i]; break; }
-    $('#rm').classList.add('hidden');
-    $('#home').classList.remove('hidden');
-    zone = 'side';
-    chIdx = -1; showChannel(gi); sideIdx = gi;
+    $('#rm').classList.add('hidden'); $('#home').classList.remove('hidden');
+    zone = 'side'; chIdx = -1; showChannel(gi); sideIdx = gi;
     if (!cur) { focus(); return; }
     if (isLocked(g, cur.idx)) { focus(); toast('Hãy xem bài trước nhé! 🔒'); return; }
     play(g.videos, cur.idx);
   }
   function rmKey(k) {
-    var n = $('#rm-btns').children.length;
-    if ((k === K.LEFT || k === K.UP) && rmIdx > 0) rmIdx--;
-    else if ((k === K.RIGHT || k === K.DOWN) && rmIdx < n - 1) rmIdx++;
-    else if (k === K.ENTER) { rmAct($('#rm-btns').children[rmIdx]); return; }
-    else if (BACK.indexOf(k) >= 0) { hideRoad(); return; }
+    if (BACK.indexOf(k) >= 0) { hideRoad(); return; }
+    var n = $('#rm-btns').children.length, total = mapNodes().nodes.length;
+    if (mapRow === 'map') {
+      if (k === K.LEFT && mapSel > 0) { mapSel--; mapMoved = true; paintRoad(); return; }
+      if (k === K.RIGHT && mapSel < total - 1) { mapSel++; mapMoved = true; paintRoad(); return; }
+      if (k === K.DOWN || k === K.ENTER) { mapRow = 'btn'; rmIdx2 = 0; paintRoad(); return; }
+      return;
+    }
+    if (k === K.UP) { mapRow = 'map'; paintRoad(); return; }
+    if (k === K.LEFT && rmIdx2 > 0) rmIdx2--;
+    else if (k === K.RIGHT && rmIdx2 < n - 1) rmIdx2++;
+    else if (k === K.ENTER) { rmAct($('#rm-btns').children[rmIdx2]); return; }
     focus();
-    // Di chuyển qua các nút giai đoạn: xem luôn nội dung giai đoạn đó
-    var b = $('#rm-btns').children[rmIdx];
-    if (b && b.getAttribute('data-act') === 'rm-st' && +b.getAttribute('data-k') !== rmStage) { rmStage = +b.getAttribute('data-k'); paintRoad(); }
   }
 
   // ---------- Ảnh kỷ niệm (kiểu Google Photos) ----------
   // Ảnh trong bảng tin ChildTube ở mức "Gia đình": bố mẹ, ông bà, người thân đăng. Lọc theo người đăng; trình chiếu tự chạy.
   var ph = { list: [], who: '', idx: 0, chip: 0, at: 'grid', timer: null, vIdx: 0, vAuto: false, vTimer: null, from: 'side' };
-  try { ph.list = (JSON.parse(localStorage.getItem('ct-ph')) || {}).photos || []; } catch (e) { ph.list = []; }
+  ph.list = (feed && feed.photos) || [];
   var ROLE = { owner: 'Bố mẹ', parent: 'Bố mẹ', relative: 'Người thân', teacher: 'Giáo viên' };
   function phUrl(p) { return /^https?:/.test(p.url) ? p.url : CT_CONFIG.url + p.url; }
   function phShown() { return ph.who ? ph.list.filter(function (p) { return (p.by || '') === ph.who; }) : ph.list; }
@@ -668,11 +714,10 @@
     $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#ph').classList.remove('hidden');
     zone = 'ph'; ph.at = 'grid'; ph.idx = 0;
     paintPhotos();
-    rpc('ct_tv_photos', { p_device: device.id, p_secret: device.secret }).then(function (r) {
-      ph.enabled = r.enabled; ph.list = r.photos || [];
-      try { localStorage.setItem('ct-ph', JSON.stringify({ photos: ph.list })); } catch (e) { /* bộ nhớ đầy */ }
+    loadFeed().then(function (r) {
+      ph.enabled = r.enabled; ph.list = r.photos || []; ph.err = false;
       if (zone === 'ph') paintPhotos();
-    }).catch(function () { ph.err = true; if (zone === 'ph') paintPhotos(); });
+    }, function () { ph.err = true; if (zone === 'ph') paintPhotos(); });
   }
   function hidePhotos() {
     clearInterval(ph.timer);
@@ -689,6 +734,14 @@
     $('#ph-chips').innerHTML = chips.map(function (c) { return '<button class="obtn ph-chip' + (c[0] === ph.who ? ' on' : '') + '" data-who="' + esc(c[0]) + '">' + esc(c[1]) + '</button>'; }).join('') +
       '<button class="obtn main ph-chip" data-act="show">▶ Trình chiếu</button>';
     list = phShown();
+    // Thẻ thành tích kiểu game: mới nhất trước, mỗi thẻ một màu, có huy hiệu, ngày, người ghi
+    var wins = (feed && feed.wins) || [], nW = wins.length;
+    $('#ph-wins').classList.toggle('hidden', !nW);
+    $('#ph-wins').innerHTML = nW ? '<div class="pw-h"><b>🏆 Bé đã làm được</b><span>⭐ ' + nW + ' thành tích · Cấp ' + Math.min(LEVELS.length, Math.floor(nW / 3) + 1) + ' ' + LEVELS[Math.min(LEVELS.length, Math.floor(nW / 3) + 1) - 1] + '</span></div><div class="pw-row">' +
+      wins.slice(0, 5).map(function (w, k) {
+        return '<div class="pw-card c' + (k % 5) + '">' + (w.photo ? '<img src="' + phUrl({ url: w.photo }) + '" alt="">' : '') +
+          '<div class="pw-in"><span class="pw-badge">' + (w.kind === 'achievement' ? '🏆' : '⭐') + '</span><b>' + esc(w.title) + '</b><em>' + phDay(w.day) + (w.by ? ' · ' + esc(w.by) : '') + '</em>' +
+          (k === 0 ? '<span class="pw-new">MỚI</span>' : '') + '</div></div>'; }).join('') + '</div>' : '';
     if (!list.length) {
       $('#ph-hero').classList.add('hidden');
       $('#ph-grid').innerHTML = '<div class="rm-empty">' + (ph.err ? 'Chưa tải được ảnh, hãy thử lại sau.' : ph.enabled === false
@@ -696,7 +749,7 @@
         : 'Chưa có ảnh nào.<br>Bố mẹ, ông bà đăng ảnh vào Bảng tin trong app ChildTube (mức "Gia đình") để ảnh hiện ở đây.') + '</div>';
       clearInterval(ph.timer);
     } else {
-      $('#ph-hero').classList.remove('hidden');
+      $('#ph-hero').classList.toggle('hidden', !!nW);   // có thành tích thì dải thẻ thay cho ảnh lớn
       // Lưới theo tháng
       var html = '', month = '';
       list.forEach(function (p, k) {
