@@ -502,9 +502,7 @@
   }
 
   // ---------- Lộ trình (mục riêng: nút "Lộ trình của bé" ở cột trái, hoặc nút ở màn mở đầu) ----------
-  // Vẽ giáo trình thành một con đường chia chặng: đã đi (xanh), đang ở (đỏ, có bé), phía trước (xám), đích 🏁.
-  // Dưới đường: bài đang học · các bài tiếp theo · định hướng (mục tiêu, mốc của bé nếu bố mẹ đã nhập; nếu chưa thì đã xong / còn lại).
-  var rmCur = 0, rmIdx = 0, rmFrom = 'side';
+  var rmIdx = 0, rmFrom = 'side';
   function curList() { var a = []; for (var i = 0; i < lib.length; i++) if (lib[i].numbered && lib[i].videos.length) a.push(i); return a; }
   function curLessons(g) {
     var ls = [], map = {}, i, v, key, l;
@@ -518,44 +516,45 @@
     for (i = 0; i < ls.length; i++) if (!ls[i].main) ls[i].done = false;
     return ls;
   }
-  function curStages(ls) {
-    var st = [], mts = [], i, k;
-    for (i = 0; i < ls.length; i++) if (ls[i].mt && mts.indexOf(ls[i].mt) < 0) mts.push(ls[i].mt);
-    if (mts.length >= 2 && mts.length <= 8) {
-      for (i = 0; i < ls.length; i++) { if (!st.length || st[st.length - 1].name !== ls[i].mt) st.push({ name: ls[i].mt || 'Chặng', ls: [] }); st[st.length - 1].ls.push(ls[i]); }
-    } else {
-      k = Math.max(1, Math.min(4, Math.ceil(ls.length / 5)));
-      var size = Math.ceil(ls.length / k);
-      for (i = 0; i < ls.length; i++) { if (i % size === 0) st.push({ name: 'Chặng ' + (st.length + 1), ls: [] }); st[st.length - 1].ls.push(ls[i]); }
-    }
-    return st;
+  // Lộ trình giáo dục: theo tuổi của bé, 3 giai đoạn Nền tảng → Củng cố → Mở rộng; mỗi giai đoạn nói rõ
+  // bé cần đạt gì (theo khung năng lực 6 lĩnh vực) và BỐ MẸ LÀM GÌ mỗi ngày; kèm cách dùng màn hình hợp tuổi.
+  var comp = null, rmStage = 0;
+  try { comp = JSON.parse(localStorage.getItem('ct-comp')); } catch (e) { comp = null; }
+  function loadComp() {
+    if (comp && comp.items) return Promise.resolve(comp);
+    return fetch('../app/competency.json', { cache: 'no-cache' }).then(function (r) { return r.json(); }).then(function (j) {
+      comp = { domains: j.domains, items: j.items };
+      try { localStorage.setItem('ct-comp', JSON.stringify(comp)); } catch (e) { /* bộ nhớ đầy */ }
+      return comp;
+    });
   }
-  // Con đường SVG
-  function roadSvg(st, ls, cur, emoji) {
-    var W = 1500, H = 190, L = 40, R = 1380, Y = 78, total = ls.length || 1, out = '', x = L, i, s, w, d, isNow, col, done = 0;
-    for (i = 0; i < ls.length; i++) if (ls[i].done) done++;
-    out += '<line x1="' + L + '" y1="' + Y + '" x2="' + R + '" y2="' + Y + '" stroke="rgba(255,255,255,.14)" stroke-width="18" stroke-linecap="round"/>';
-    if (done) out += '<line x1="' + L + '" y1="' + Y + '" x2="' + (L + (R - L) * done / total) + '" y2="' + Y + '" stroke="#30d158" stroke-width="18" stroke-linecap="round"/>';
-    for (i = 0; i < st.length; i++) {
-      s = st[i]; w = (R - L) * s.ls.length / total;
-      d = 0; for (var j = 0; j < s.ls.length; j++) if (s.ls[j].done) d++;
-      isNow = cur && s.ls.indexOf(cur) >= 0;
-      col = d === s.ls.length ? '#30d158' : isNow ? '#ff453a' : 'rgba(255,255,255,.35)';
-      if (i > 0) out += '<circle cx="' + x + '" cy="' + Y + '" r="13" fill="#1c1c1e" stroke="' + (st[i - 1].ls.every(function (q) { return q.done; }) ? '#30d158' : 'rgba(255,255,255,.35)') + '" stroke-width="5"/>';
-      out += '<text x="' + (x + w / 2) + '" y="' + (Y + 46) + '" text-anchor="middle" font-size="21" font-weight="' + (isNow ? 800 : 600) + '" fill="' + (isNow ? '#fff' : 'rgba(235,235,245,.65)') + '">' + esc(s.name.length > 22 ? s.name.slice(0, 21) + '…' : s.name) + '</text>';
-      out += '<text x="' + (x + w / 2) + '" y="' + (Y + 72) + '" text-anchor="middle" font-size="16" fill="' + col + '">Bài ' + s.ls[0].n + '–' + s.ls[s.ls.length - 1].n + ' · ' + d + '/' + s.ls.length + (d === s.ls.length ? ' ✓' : '') + '</text>';
-      x += w;
+  // Tuổi bé: hồ sơ bé (nếu có) → ghi chú giáo trình ("1–2 tuổi") → mặc định 4
+  function kidAge(kid, g) {
+    if (kid && kid.age != null) return Math.max(2, Math.min(7, kid.age));
+    var m = g && g.note && /(\d+)\s*(?:–|-)\s*(\d+)\s*tuổi|(\d+)\s*tuổi/.exec(g.note);
+    if (m) return Math.max(2, Math.min(7, +(m[2] || m[3])));
+    return 4;
+  }
+  function domOf(id) { for (var i = 0; i < comp.domains.length; i++) if (comp.domains[i].id === id) return comp.domains[i]; return { emoji: '•', short: '' }; }
+  function roadStages(age) {
+    var items = comp.items.filter(function (x) { return x.needs !== 'both'; }), used = {};
+    function pick(test, sortFn, n) {
+      var list = items.filter(function (x) { return !used[x.id] && test(x); }).sort(sortFn), out = [], doms = {};
+      for (var i = 0; i < list.length && out.length < n; i++) if (!doms[list[i].d]) { doms[list[i].d] = 1; out.push(list[i]); }   // mỗi lĩnh vực một mục cho đều
+      for (i = 0; i < list.length && out.length < n; i++) if (out.indexOf(list[i]) < 0) out.push(list[i]);
+      out.forEach(function (x) { used[x.id] = 1; });
+      return out;
     }
-    out += '<text x="' + (R + 60) + '" y="' + (Y + 13) + '" text-anchor="middle" font-size="40">🏁</text>';
-    out += '<text x="' + (R + 60) + '" y="' + (Y + 46) + '" text-anchor="middle" font-size="16" fill="rgba(235,235,245,.6)">Hoàn thành</text>';
-    if (cur) {
-      var ci = ls.indexOf(cur), cx = L + (R - L) * (ci + 0.5) / total, lab = 'Bé đang ở đây · Bài ' + cur.n;
-      out += '<circle cx="' + cx + '" cy="' + Y + '" r="27" fill="#fff"/><text x="' + cx + '" y="' + (Y + 11) + '" text-anchor="middle" font-size="30">' + esc(emoji || '🧒') + '</text>';
-      out += '<text x="' + Math.max(L + 120, Math.min(R - 120, cx)) + '" y="' + (Y - 40) + '" text-anchor="middle" font-size="19" font-weight="800" fill="#ff6961">' + lab + '</text>';
-    } else {
-      out += '<text x="' + ((L + R) / 2) + '" y="' + (Y - 40) + '" text-anchor="middle" font-size="19" font-weight="800" fill="#30d158">Bé đã học xong cả giáo trình 🎉</text>';
-    }
-    return '<svg class="rm-road" viewBox="0 0 ' + W + ' ' + H + '" width="100%">' + out + '</svg>';
+    return [
+      { name: 'Nền tảng', sub: 'Những việc bé nên làm được ở tuổi này', items: pick(function (x) { return x.a <= age; }, function (p, q) { return q.a - p.a; }, 4) },
+      { name: 'Củng cố', sub: 'Đang hình thành, cần luyện mỗi ngày', items: pick(function (x) { return x.a > age - 1 && x.a <= age + 1; }, function (p, q) { return p.a - q.a; }, 4) },
+      { name: 'Mở rộng', sub: 'Bước tiếp theo khi bé đã vững', items: pick(function (x) { return x.a > age && x.a <= age + 2; }, function (p, q) { return p.a - q.a; }, 4) },
+    ];
+  }
+  function screenRule(age) {
+    if (age <= 2) return ['Xem cùng bố mẹ, không để bé xem một mình', 'Tối đa 15–20 phút, chia 2–3 lần', 'Vừa xem vừa nói chuyện, chỉ vào hình'];
+    if (age <= 5) return ['Tổng cộng không quá 1 giờ mỗi ngày', 'Xem cùng và hỏi lại bé sau mỗi bài', 'Không xem trong bữa ăn và 1 giờ trước khi ngủ'];
+    return ['Giờ xem cố định, xong bài tập mới xem', 'Cân bằng: mỗi 30 phút xem có 30 phút vận động', 'Không xem 1 giờ trước khi ngủ'];
   }
   function showRoad(from) {
     rmFrom = from || 'side';
@@ -563,11 +562,13 @@
     $('#ov').classList.add('hidden');
     $('#rm').classList.remove('hidden');
     zone = 'rm';
-    rmIdx = 0;
-    var cs = curList();
-    for (var i = 0; i < cs.length; i++) if (cs[i] === chIdx) rmCur = i;   // đang chọn giáo trình nào thì mở lộ trình của giáo trình đó
-    paintRoad();
-    loadOverview().then(function () { if (zone === 'rm') paintRoad(); });
+    $('#rm-body').innerHTML = '<div class="rm-empty">Đang tải lộ trình…</div>';
+    $('#rm-btns').innerHTML = '';
+    loadComp().then(function () {
+      rmStage = -1; rmIdx = 0;
+      paintRoad();
+    }, function () { $('#rm-body').innerHTML = '<div class="rm-empty">Chưa tải được lộ trình, hãy thử lại sau.</div>'; });
+    loadOverview().then(function () { if (zone === 'rm' && comp) paintRoad(); });
   }
   function hideRoad() {
     $('#rm').classList.add('hidden');
@@ -577,61 +578,52 @@
     sideIdx = chIdx < 0 ? 0 : chIdx;
     focus();
   }
-  function rmCard(title, right, body) {
-    return '<section class="rm-card"><div class="rm-h"><b>' + title + '</b>' + (right ? '<span>' + right + '</span>' : '') + '</div>' + body + '</section>';
-  }
   function rmLi(cls, ic, text) { return '<div class="rm-li ' + cls + '"><i>' + ic + '</i><span>' + text + '</span></div>'; }
   function paintRoad() {
-    var cs = curList(), kid = ov && ov.kids && ov.kids[0], btns = [];
-    if (rmCur >= cs.length) rmCur = 0;
-    var gi = cs[rmCur], g = lib[gi];
-    $('#rm-kids').innerHTML = cs.length > 1 ? cs.map(function (c, i) {
-      return '<span class="rm-kid' + (i === rmCur ? ' on' : '') + '">' + esc((lib[c].emoji ? lib[c].emoji + ' ' : '') + lib[c].title) + '</span>'; }).join('') + '<em>◀ ▶ đổi giáo trình</em>' : '';
-    if (!g) {
-      $('#rm-body').innerHTML = '<div class="rm-empty">Chưa có giáo trình nào.<br>Bố mẹ tạo giáo trình trong app ChildTube (tab Học) để thấy lộ trình của bé ở đây.</div>';
-    } else {
-      var ls = curLessons(g), st = curStages(ls), cur = null, i, done = 0;
-      for (i = 0; i < ls.length; i++) { if (ls[i].done) done++; else if (!cur) cur = ls[i]; }
-      var pct = ls.length ? Math.round(done / ls.length * 100) : 0;
-      var who = kid ? esc((kid.emoji || '🧒') + ' ' + kid.name) + (kid.age != null ? ' · ' + kid.age + ' tuổi' : '') : '';
-      var head = '<div class="rm-who"><div><h2>' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + '</h2><div class="ov-sub">' + (who ? who + ' · ' : '') +
-        st.length + ' chặng · ' + ls.length + ' bài' + (g.note ? ' · ' + esc(g.note.length > 90 ? g.note.slice(0, 89) + '…' : g.note) : '') + '</div></div>' +
-        '<div class="rm-stats"><div><b>' + pct + '%</b><span>đã đi được</span></div><div><b>' + done + '/' + ls.length + '</b><span>bài đã học</span></div>' +
-        (kid ? '<div><b>' + (kid.streak ? '🔥 ' + kid.streak : '0') + '</b><span>ngày liên tiếp</span></div>' : '') + '</div></div>';
-      // Khối 1: bài đang học
-      var c1 = cur ? '<div class="rm-now"><img src="' + thumb(cur.vid) + '" alt=""><div><span>Bài ' + cur.n + (cur.mt ? ' · ' + esc(cur.mt) : '') + '</span><b>' + esc(cur.title) + '</b></div></div>'
-        : '<div class="ov-none">Đã học xong mọi bài. Bố mẹ có thể thêm giáo trình mới trong app.</div>';
-      // Khối 2: các bài tiếp theo
-      var nx = [], ci = cur ? ls.indexOf(cur) : ls.length;
-      for (i = ci + 1; i < ls.length && nx.length < 5; i++) nx.push(rmLi('', '○', 'Bài ' + ls[i].n + ' · ' + esc(ls[i].title)));
-      var c2 = nx.length ? nx.join('') + (ls.length - ci - 1 > 5 ? '<div class="rm-more">+ ' + (ls.length - ci - 6) + ' bài nữa tới đích 🏁</div>' : '') : '<div class="ov-none">Đây là bài cuối cùng 🏁</div>';
-      // Khối 3: định hướng (từ hồ sơ bé nếu có), nếu chưa có thì tóm tắt đã xong
-      var gl = kid && kid.road ? kid.road.goals || [] : [], ms = kid && kid.road ? (kid.road.milestones || []).filter(function (m) { return m.status !== 'done'; }) : [];
-      var c3 = '';
-      if (gl.length || ms.length) {
-        c3 = gl.map(function (x) { return rmLi('goal', '🎯', esc(x.title) + (x.target_age ? '<em> · đến ' + x.target_age + ' tuổi</em>' : '')); }).join('') +
-          ms.slice(0, 4).map(function (m) { return rmLi(m.status, m.status === 'doing' ? '◐' : '○', esc(m.title)); }).join('');
-      } else {
-        var last = [];
-        for (i = ls.length - 1; i >= 0 && last.length < 3; i--) if (ls[i].done) last.push(rmLi('done', '✓', 'Bài ' + ls[i].n + ' · ' + esc(ls[i].title)));
-        c3 = (last.length ? last.join('') : '<div class="ov-none">Bé chưa học xong bài nào.</div>') +
-          '<div class="rm-more">Thêm hồ sơ bé, mục tiêu và mốc trong app (Gia đình, Học → Lộ trình) để thấy định hướng ở đây.</div>';
-      }
-      $('#rm-body').innerHTML = head + '<div class="rm-journey">' + roadSvg(st, ls, cur, kid && kid.emoji) + '</div><div class="rm-grid">' +
-        rmCard('▶ Đang học', cur ? 'Bài ' + cur.n + '/' + ls.length : '', c1) +
-        rmCard('🛤 Tiếp theo', ls.length - done > 0 ? 'còn ' + (ls.length - done) + ' bài' : '', c2) +
-        rmCard(gl.length || ms.length ? '🧭 Định hướng' : '✓ Đã hoàn thành', gl.length || ms.length ? '' : done + ' bài', c3) + '</div>';
-      if (cur) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp: Bài ' + cur.n + '</button>');
-    }
-    btns.push('<button class="obtn" data-act="rm-back">' + (rmFrom === 'ov' ? '← Quay lại' : '← Về thư viện') + '</button>');
+    if (!comp) return;
+    var cs = curList(), g = cs.length ? lib[cs[0]] : null, kid = ov && ov.kids && ov.kids[0];
+    var age = kidAge(kid, g), st = roadStages(age), ls = g ? curLessons(g) : [], done = 0, cur = null, i;
+    for (i = 0; i < ls.length; i++) { if (ls[i].done) done++; else if (!cur) cur = ls[i]; }
+    // Bé đang ở giai đoạn nào: theo mốc đã đạt (nếu bố mẹ đã nhập) hoặc tiến độ học
+    // Chỉ dựa vào mốc phát triển bố mẹ đã ghi nhận (không dựa vào số video đã xem); chưa có mốc thì bắt đầu từ giai đoạn 1.
+    var hasMs = kid && kid.road && kid.road.progress && kid.road.progress.total, prog = hasMs ? kid.road.progress.done / kid.road.progress.total : 0;
+    var now = prog >= 0.67 ? 2 : prog >= 0.34 ? 1 : 0;
+    if (rmStage < 0) { rmStage = now; rmIdx = now; }
+    var S = st[rmStage];
+    $('#rm-kids').innerHTML = '<em>' + (kid ? esc((kid.emoji || '🧒') + ' ' + kid.name) + ' · ' : '') + (age <= 2 ? '1–2' : age >= 7 ? '7–8' : age) + ' tuổi</em>';
+    // Đường 3 giai đoạn
+    var road = '<div class="rg-road">' + st.map(function (x, k) {
+      return '<div class="rg-st' + (k < now ? ' past' : k === now ? ' now' : '') + (k === rmStage ? ' sel' : '') + '"><div class="rg-dot">' + (k < now ? '✓' : k === now ? '★' : k + 1) + '</div>' +
+        '<b>Giai đoạn ' + (k + 1) + ' · ' + x.name + '</b><span>' + (k === now ? (hasMs ? 'Bé đang ở đây' : 'Bắt đầu từ đây') : x.sub) + '</span></div>'; }).join('') + '</div>';
+    // Mục tiêu (bé cần đạt) + hành động (bố mẹ làm)
+    var goals = S.items.map(function (x) { var d = domOf(x.d); return rmLi('goal', d.emoji, esc(x.t) + '<em> · ' + esc(d.short || d.name) + '</em>'); }).join('');
+    var kg = rmStage === now && kid && kid.road ? (kid.road.goals || []).slice(0, 2).map(function (x) { return rmLi('goal', '🎯', esc(x.title)); }).join('') : '';
+    var acts = S.items.map(function (x, k) { return '<div class="rg-act"><b>' + (k + 1) + '</b><span>' + esc(x.tip) + '</span></div>'; }).join('');
+    // Màn hình: quy tắc theo tuổi + bài nên học tiếp
+    var used = Math.floor(usedSec() / 60), rule = screenRule(age);
+    var scr = rule.map(function (r) { return rmLi('', '•', esc(r)); }).join('') +
+      '<div class="rm-more">Hôm nay đã xem ' + used + ' phút' + (quota.limit ? ' / ' + (quota.limit + extra.n) + ' phút' : '') + '.</div>' +
+      (cur ? '<div class="rm-sub">Bài học tiếp theo</div>' + rmLi('', '▶', 'Bài ' + cur.n + ' · ' + esc(cur.title)) : '');
+    $('#rm-body').innerHTML =
+      '<div class="rg-head"><h2>Giai đoạn ' + (rmStage + 1) + ' · ' + S.name + '</h2><span>' + S.sub + '</span></div>' + road +
+      '<div class="rm-grid">' +
+        '<section class="rm-card"><div class="rm-h"><b>🎯 Bé cần đạt</b><span>' + S.items.length + ' mục tiêu</span></div>' + kg + goals + '</section>' +
+        '<section class="rm-card rg-wide"><div class="rm-h"><b>👨‍👩‍👧 Bố mẹ làm cùng bé mỗi ngày</b></div>' + acts +
+          '<div class="rm-more">Khen sự cố gắng của bé (“con đã thử nhiều cách”) thay vì khen thông minh.</div></section>' +
+        '<section class="rm-card"><div class="rm-h"><b>📺 Dùng màn hình đúng cách</b></div>' + scr + '</section>' +
+      '</div>';
+    var btns = st.map(function (x, k) { return '<button class="obtn rg-tab' + (k === rmStage ? ' on' : '') + '" data-act="rm-st" data-k="' + k + '">' + (k + 1) + '. ' + x.name + '</button>'; });
+    if (cur) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp: Bài ' + cur.n + '</button>');
+    btns.push('<button class="obtn" data-act="rm-back">' + (rmFrom === 'ov' ? '← Quay lại' : '← Thư viện') + '</button>');
     $('#rm-btns').innerHTML = btns.join('');
-    if (rmIdx >= btns.length) rmIdx = 0;
+    if (rmIdx >= btns.length) rmIdx = rmStage;
     focus();
   }
   function rmAct(b) {
     var act = b.getAttribute('data-act');
     if (act === 'rm-back') return hideRoad();
-    var gi = curList()[rmCur], g = lib[gi];
+    if (act === 'rm-st') { rmStage = +b.getAttribute('data-k'); rmIdx = rmStage; paintRoad(); return; }
+    var gi = curList()[0], g = lib[gi];
     if (!g) return hideRoad();
     var ls = curLessons(g), cur = null;
     for (var i = 0; i < ls.length; i++) if (!ls[i].done) { cur = ls[i]; break; }
@@ -644,14 +636,15 @@
     play(g.videos, cur.idx);
   }
   function rmKey(k) {
-    var n = $('#rm-btns').children.length, cs = curList();
-    if (k === K.LEFT && cs.length > 1 && rmIdx === 0) { rmCur = (rmCur + cs.length - 1) % cs.length; paintRoad(); return; }
-    if (k === K.RIGHT && cs.length > 1 && rmIdx === n - 1) { rmCur = (rmCur + 1) % cs.length; paintRoad(); return; }
+    var n = $('#rm-btns').children.length;
     if ((k === K.LEFT || k === K.UP) && rmIdx > 0) rmIdx--;
     else if ((k === K.RIGHT || k === K.DOWN) && rmIdx < n - 1) rmIdx++;
     else if (k === K.ENTER) { rmAct($('#rm-btns').children[rmIdx]); return; }
     else if (BACK.indexOf(k) >= 0) { hideRoad(); return; }
     focus();
+    // Di chuyển qua các nút giai đoạn: xem luôn nội dung giai đoạn đó
+    var b = $('#rm-btns').children[rmIdx];
+    if (b && b.getAttribute('data-act') === 'rm-st' && +b.getAttribute('data-k') !== rmStage) { rmStage = +b.getAttribute('data-k'); paintRoad(); }
   }
 
   // ---------- Lịch sử xem ----------
