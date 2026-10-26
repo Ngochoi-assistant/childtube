@@ -314,6 +314,8 @@
     else if (zone === 'end') el = $('#end-btns').children[endIdx];
     else if (zone === 'limit') el = $('#limit-btns').children[0];
     else if (zone === 'ov') el = $('#ov-btns').children[ovIdx];
+    else if (zone === 'rm') el = $('#rm-btns').children[rmIdx];
+    else if (zone === 'rmbtn') el = $('#rm-btn');
     if (el) el.classList.add('focus');
     $('#grid').classList.toggle('dim', zone === 'grid');   // đang chọn video: làm mờ các video còn lại
   }
@@ -332,6 +334,7 @@
     var n;
     if (zone === 'side') {
       n = sideItems().length;
+      if (k === K.UP && sideIdx === 0) { zone = 'rmbtn'; focus(); return; }
       if (k === K.UP && sideIdx > 0) sideIdx--;
       else if (k === K.DOWN && sideIdx < n - 1) sideIdx++;
       else if (BACK.indexOf(k) >= 0) { showOverview(); return; }
@@ -493,6 +496,89 @@
     else if ((k === K.RIGHT || k === K.DOWN) && ovIdx < n - 1) ovIdx++;
     else if (k === K.ENTER) { ovAct($('#ov-btns').children[ovIdx]); return; }
     else if (k === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* không phải TV */ } return; }
+    focus();
+  }
+
+  // ---------- Lộ trình (mục riêng, mở từ nút "Lộ trình của bé" trên cột trái) ----------
+  // Gọn, 3 khối: Đang học (giáo trình hiện tại) · Mốc năm nay · Mục tiêu & kỹ năng; trên cùng là hành trình theo tuổi.
+  var rmKid = 0, rmIdx = 0;
+  function showRoad() {
+    $('#home').classList.add('hidden');
+    $('#rm').classList.remove('hidden');
+    zone = 'rm';
+    rmIdx = 0;
+    paintRoad();
+    loadOverview().then(function () { if (zone === 'rm') paintRoad(); });
+  }
+  function hideRoad() {
+    $('#rm').classList.add('hidden');
+    $('#home').classList.remove('hidden');
+    zone = 'side';
+    sideIdx = chIdx < 0 ? 0 : chIdx;
+    focus();
+  }
+  function rmCard(title, right, body) {
+    return '<section class="rm-card"><div class="rm-h"><b>' + title + '</b>' + (right ? '<span>' + right + '</span>' : '') + '</div>' + body + '</section>';
+  }
+  function paintRoad() {
+    var kids = (ov && ov.kids) || [];
+    if (rmKid >= kids.length) rmKid = 0;
+    $('#rm-kids').innerHTML = kids.length > 1 ? kids.map(function (k, i) {
+      return '<span class="rm-kid' + (i === rmKid ? ' on' : '') + '">' + esc((k.emoji || '🧒') + ' ' + k.name) + '</span>'; }).join('') + '<em>◀ ▶ đổi bé</em>' : '';
+    var k = kids[rmKid], html = '', btns = [];
+    if (!k) {
+      html = '<div class="rm-grid">' + familyCard() + '</div>';
+    } else {
+      var now = null, st = (k.road && k.road.stages) || [], i;
+      for (i = 0; i < st.length; i++) if (st[i].state === 'now') now = st[i];
+      var head = '<div class="rm-who"><span class="ov-av">' + esc(k.emoji || '🧒') + '</span><div><h2>' + esc(k.name) + '</h2><div class="ov-sub">' +
+        (k.age != null ? k.age + ' tuổi' : 'chưa có ngày sinh') + (now ? ' · giai đoạn ' + esc(now.name) : '') + '</div></div>' +
+        '<div class="rm-stats"><div><b>' + k.lessons_week.done + '/' + k.lessons_week.target + '</b><span>bài tuần này</span></div>' +
+        '<div><b>' + (k.streak ? '🔥 ' + k.streak : '0') + '</b><span>ngày liên tiếp</span></div></div></div>';
+      var p = (k.road && k.road.progress) || { done: 0, total: 0 }, ms = (k.road && k.road.milestones) || [];
+      var msList = ms.length ? ms.slice(0, 6).map(function (m) {
+        return '<div class="rm-li ' + m.status + '"><i>' + (m.status === 'done' ? '✓' : m.status === 'doing' ? '◐' : '○') + '</i><span>' + esc(m.title) + '</span></div>'; }).join('')
+        : '<div class="ov-none">Chưa có mốc năm nay. Bố mẹ thêm trong app: Học → Lộ trình.</div>';
+      var goals = (k.road && k.road.goals) || [];
+      var gList = goals.length ? goals.map(function (g) {
+        return '<div class="rm-li goal"><i>🎯</i><span>' + esc(g.title) + (g.target_age ? '<em> · đến ' + g.target_age + ' tuổi</em>' : '') + '</span></div>'; }).join('')
+        : '<div class="ov-none">Chưa đặt mục tiêu. Bố mẹ thêm trong app: Học → Lộ trình.</div>';
+      var sk = ((k.skills && k.skills.list) || []).filter(function (x) { return x.level; }).slice(0, 6);
+      var skHtml = sk.length ? '<div class="rm-sub">Kỹ năng nổi bật</div><div class="ov-sks">' + sk.map(function (x) {
+        return '<div class="ov-sk"><span>' + esc(x.icon + ' ' + x.name) + '</span><b><i style="width:' + x.level * 20 + '%"></i></b></div>'; }).join('') + '</div>' : '';
+      html = head + '<div class="rm-journey">' + journey(k, 1500) + '</div><div class="rm-grid">' +
+        rmCard('📘 Đang học', (k.paths || []).length ? k.paths.length + ' giáo trình' : '', tvPaths(k) +
+          (k.next ? '<div class="ov-next"><img src="' + thumb(k.next.video) + '" alt=""><div><span>Bài tiếp theo</span><b>' + esc(k.next.lesson) + '</b><em>' + esc((k.next.emoji || '📘') + ' ' + k.next.group) + '</em></div></div>' : '')) +
+        rmCard('🏁 Mốc năm nay', p.done + '/' + p.total, '<span class="ov-bar rm-bar"><i style="width:' + (p.total ? p.done / p.total * 100 : 0) + '%"></i></span>' + msList) +
+        rmCard('🧭 Định hướng', goals.length ? goals.length + ' mục tiêu' : '', gList + skHtml) + '</div>';
+      if (k.next && findLesson(k.next)) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp: ' + esc(k.next.lesson) + '</button>');
+    }
+    btns.push('<button class="obtn" data-act="rm-back">← Về thư viện</button>');
+    $('#rm-body').innerHTML = html;
+    $('#rm-btns').innerHTML = btns.join('');
+    if (rmIdx >= btns.length) rmIdx = 0;
+    focus();
+  }
+  function rmAct(b) {
+    var act = b.getAttribute('data-act');
+    if (act === 'rm-back') return hideRoad();
+    var k = ov && ov.kids[rmKid], at = k && findLesson(k.next);
+    if (!at) return hideRoad();
+    $('#rm').classList.add('hidden');
+    $('#home').classList.remove('hidden');
+    zone = 'side';
+    chIdx = -1; showChannel(at.ch); sideIdx = at.ch;
+    if (isLocked(lib[at.ch], at.idx)) { focus(); toast('Hãy xem bài trước nhé! 🔒'); return; }
+    play(lib[at.ch].videos, at.idx);
+  }
+  function rmKey(k) {
+    var n = $('#rm-btns').children.length, kids = (ov && ov.kids) || [];
+    if (k === K.LEFT && kids.length > 1 && rmKid > 0 && rmIdx === 0) { rmKid--; paintRoad(); return; }
+    if (k === K.RIGHT && kids.length > 1 && rmKid < kids.length - 1 && rmIdx === n - 1) { rmKid++; paintRoad(); return; }
+    if ((k === K.LEFT || k === K.UP) && rmIdx > 0) rmIdx--;
+    else if ((k === K.RIGHT || k === K.DOWN) && rmIdx < n - 1) rmIdx++;
+    else if (k === K.ENTER) { rmAct($('#rm-btns').children[rmIdx]); return; }
+    else if (BACK.indexOf(k) >= 0) { hideRoad(); return; }
     focus();
   }
 
@@ -852,6 +938,12 @@
     else if (zone === 'parent') parentKey(k);
     else if (zone === 'side' || zone === 'grid') homeKey(k);
     else if (zone === 'ov') ovKey(k);
+    else if (zone === 'rm') rmKey(k);
+    else if (zone === 'rmbtn') {
+      if (k === K.ENTER) showRoad();
+      else if (k === K.DOWN || k === K.RIGHT) { zone = 'side'; sideIdx = 0; focus(); }
+      else if (BACK.indexOf(k) >= 0) showOverview();
+    }
     else if (zone === 'end') endKey(k);
     else if (zone === 'limit') limitKey(k);
     else if (zone === 'pair' && k === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* không phải TV */ } }
@@ -871,6 +963,8 @@
     var ch = t.closest('.ch'), card = t.closest('.card'), key = t.closest('.key'), pb = t.closest('.pbtn');
     if (zone === 'player') { if (t.closest('#osd-back')) stop(); else toggle(); return; }
     if (zone === 'ov') { var ob = t.closest('.obtn'); if (ob) ovAct(ob); return; }
+    if (zone === 'rm') { var rb = t.closest('.obtn'); if (rb) rmAct(rb); return; }
+    if (t.closest('#rm-btn')) { showRoad(); return; }
     if (t.closest('#who')) { showOverview(); return; }
     if (zone === 'pin') { if (key) { pinIdx = +key.getAttribute('data-i'); focus(); pressPad(PAD[pinIdx]); } else if (t === $('#pin')) closeModal(); return; }
     if (zone === 'parent') { if (pb) parentAct(pb.getAttribute('data-act')); else if (t === $('#parent')) closeModal(); return; }
