@@ -235,3 +235,4 @@ body.ro .tabs { display: none; }
 .pt-apsum { border: 2px solid var(--accent); }
 .pt-apsum .m { font-size: 13px; color: var(--mute); margin: 2px 0 6px; }
 @media (max-width: 360px) { .pt-eb, .pt-echips, .pt-media, .pt-eact { margin-left: 0; } }
+.pt-chk { display: block; margin-top: 12px; font-weight: 600; line-height: 1.4; } .pt-chk input { width: auto; margin-right: 6px; vertical-align: -2px; } .pt-chk .hint { display: inline; font-weight: 400; }

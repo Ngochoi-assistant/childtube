@@ -55,7 +55,7 @@ const Feed = {
       + (i === 2 && media.length > 3 ? `<span class="fd-more">+${media.length - 3}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
-    const text = special ? '' : `<div class="fd-text">${kind && e.kind !== 'checkin' ? `<span class="fd-tag">${kind}</span>` : ''}${e.title ? `<b>${esc(e.title)}</b> ` : ''}${moodI ? `<span class="fd-mood">${moodI} ${k ? esc(k.name) + ' ' : ''}${esc(d.mood)}</span> ` : ''}${esc(e.body || '')}
+    const text = special ? '' : `<div class="fd-text">${kind && e.kind !== 'checkin' ? `<span class="fd-tag">${kind}</span>` : ''}${d.lesson ? '<span class="fd-tag">🎓 Dạy bé · có trên TV</span>' : ''}${e.title ? `<b>${esc(e.title)}</b> ` : ''}${moodI ? `<span class="fd-mood">${moodI} ${k ? esc(k.name) + ' ' : ''}${esc(d.mood)}</span> ` : ''}${esc(e.body || '')}
       ${(d.interests || []).length || (d.activities || []).length ? `<div class="fd-chips">${(d.interests || []).map((x) => `<span>❤️ ${esc(x)}</span>`).join('')}${(d.activities || []).map((x) => `<span>✔ ${esc(x)}</span>`).join('')}</div>` : ''}</div>`;
     const r = e.reactions || { counts: {}, total: 0, names: [], mine: null };
     const icons = Object.entries(r.counts).sort((x, y) => y[1] - x[1]).map(([em]) => em).join('');

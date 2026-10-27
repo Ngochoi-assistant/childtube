@@ -525,3 +525,68 @@ body.playing #home { visibility: hidden; }
 #qz-tools { position: absolute; left: 4vw; bottom: 3vw; display: -webkit-flex; display: flex; }
 .qtool { font-size: 1.25vw; font-weight: 700; color: #4d5c58; background: #e6ebe8; border-radius: 2vw; padding: .7vw 1.6vw; margin-right: .8vw; border: .25vw solid transparent; }
 .qtool.focus { border-color: #ff8a3d; background: #fff; }
+
+/* ---- Album của bé: tab ngày + dải thẻ, xem kiểu story ---- */
+#al-btn { display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; margin: 0 0 1vw; padding: .7vw 1vw; border-radius: 1.2vw;
+  background: rgba(255, 159, 10, .18); color: #ffd28a; font-size: 1.2vw; font-weight: 700; transition: transform .15s; will-change: transform; }
+#al-btn span { font-size: 1.5vw; margin-right: .7vw; }
+#al-btn.focus { background: var(--focus); color: var(--on-focus); -webkit-transform: scale(1.04); transform: scale(1.04); }
+#al { height: 100%; padding: 1.6vw 2.6vw 0; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; }
+#al-top h1 { font-size: 2.3vw; font-weight: 800; }
+#al-tabs { white-space: nowrap; overflow: hidden; padding: 1vw .4vw .8vw; margin: 0 -.4vw; -webkit-flex-shrink: 0; flex-shrink: 0; }
+#al-tabs .obtn { margin: 0 .8vw 0 0; font-size: 1.25vw; padding: .7vw 1.6vw; }
+#al-tabs .obtn.on { background: #fff; color: #111; }
+#al-tabs .obtn.les { background: rgba(48, 209, 88, .2); color: #9ff0b4; }
+#al-tabs .obtn.les.on { background: #30d158; color: #062b12; }
+#al-tabs .obtn.focus { background: var(--focus); color: var(--on-focus); -webkit-transform: scale(1.06); transform: scale(1.06); }
+#al-head { padding: .8vw 0 1.2vw; min-height: 6vw; -webkit-flex-shrink: 0; flex-shrink: 0; }
+#al-head h2 { font-size: 2.6vw; font-weight: 800; }
+#al-head h2 small { font-size: 1.3vw; font-weight: 600; color: var(--text-2); margin-left: 1vw; }
+#al-head p { font-size: 1.35vw; color: var(--text-2); margin-top: .4vw; max-width: 80vw; line-height: 1.45; }
+.al-empty { font-size: 1.4vw; color: var(--text-2); padding-top: 4vw; text-align: center; }
+#al-row { white-space: nowrap; overflow: hidden; padding: 1.4vw .8vw 3vw; margin: 0 -.8vw; }
+.al-card { display: inline-block; vertical-align: top; position: relative; width: 31vw; height: 23vw; margin-right: 1.6vw; border-radius: 1.4vw; overflow: hidden;
+  background: var(--panel-2); white-space: normal; transition: transform .15s; will-change: transform; }
+.al-card img, .al-card video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+.al-card.focus { -webkit-transform: scale(1.07); transform: scale(1.07); box-shadow: 0 0 0 .3vw var(--focus); z-index: 3; }
+.al-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 3vw 1.2vw 1vw; background: linear-gradient(transparent, rgba(0,0,0,.8)); }
+.al-cap b { display: block; font-size: 1.3vw; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.al-cap span { font-size: 1vw; color: rgba(255,255,255,.8); }
+.al-play { position: absolute; left: 50%; top: 42%; width: 4.4vw; height: 4.4vw; margin: -2.2vw 0 0 -2.2vw; border-radius: 50%; background: rgba(0,0,0,.55);
+  font-style: normal; font-size: 1.8vw; line-height: 4.4vw; text-align: center; padding-left: .3vw; }
+.al-txt, .al-les, .al-all { padding: 1.6vw 1.6vw 4vw; }
+.al-txt.c0, .al-les.c0 { background: linear-gradient(135deg, #ff9f0a, #ff453a); }
+.al-txt.c1, .al-les.c1 { background: linear-gradient(135deg, #30d158, #0a84ff); }
+.al-txt.c2, .al-les.c2 { background: linear-gradient(135deg, #bf5af2, #ff375f); }
+.al-txt.c3, .al-les.c3 { background: linear-gradient(135deg, #64d2ff, #5e5ce6); }
+.al-txt.c4, .al-les.c4 { background: linear-gradient(135deg, #ffd60a, #ff9f0a); }
+.al-txt-i, .al-les-i { font-size: 3.4vw; line-height: 1.2; }
+.al-txt-b { font-size: 1.5vw; font-weight: 800; margin-top: .6vw; line-height: 1.3; max-height: 5.9vw; overflow: hidden; }
+.al-acts { margin-top: .6vw; }
+.al-acts em { display: inline-block; font-style: normal; font-size: 1vw; font-weight: 700; padding: .25vw .8vw; margin: 0 .4vw .4vw 0; border-radius: 1vw; background: rgba(255,255,255,.25); }
+.al-txt .al-cap { background: none; }
+.al-les .al-cap { background: none; }
+.al-all { background: #fff; color: #111; text-align: center; width: 18vw; }
+.al-all.focus { box-shadow: 0 0 0 .4vw #ff453a; }
+.al-all-i { width: 7vw; height: 7vw; margin: 4vw auto 1.4vw; border-radius: 50%; background: #ff453a; color: #fff; font-size: 2.6vw; line-height: 7vw; padding-left: .4vw; }
+.al-all b { display: block; font-size: 1.5vw; font-weight: 800; }
+.al-all span { font-size: 1.1vw; color: #555; }
+#alv { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #000; z-index: 20; }
+#alv-img, #alv-vid { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: contain; display: none; }
+#alv.img #alv-img, #alv.vid #alv-vid { display: block; }
+#alv-txt { display: none; position: absolute; left: 15vw; right: 15vw; top: 50%; -webkit-transform: translateY(-50%); transform: translateY(-50%); text-align: center; }
+#alv.txt { background: linear-gradient(135deg, #ff9f0a, #ff375f); }
+#alv.txt #alv-txt { display: block; }
+.alt-i { font-size: 8vw; line-height: 1.2; }
+#alv-txt b { display: block; font-size: 3.4vw; font-weight: 800; margin: 1vw 0; }
+#alv-txt p { font-size: 1.8vw; line-height: 1.5; }
+#alv-txt .al-acts em { font-size: 1.5vw; padding: .4vw 1.4vw; }
+#alv-bar { position: absolute; left: 2.5vw; right: 2.5vw; top: 1.2vw; display: -webkit-flex; display: flex; }
+#alv-bar i { -webkit-flex: 1; flex: 1; height: .3vw; margin: 0 .2vw; border-radius: .2vw; background: rgba(255,255,255,.3); }
+#alv-bar i.done, #alv-bar i.now { background: #fff; }
+#alv-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 5vw 3vw 2vw; background: linear-gradient(transparent, rgba(0,0,0,.8)); }
+#alv-cap:empty { display: none; }
+#alv-cap b { display: block; font-size: 1.9vw; font-weight: 800; }
+#alv-cap em { display: block; font-style: normal; font-size: 1.2vw; color: rgba(255,255,255,.8); margin: .4vw 0; max-width: 70vw; }
+#alv-cap span { font-size: 1.1vw; color: rgba(255,255,255,.8); }
+#alv-n { position: absolute; right: 2.5vw; top: 2.4vw; font-size: 1vw; padding: .4vw 1vw; border-radius: 1vw; background: rgba(0,0,0,.5); }

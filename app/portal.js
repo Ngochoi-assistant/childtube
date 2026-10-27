@@ -244,11 +244,12 @@ function entrySheet(e) {
       <div><label>Ai được xem</label><select id="je-priv">${Object.entries(PRIV).map(([k, t]) => `<option value="${k}" ${e.privacy === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>
     ${mediaOk ? '<label class="btn small pt-file">📷 Thêm ảnh/video<input type="file" id="je-files" accept="image/*,video/*" multiple hidden></label><div id="je-prev" class="pt-prev"></div>'
       : '<div class="hint">Muốn đính kèm ảnh? Bật "Lưu ảnh, video của bé" trong Cài đặt → Quyền riêng tư.</div>'}
+    <label class="pt-chk"><input type="checkbox" id="je-lesson" ${e.data && e.data.lesson ? 'checked' : ''}> 🎓 Video người thân dạy bé <span class="hint">— hiện ở mục “Người thân dạy” trên TV để bé xem lại</span></label>
     ${(e.media || []).length ? `<div class="pt-media">${e.media.filter((m) => m.url).map((m) => `<span class="pt-mx"><img src="${esc(mediaUrl(m.url))}" alt=""><button class="icon-btn" data-a="je-mdel" data-id="${m.id}">✕</button></span>`).join('')}</div>` : ''}
     <button class="btn primary" data-a="je-save">Lưu</button>`, async (a, b) => {
     if (a === 'je-mdel') { if (!confirm('Xoá ảnh này?')) return; try { await rpc('ct_media_delete', { p_id: b.dataset.id }); b.parentElement.remove(); } catch (err) { toast(err.message, true); } return; }
     if (a !== 'je-save') return;
-    savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value } }), $('#je-files'), 'Đã đăng') || savedId;
+    savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked } }), $('#je-files'), 'Đã đăng') || savedId;
   });
   sheetChange = (ev) => { if (ev.target.id === 'je-files') previewFiles(ev.target, $('#je-prev')); };
 }

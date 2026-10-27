@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="tv.css?v=22">
+<link rel="stylesheet" href="tv.css?v=23">
 </head>
 <body>
 <div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
@@ -53,9 +53,19 @@
 </div>
 <div id="phv" class="hidden"><img id="phv-img" alt=""><div id="phv-cap"></div><div id="phv-n"></div></div>
 
+<!-- Album của bé: xem lại từng ngày (ảnh, video, ghi nhanh) + video người thân dạy -->
+<div id="al" class="hidden">
+  <header id="al-top"><h1>📸 Album của bé</h1></header>
+  <div id="al-tabs"></div>
+  <div id="al-head"></div>
+  <div id="al-row"></div>
+</div>
+<div id="alv" class="hidden"><img id="alv-img" alt=""><video id="alv-vid"></video><div id="alv-txt"></div><div id="alv-bar"></div><div id="alv-cap"></div><div id="alv-n"></div></div>
+
 <div id="home" class="hidden">
   <aside id="side">
     <div class="logo"><span class="logo-play"></span>ChildTube</div>
+    <div id="al-btn"><span>📸</span>Album của bé</div>
     <div id="rm-btn"><span>🗺</span>Hành trình của bé</div>
     <div id="ph-btn"><span>🏆</span>Bảng tin của bé</div>
     <div id="channels"></div>
@@ -141,7 +151,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js?v=22"></script>
+<script src="tv.js?v=23"></script>
 <script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

@@ -318,6 +318,8 @@
     else if (zone === 'rm') el = mapRow === 'btn' ? $('#rm-btns').children[rmIdx2] : null;
     else if (zone === 'rmbtn') el = $('#rm-btn');
     else if (zone === 'phbtn') el = $('#ph-btn');
+    else if (zone === 'albtn') el = $('#al-btn');
+    else if (zone === 'al') el = alFocusEl();
     else if (zone === 'ph') { el = ph.at === 'chips' ? $('#ph-chips').children[ph.chip] : phCells()[ph.idx]; if (el && ph.at === 'grid') reveal(el, $('#ph-grid')); }
     if (el) el.classList.add('focus');
     $('#grid').classList.toggle('dim', zone === 'grid');   // đang chọn video: làm mờ các video còn lại
@@ -458,6 +460,7 @@
     }).join('') : familyCard();
     var btns = ['<button class="obtn main" data-act="lib">📚 Chọn chương trình</button>'];
     if (curList().length) btns.push('<button class="obtn" data-act="road">🗺 Hành trình của bé</button>');
+    btns.splice(1, 0, '<button class="obtn" data-act="album">📸 Album của bé</button>');
     btns.push('<button class="obtn" data-act="photos">🏆 Bảng tin của bé</button>');
     kids.forEach(function (k, i) { if (k.next && findLesson(k.next)) btns.push('<button class="obtn" data-act="next" data-i="' + i + '">▶ ' + esc(k.name) + ' học tiếp: ' + esc(k.next.lesson) + '</button>'); });
     $('#ov-btns').innerHTML = btns.join('');
@@ -491,6 +494,7 @@
     if (act === 'lib') { hideOverview(); return; }
     if (act === 'road') { showRoad('ov'); return; }
     if (act === 'photos') { showPhotos('ov'); return; }
+    if (act === 'album') { showAlbum('ov'); return; }
     var k = ov && ov.kids[+b.getAttribute('data-i')], at = k && findLesson(k.next);
     if (!at) { hideOverview(); return; }
     $('#ov').classList.add('hidden');
@@ -830,6 +834,194 @@
     else if (k === K.RIGHT || k === K.FF) phShow(ph.vIdx + 1);
     else if (k === K.ENTER || k === K.PLAYPAUSE || k === K.PLAY || k === K.PAUSE) { ph.vAuto = !ph.vAuto; phShow(ph.vIdx); }
   }
+
+  // ---------- Album của bé: xem lại từng ngày + video người thân dạy ----------
+  // Mỗi ngày là một dải thẻ (ảnh, video, ghi nhanh) theo giờ đăng; "Xem lại cả ngày" chạy như story.
+  // Video người thân dạy: các mục bố mẹ đánh dấu 🎓 trong app. Xem album không tính vào giờ xem YouTube.
+  var al = { data: null, err: false, tab: 1, at: 'tabs', idx: 0, from: 'side', slides: [], vIdx: 0, chain: true, timer: null, paused: false };
+  var WD = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  var KIND_I = { checkin: '☀️', note: '📝', milestone: '🌟', achievement: '🏆', feedback: '🧑‍🏫', activity: '🎨' };
+  function alDayName(d) {
+    if (!d) return 'Hôm nay';
+    var t = al.data && al.data.today, x = d.split('-'), dt = new Date(Date.UTC(+x[0], +x[1] - 1, +x[2]));
+    var diff = t ? Math.round((Date.parse(t) - dt.getTime()) / 864e5) : 99;
+    var dm = +x[2] + '/' + +x[1];
+    return diff === 0 ? 'Hôm nay' : diff === 1 ? 'Hôm qua' : WD[dt.getUTCDay()] + ' ' + dm;
+  }
+  // Thẻ trên TV: tab 0 = Người thân dạy, tab 1 = Hôm nay, rồi các ngày trước
+  function alTabs() {
+    var d = (al.data && al.data.days) || [], today = al.data && al.data.today, tabs = [{ k: 'lesson' }];
+    tabs.push({ k: 'day', day: today, items: d.length && d[0].day === today ? d[0].items : [] });
+    d.forEach(function (g) { if (g.day !== today) tabs.push({ k: 'day', day: g.day, items: g.items }); });
+    return tabs.slice(0, 22);
+  }
+  // Mỗi ảnh/video là một khung; mục chỉ có chữ (ghi nhanh, cột mốc…) là một khung chữ
+  function alSlides(tab) {
+    var out = [];
+    if (tab.k === 'lesson') {
+      ((al.data && al.data.lessons) || []).forEach(function (v) { out.push({ m: v, it: v, day: v.day, lesson: true }); });
+      return out;
+    }
+    tab.items.forEach(function (it) {
+      if (it.media.length) it.media.forEach(function (m) { out.push({ m: m, it: it, day: tab.day }); });
+      else out.push({ m: null, it: it, day: tab.day });
+    });
+    return out;
+  }
+  function showAlbum(from) {
+    al.from = from || 'side';
+    $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#al').classList.remove('hidden');
+    zone = 'al'; al.tab = 1; al.at = 'row'; al.idx = 0;
+    paintAlbum();
+    rpc('ct_tv_album', { p_device: device.id, p_secret: device.secret }).then(function (r) {
+      al.data = r; al.err = false; al.at = 'row'; al.idx = 0;
+      if (!alSlides(alTabs()[1]).length && (r.lessons || []).length) { al.tab = 0; }   // hôm nay chưa có gì: mở video dạy bé
+      if (zone === 'al') paintAlbum();
+    }, function () { al.err = true; if (zone === 'al') paintAlbum(); });
+  }
+  function hideAlbum() {
+    $('#al').classList.add('hidden');
+    if (al.from === 'ov') { showOverview(); return; }
+    $('#home').classList.remove('hidden');
+    zone = 'albtn'; focus();
+  }
+  function alThumb(s, k) {
+    var it = s.it, m = s.m, cap = '<div class="al-cap"><b>' + esc(it.title || it.text || (it.child ? 'Khoảnh khắc của ' + it.child : 'Khoảnh khắc gia đình')) + '</b>' +
+      '<span>' + (s.lesson ? phDay(s.day) : '') + (it.by ? (s.lesson ? ' · ' : '') + (s.lesson ? '🎓 ' : '📸 ') + esc(it.by) : '') + '</span></div>';
+    if (s.lesson) return '<div class="al-card al-les c' + (k % 5) + '" data-k="' + k + '"><div class="al-les-i">🎓</div><i class="al-play">▶</i>' + cap + '</div>';
+    if (!m) {
+      var chips = (it.acts || []).map(function (a) { return '<em>' + esc(a) + '</em>'; }).join('');
+      return '<div class="al-card al-txt c' + (k % 5) + '" data-k="' + k + '"><div class="al-txt-i">' + (it.mood && MOOD[it.mood] ? MOOD[it.mood] : KIND_I[it.kind] || '📝') + '</div>' +
+        '<div class="al-txt-b">' + esc(it.title || it.text || (it.kind === 'checkin' ? (it.child ? it.child + ' hôm nay' : 'Hôm nay') : '')) + '</div>' + (chips ? '<div class="al-acts">' + chips + '</div>' : '') +
+        '<div class="al-cap"><span>' + (it.by ? '✍️ ' + esc(it.by) : '') + '</span></div></div>';
+    }
+    return '<div class="al-card" data-k="' + k + '">' + (m.type === 'video' ? '<video src="' + phUrl(m) + '#t=0.5" preload="metadata" muted></video><i class="al-play">▶</i>' : '<img src="' + phUrl(m) + '" alt="" decoding="async">') + cap + '</div>';
+  }
+  function paintAlbum() {
+    var tabs = alTabs();
+    if (al.tab >= tabs.length) al.tab = 1;
+    var nL = ((al.data && al.data.lessons) || []).length;
+    $('#al-tabs').innerHTML = tabs.map(function (t, i) {
+      var n = t.k === 'lesson' ? nL : alSlides(t).length;
+      return '<button class="obtn al-tab' + (t.k === 'lesson' ? ' les' : '') + (i === al.tab ? ' on' : '') + '">' + (t.k === 'lesson' ? '🎓 Người thân dạy' : alDayName(t.day || '')) + (n ? ' · ' + n : '') + '</button>';
+    }).join('');
+    var tab = tabs[al.tab], sl = al.data ? alSlides(tab) : [], head = '';
+    if (!al.data) head = '<div class="al-empty">' + (al.err ? 'Chưa tải được album, hãy thử lại sau.' : 'Đang mở album…') + '</div>';
+    else if (tab.k === 'lesson') head = '<h2>🎓 Video người thân dạy bé</h2><p>' + (nL ? 'Ông bà, bố mẹ, cô chú quay lại những điều dạy bé. Chọn một video để xem lại.'
+      : 'Chưa có video nào.<br>Trong app ChildTube, khi đăng video vào Nhật ký, bố mẹ tích ô “🎓 Video người thân dạy bé”.') + '</p>';
+    else {
+      var acts = [], mood = '';
+      tab.items.forEach(function (it) { (it.acts || []).forEach(function (a) { if (acts.indexOf(a) < 0) acts.push(a); }); if (!mood && it.mood) mood = it.mood; });
+      head = '<h2>' + alDayName(tab.day) + (al.tab === 1 ? '' : '') + '<small>' + phDay(tab.day) + '</small></h2>' +
+        (sl.length ? '<p>' + (acts.length ? 'Bé đã: ' + acts.slice(0, 6).map(esc).join(' · ') : sl.length + ' khoảnh khắc') + (mood && MOOD[mood] ? ' · ' + MOOD[mood] + ' ' + esc(mood) : '') + '</p>'
+          : '<p>' + (al.data.enabled === false ? 'Gia đình chưa bật lưu ảnh, video. Trong app: Cài đặt → Quyền riêng tư → bật “Lưu ảnh, video của bé”.<br>' : '') +
+            'Hôm nay chưa có ảnh hay video nào. Bố mẹ đăng vào Nhật ký trong app ChildTube (mức “Gia đình”) để bé xem lại ở đây.</p>');
+    }
+    $('#al-head').innerHTML = head;
+    var cards = sl.map(alThumb);
+    if (sl.length > 1 && tab.k === 'day') cards.unshift('<div class="al-card al-all" data-k="-1"><div class="al-all-i">▶</div><b>Xem lại cả ngày</b><span>' + sl.length + ' khoảnh khắc</span></div>');
+    $('#al-row').innerHTML = cards.join('');
+    al.slides = sl;
+    if (al.idx >= cards.length) al.idx = Math.max(0, cards.length - 1);
+    if (!cards.length) al.at = 'tabs';
+    focus();
+  }
+  function alCards() { return $('#al-row').children; }
+  function alReveal(el) {
+    var box = $('#al-row'), l = el.offsetLeft, r = l + el.offsetWidth, pad = box.clientWidth * 0.06;
+    if (l - pad < box.scrollLeft) box.scrollLeft = Math.max(0, l - pad);
+    else if (r + pad > box.scrollLeft + box.clientWidth) box.scrollLeft = r + pad - box.clientWidth;
+  }
+  function alFocusEl() {
+    var el = al.at === 'tabs' ? $('#al-tabs').children[al.tab] : alCards()[al.idx];
+    if (el && al.at === 'tabs') { var b = $('#al-tabs'); if (el.offsetLeft + el.offsetWidth > b.scrollLeft + b.clientWidth) b.scrollLeft = el.offsetLeft + el.offsetWidth - b.clientWidth; else if (el.offsetLeft < b.scrollLeft) b.scrollLeft = el.offsetLeft; }
+    if (el && al.at === 'row') alReveal(el);
+    return el;
+  }
+  function alOpen(card) {
+    var k = +card.getAttribute('data-k');
+    openStory(k < 0 ? 0 : k, k < 0 || !al.slides[k].lesson);
+  }
+  function alKey(k) {
+    var cards = alCards(), n = $('#al-tabs').children.length;
+    if (BACK.indexOf(k) >= 0) { hideAlbum(); return; }
+    if (al.at === 'tabs') {
+      if (k === K.LEFT && al.tab > 0) { al.tab--; al.idx = 0; $('#al-row').scrollLeft = 0; paintAlbum(); al.at = 'tabs'; focus(); return; }
+      if (k === K.RIGHT && al.tab < n - 1) { al.tab++; al.idx = 0; $('#al-row').scrollLeft = 0; paintAlbum(); al.at = 'tabs'; focus(); return; }
+      if ((k === K.DOWN || k === K.ENTER) && cards.length) al.at = 'row';
+    } else {
+      if (k === K.UP) al.at = 'tabs';
+      else if (k === K.LEFT && al.idx > 0) al.idx--;
+      else if (k === K.RIGHT && al.idx < cards.length - 1) al.idx++;
+      else if ((k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) && cards[al.idx]) { alOpen(cards[al.idx]); return; }
+    }
+    focus();
+  }
+
+  // Xem toàn màn hình kiểu story: ảnh/chữ 7 giây, video chạy hết rồi sang khung sau.
+  // Video dạy bé: xem xong một video thì dừng lại (◀ ▶ để xem video khác).
+  function openStory(k, chain) {
+    zone = 'alv'; al.chain = chain; al.paused = false;
+    $('#alv').classList.remove('hidden');
+    alShow(k);
+  }
+  function alShow(k) {
+    var sl = al.slides, v = $('#alv-vid');
+    if (k < 0) k = 0;
+    if (k >= sl.length) { closeStory(); return; }
+    al.vIdx = k; al.paused = false;
+    clearTimeout(al.timer);
+    var s = sl[k], it = s.it, m = s.m;
+    v.pause(); v.removeAttribute('src'); v.load();
+    $('#alv').className = m ? (m.type === 'video' ? 'vid' : 'img') : 'txt';
+    $('#alv-img').src = m && m.type === 'img' ? phUrl(m) : '';
+    if (m && m.type === 'video') { v.src = phUrl(m); var p = v.play(); if (p && p.catch) p.catch(function () { /* TV tự xử lý */ }); }
+    $('#alv-txt').innerHTML = m ? '' : '<div class="alt-i">' + (it.mood && MOOD[it.mood] ? MOOD[it.mood] : KIND_I[it.kind] || '📝') + '</div><b>' + esc(it.title || (it.child ? it.child + ' hôm nay' : 'Hôm nay')) + '</b>' +
+      (it.title && it.text ? '<p>' + esc(it.text) + '</p>' : !it.title && it.text ? '<p>' + esc(it.text) + '</p>' : '') +
+      ((it.acts || []).length ? '<div class="al-acts">' + it.acts.map(function (a) { return '<em>' + esc(a) + '</em>'; }).join('') + '</div>' : '');
+    $('#alv-cap').innerHTML = m ? '<b>' + esc(it.title || (it.child ? 'Khoảnh khắc của ' + it.child : 'Khoảnh khắc gia đình')) + '</b>' + (it.text && it.title ? '<em>' + esc(it.text) + '</em>' : '') +
+      '<span>' + phDay(s.day) + (it.by ? ' · ' + (s.lesson ? '🎓 ' : '📸 ') + esc(it.by) + (ROLE[it.role] && it.by !== ROLE[it.role] ? ' (' + ROLE[it.role] + ')' : '') : '') + '</span>' : '';
+    $('#alv-bar').innerHTML = al.chain && sl.length > 1 && sl.length <= 40 ? sl.map(function (x, i) { return '<i class="' + (i < k ? 'done' : i === k ? 'now' : '') + '"></i>'; }).join('') : '';
+    $('#alv-n').textContent = (k + 1) + ' / ' + sl.length + ' · ◀ ▶ đổi · OK ' + (m && m.type === 'video' ? 'tạm dừng' : 'dừng lại');
+    if (!m || m.type === 'img') alTimer();
+  }
+  function alTimer() {
+    clearTimeout(al.timer);
+    if (al.chain && !al.paused) al.timer = setTimeout(function () { if (zone === 'alv') alShow(al.vIdx + 1); }, 7000);
+  }
+  function closeStory() {
+    clearTimeout(al.timer);
+    var v = $('#alv-vid'); v.pause(); v.removeAttribute('src'); v.load();
+    $('#alv').classList.add('hidden');
+    zone = 'al'; al.at = 'row';
+    var off = al.slides.length > 1 && !al.slides[0].lesson ? 1 : 0;
+    al.idx = Math.min(al.vIdx + off, alCards().length - 1);
+    focus();
+  }
+  function alvKey(k) {
+    var s = al.slides[al.vIdx], v = $('#alv-vid'), vid = s && s.m && s.m.type === 'video';
+    if (BACK.indexOf(k) >= 0 || k === K.STOP) { closeStory(); return; }
+    if (k === K.LEFT || k === K.RW) alShow(Math.max(0, al.vIdx - 1));
+    else if (k === K.RIGHT || k === K.FF) { if (al.vIdx < al.slides.length - 1) alShow(al.vIdx + 1); }
+    else if (k === K.ENTER || k === K.PLAYPAUSE || k === K.PLAY || k === K.PAUSE) {
+      if (vid) { if (v.paused) v.play(); else v.pause(); }
+      else { al.paused = !al.paused; $('#alv-n').textContent = (al.vIdx + 1) + ' / ' + al.slides.length + (al.paused ? ' · ⏸ đang dừng · OK chạy tiếp' : ' · ▶ đang chạy'); alTimer(); }
+    }
+  }
+  (function () {
+    var v = $('#alv-vid');
+    v.addEventListener('ended', function () {
+      if (zone !== 'alv') return;
+      if (al.chain && al.vIdx < al.slides.length - 1) alShow(al.vIdx + 1);
+      else $('#alv-n').textContent = 'Hết video · OK xem lại · ◀ ▶ video khác · Back quay lại';
+    });
+    v.addEventListener('error', function () {
+      if (zone !== 'alv' || !v.getAttribute('src')) return;
+      $('#alv-n').textContent = 'TV chưa mở được video này 😕';
+      clearTimeout(al.timer);
+      if (al.chain) al.timer = setTimeout(function () { if (zone === 'alv') alShow(al.vIdx + 1); }, 3000);
+    });
+  })();
 
   // ---------- Lịch sử xem ----------
   // Mỗi lần bé mở một video là một dòng; cập nhật số giây đã xem mỗi 30 giây và khi thoát/hết video.
@@ -1433,6 +1625,13 @@
     else if (zone === 'rm') rmKey(k);
     else if (zone === 'ph') phKey(k);
     else if (zone === 'phv') phvKey(k);
+    else if (zone === 'al') alKey(k);
+    else if (zone === 'alv') alvKey(k);
+    else if (zone === 'albtn') {
+      if (k === K.ENTER) showAlbum('side');
+      else if (k === K.DOWN || k === K.RIGHT) { zone = 'rmbtn'; focus(); }
+      else if (BACK.indexOf(k) >= 0) showOverview();
+    }
     else if (zone === 'phbtn') {
       if (k === K.ENTER) showPhotos('side');
       else if (k === K.UP) { zone = 'rmbtn'; focus(); }
@@ -1441,6 +1640,7 @@
     }
     else if (zone === 'rmbtn') {
       if (k === K.ENTER) showRoad('side');
+      else if (k === K.UP) { zone = 'albtn'; focus(); }
       else if (k === K.DOWN || k === K.RIGHT) { zone = 'phbtn'; focus(); }
       else if (BACK.indexOf(k) >= 0) showOverview();
     }
@@ -1466,6 +1666,14 @@
     if (zone === 'rm') { var rb = t.closest('.obtn'); if (rb) rmAct(rb); return; }
     if (t.closest('#rm-btn')) { showRoad('side'); return; }
     if (t.closest('#ph-btn')) { showPhotos('side'); return; }
+    if (t.closest('#al-btn')) { showAlbum('side'); return; }
+    if (zone === 'alv') { closeStory(); return; }
+    if (zone === 'al') {
+      var ac = t.closest('.al-card'), at = t.closest('.al-tab');
+      if (ac) alOpen(ac);
+      else if (at) { al.tab = [].indexOf.call($('#al-tabs').children, at); al.idx = 0; paintAlbum(); }
+      return;
+    }
     if (zone === 'phv') { closeViewer(); return; }
     if (zone === 'ph') { var pc = t.closest('.ph-cell'), pk = t.closest('.ph-chip'); if (pc) openViewer(+pc.getAttribute('data-k'), false); else if (pk) { if (pk.getAttribute('data-act') === 'show') openViewer(0, true); else { ph.who = pk.getAttribute('data-who'); paintPhotos(); } } return; }
     if (t.closest('#who')) { showOverview(); return; }
