@@ -27,7 +27,8 @@ const Feed = {
     const withMedia = (this.list || []).filter((e) => e.media.some((m) => m.url)).slice(0, 8);
     const stories = withMedia.length ? `<div class="fd-stories">${withMedia.map((e) => {
       const m = e.media.find((x) => x.url && x.mime.startsWith('image/')) || e.media[0], c = kidOf(e.child_id);
-      return `<button class="fd-story" data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}" style="background-image:url('${esc(mediaUrl(m.url))}')"><span class="fd-sav">${esc(c ? c.emoji : '👨‍👩‍👧')}</span><span class="fd-st">${esc((e.title || jDay(e.day)).slice(0, 28))}</span></button>`;
+      const vid = !m.mime.startsWith('image/');   // tin video: hiện khung hình đầu, bấm thì cuộn tới bài
+      return `<button class="fd-story${vid ? ' vid' : ''}" ${vid ? `data-a="F2-goto" data-id="${e.id}"` : `data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}" style="background-image:url('${esc(mediaUrl(m.url))}')"`}>${vid ? `<video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play">▶</span>` : ''}<span class="fd-sav">${esc(c ? c.emoji : '👨‍👩‍👧')}</span><span class="fd-st">${esc((e.title || jDay(e.day)).slice(0, 28))}</span></button>`;
     }).join('')}</div>` : '';
     const chips = [['', 'Tất cả'], ['photo', 'Ảnh'], ['mile', 'Cột mốc'], ['teacher', 'Thầy cô']].map(([v2, t]) => `<button class="chip ${this.filter === v2 ? 'on' : ''}" data-a="F2-filter" data-v="${v2}">${t}</button>`).join('');
     // Kiểu game: bé đã làm được gì (Cột mốc, Thành tích) — cùng dữ liệu với bản đồ Hành trình và TV
@@ -94,6 +95,7 @@ $('#view').addEventListener('click', async (e) => {
     if (a === 'F2-media') { entrySheet(null); const f = $('#je-files'); if (f) f.click(); return; }   // mở luôn kho ảnh của điện thoại
     if (a === 'F2-mile') { entrySheet(null); setTimeout(() => { const s = $('#je-kind'); if (s) s.value = 'milestone'; }, 0); return; }
     if (a === 'F2-mood') return checkinSheet(k ? k.id : null);
+    if (a === 'F2-goto') { const p = document.querySelector(`.fd-post[data-id="${id}"]`); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (a === 'F2-filter') { Feed.filter = b.dataset.v; return render(); }
     if (a === 'F2-love') { await rpc('ct_react', { p_entry: id, p_emoji: entry && entry.reactions.mine ? null : '❤️' }); return Feed.refresh(); }
     if (a === 'F2-pick') return $('#pick-' + id).classList.toggle('hidden');

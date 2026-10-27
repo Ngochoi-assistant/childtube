@@ -274,3 +274,11 @@ body.v2 .switch, body.v2 label { color: var(--ink); }
 .lr-sw i { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .2s; }
 .lr-sw.on { background: #34c759; }
 .lr-sw.on i { left: 25px; }
+
+/* Tin dạng video ở hàng tin */
+.fd-story.vid { position: relative; overflow: hidden; background: #222; }
+.fd-story.vid video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.fd-story .fd-play { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 34px; height: 34px; border-radius: 50%; background: rgba(0,0,0,.45); color: #fff; display: grid; place-items: center; font-size: 14px; }
+.fd-story.vid .fd-sav { z-index: 1; }
+.fd-story.vid .fd-st { position: relative; z-index: 1; }
+.fd-story.vid::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -60px 40px -24px rgba(0,0,0,.55); pointer-events: none; }
