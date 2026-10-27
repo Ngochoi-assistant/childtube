@@ -36,7 +36,7 @@
   function setQuota(s, fromCache) {
     var day = (s && s.day) || today(), stale = fromCache && day !== today();
     quota = { limit: s && s.limit > 0 ? s.limit : null, used: s && !stale ? s.used || 0 : 0,
-              end: s && s.end === 'next' ? 'next' : 'stop', day: stale ? today() : day };
+              end: s && s.end === 'next' ? 'next' : 'stop', day: stale ? today() : day, quiz: s && s.quiz ? s.quiz : null };
     sinceHello = 0;
     usage = loadDay('ct-usage');
     extra = loadDay('ct-extra');
@@ -312,6 +312,7 @@
     else if (zone === 'pin') el = $('#pin-pad').children[pinIdx];
     else if (zone === 'parent') el = $('#parent-btns').children[parentIdx];
     else if (zone === 'end') el = $('#end-btns').children[endIdx];
+    else if (zone === 'qz') el = qzItems()[qzIdx];
     else if (zone === 'limit') el = $('#limit-btns').children[0];
     else if (zone === 'ov') el = $('#ov-btns').children[ovIdx];
     else if (zone === 'rm') el = mapRow === 'btn' ? $('#rm-btns').children[rmIdx2] : null;
@@ -874,6 +875,7 @@
 
   function play(videos, idx) {
     if (timeUp()) { showLimit(); return; }
+    if (qzDue()) { startQuiz(function () { play(videos, idx); }); return; }
     clearTimeout(endTimer);
     $('#end').classList.add('hidden');
     grace = false;
@@ -958,6 +960,218 @@
     zone = 'player';
     if (play2) next(); else showEnd();
   }
+
+  // ---------- Giải lao học bài ----------
+  // Cứ xem đủ `every` phút (đếm cả khi tắt app mở lại) thì video tạm dừng, bé làm `count` câu hợp tuổi rồi mới xem tiếp.
+  // Chỉ áp dụng khi có bé từ `min_age` tuổi (lấy từ màn tổng quan); bé nhỏ hơn thì không hỏi. Bố mẹ bỏ qua bằng PIN.
+  var QZ_DEF = { on: true, every: 20, count: 5, min_age: 3 };
+  var qzRun = null, qzIdx = 0, qzBusy = false;
+  var qzSec = (function () { var v = null; try { v = JSON.parse(localStorage.getItem('ct-qz')); } catch (e) { v = null; } return v && v.day === today() ? v : { day: today(), n: 0 }; })();
+  function qzSave() { try { localStorage.setItem('ct-qz', JSON.stringify(qzSec)); } catch (e) { /* bỏ qua */ } }
+  function qc() { return quota.quiz || QZ_DEF; }
+  function qzAge() {
+    var ks = (ov && ov.kids) || [], ok = [];
+    for (var i = 0; i < ks.length; i++) if (ks[i].age != null && ks[i].age >= qc().min_age) ok.push(ks[i].age);
+    return ok.length ? Math.min.apply(null, ok) : null;     // nhiều bé: hỏi theo bé nhỏ nhất đủ tuổi
+  }
+  function qzDue() { return qc().on && qzAge() != null && qzSec.n >= qc().every * 60; }
+  function qzCount() {
+    if (qzSec.day !== today()) qzSec = { day: today(), n: 0 };
+    qzSec.n++;
+    if (qzSec.n % 10 === 0) qzSave();
+  }
+  var canSay = !!(window.speechSynthesis && window.SpeechSynthesisUtterance);
+  function say(t) {
+    if (!canSay || !t) return;
+    try { var u = new SpeechSynthesisUtterance(t); u.lang = 'vi-VN'; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) { /* TV không có giọng đọc */ }
+  }
+  function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // 3 lựa chọn: đáp án + 2 số gần đó (không âm, không trùng)
+  function near(n, lo, hi) {
+    var o = [n];
+    while (o.length < 3) { var x = n + pick([-2, -1, 1, 2, 3]); if (x >= lo && x <= hi && o.indexOf(x) < 0) o.push(x); }
+    return shuffle(o);
+  }
+  var DIGIT = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
+  function numWord(n) {
+    if (n < 10) return DIGIT[n];
+    if (n === 100) return 'một trăm';
+    var c = Math.floor(n / 10), u = n % 10;
+    var s = c === 1 ? 'mười' : DIGIT[c] + ' mươi';
+    if (u === 0) return s;
+    if (u === 1) return s + (c === 1 ? ' một' : ' mốt');
+    if (u === 5) return s + ' lăm';
+    if (u === 4 && c > 1) return s + ' tư';
+    return s + ' ' + DIGIT[u];
+  }
+  var THINGS = [['🍎', 'quả táo'], ['⭐', 'ngôi sao'], ['🐟', 'con cá'], ['🎈', 'quả bóng bay'], ['🌸', 'bông hoa'], ['🚗', 'chiếc ô tô'], ['🐤', 'chú gà con'], ['🌧️', 'đám mây mưa'], ['🍌', 'quả chuối'], ['🦋', 'con bướm']];
+  var WORDS = [['🐄', 'bò', 'B'], ['🐟', 'cá', 'C'], ['🐐', 'dê', 'D'], ['💡', 'đèn', 'Đ'], ['🐸', 'ếch', 'Ê'], ['🐔', 'gà', 'G'], ['🌸', 'hoa', 'H'], ['🍦', 'kem', 'K'], ['🍃', 'lá', 'L'],
+    ['🐱', 'mèo', 'M'], ['🎀', 'nơ', 'N'], ['🐝', 'ong', 'O'], ['☂️', 'ô', 'Ô'], ['🐢', 'rùa', 'R'], ['⭐', 'sao', 'S'], ['🍎', 'táo', 'T'], ['🐘', 'voi', 'V'], ['🚲', 'xe đạp', 'X']];
+  var LETTERS = 'A Ă Â B C D Đ E Ê G H I K L M N O Ô Ơ P R S T U Ư V X Y'.split(' ');
+  function emo(e, n) { var s = ''; for (var i = 0; i < n; i++) s += '<i>' + e + '</i>'; return s; }
+
+  // Mỗi câu: { t: tiêu đề, v: hình (HTML), cap: chú thích, opts: [..], ans, say: câu đọc, read: true = bé đọc to, bố mẹ xác nhận }
+  var QGEN = {
+    count: function (a) {
+      var th = pick(THINGS), n = rnd(1, a <= 3 ? 5 : a === 4 ? 8 : 10);
+      return { t: 'Đếm xem có mấy ' + th[1] + ' nhé', v: '<div class="qz-emo n' + Math.min(n, 10) + '">' + emo(th[0], n) + '</div>', cap: th[1], opts: near(n, 1, 10), ans: n, say: 'Con đếm xem có mấy ' + th[1] + ' nào?' };
+    },
+    more: function () {
+      var th = pick(THINGS), l = rnd(1, 5), r = rnd(1, 5);
+      while (r === l) r = rnd(1, 5);
+      return { t: 'Bên nào nhiều ' + th[1] + ' hơn?', v: '<div class="qz-two"><div class="qz-emo">' + emo(th[0], l) + '</div><div class="qz-emo">' + emo(th[0], r) + '</div></div>', cap: '',
+        opts: ['◀ Bên trái', 'Bên phải ▶'], ans: l > r ? '◀ Bên trái' : 'Bên phải ▶', say: 'Bên nào nhiều ' + th[1] + ' hơn?' };
+    },
+    read: function (a) {
+      var n = a <= 4 ? rnd(1, 10) : a === 5 ? rnd(10, 50) : rnd(10, 100);
+      return { t: 'Con đọc số này nhé', v: '<div class="qz-big">' + n + '</div>', cap: '', read: true, opts: ['✅ Bé đọc đúng rồi'], ans: '✅ Bé đọc đúng rồi', say: 'Số ' + numWord(n) };
+    },
+    which: function (a) {
+      var n = a <= 5 ? rnd(1, 20) : rnd(10, 100), o = [n];
+      while (o.length < 3) { var x = a <= 5 ? rnd(1, 20) : rnd(10, 100); if (o.indexOf(x) < 0) o.push(x); }
+      return { t: 'Số «' + numWord(n) + '» là số nào?', v: '<div class="qz-word">' + numWord(n) + '</div>', cap: '', opts: shuffle(o), ans: n, say: 'Số ' + numWord(n) + ' là số nào?' };
+    },
+    next: function (a) {
+      var s = rnd(1, a <= 4 ? 6 : 15);
+      return { t: 'Số tiếp theo là số mấy?', v: '<div class="qz-seq">' + s + '<span>,</span>' + (s + 1) + '<span>,</span>' + (s + 2) + '<span>,</span><b>?</b></div>', cap: '', opts: near(s + 3, 1, 30), ans: s + 3, say: s + ', ' + (s + 1) + ', ' + (s + 2) + ', số tiếp theo là số mấy?' };
+    },
+    letter: function () {
+      var w = pick(WORDS), o = [w[2]];
+      while (o.length < 3) { var l = pick(LETTERS); if (o.indexOf(l) < 0) o.push(l); }
+      return { t: 'Chữ «' + w[1] + '» bắt đầu bằng chữ nào?', v: '<div class="qz-pic">' + w[0] + '</div>', cap: w[1], opts: shuffle(o), ans: w[2], say: w[1] + '. Chữ ' + w[1] + ' bắt đầu bằng chữ cái nào?' };
+    },
+    spell: function () {
+      var cs = ['b', 'd', 'đ', 'h', 'l', 'm', 'n', 't', 'v', 'x'], vs = ['a', 'o', 'ô', 'ơ', 'e', 'ê', 'i', 'u'];
+      var c = pick(cs), v = pick(vs), o = [c + v];
+      while (o.length < 3) { var x = o.length === 1 ? c + pick(vs) : pick(cs) + v; if (o.indexOf(x) < 0) o.push(x); }   // nhiễu: cùng phụ âm khác vần, cùng vần khác phụ âm
+      return { t: 'Ghép vần nào', v: '<div class="qz-seq">' + c + '<span>+</span>' + v + '<span>=</span><b>?</b></div>', cap: '', opts: shuffle(o), ans: c + v, say: 'Chữ ' + c + ', ghép với chữ ' + v + ', thành tiếng gì?' };
+    },
+    add: function (a) {
+      var big = a >= 6, x = rnd(1, big ? 10 : 5), y = rnd(1, big ? 10 : 5), th = pick(THINGS);
+      if (big && Math.random() < 0.4 && x !== y) {   // phép trừ cho bé lớn
+        var hi = Math.max(x, y), lo = Math.min(x, y);
+        return { t: 'Làm phép trừ nào', v: '<div class="qz-seq">' + hi + '<span>−</span>' + lo + '<span>=</span><b>?</b></div>', cap: '', opts: near(hi - lo, 0, 20), ans: hi - lo, say: hi + ' trừ ' + lo + ' bằng mấy?' };
+      }
+      var v = big ? '<div class="qz-seq">' + x + '<span>+</span>' + y + '<span>=</span><b>?</b></div>'
+        : '<div class="qz-two plus"><div class="qz-emo">' + emo(th[0], x) + '</div><span>+</span><div class="qz-emo">' + emo(th[0], y) + '</div></div>';
+      return { t: big ? 'Làm phép cộng nào' : 'Gộp lại được mấy ' + th[1] + '?', v: v, cap: '', opts: near(x + y, 1, 20), ans: x + y, say: x + ' cộng ' + y + ' bằng mấy?' };
+    },
+  };
+  function qzKinds(a) {
+    if (a <= 3) return ['count', 'count', 'more', 'read'];
+    if (a === 4) return ['count', 'more', 'read', 'next', 'letter'];
+    if (a === 5) return ['count', 'read', 'next', 'letter', 'spell', 'add', 'which'];
+    return ['add', 'add', 'spell', 'letter', 'read', 'which', 'next'];
+  }
+  function qzMake(a, n) {
+    var ks = qzKinds(a), out = [], last = '';
+    for (var i = 0; i < n; i++) {
+      var k = pick(ks);
+      if (k === last) k = pick(ks);                 // tránh hai câu giống loại liền nhau
+      out.push(QGEN[k](a)); last = k;
+    }
+    return out;
+  }
+
+  // after: việc làm khi xong (tiếp tục video đang dở / phát video bé vừa chọn)
+  function startQuiz(after) {
+    var a = qzAge();
+    if (playerReady && zone === 'player') player.pauseVideo();
+    qzRun = { age: a, qs: qzMake(a, qc().count), i: -1, right: 0, wrong: 0, after: after, prev: zone };
+    zone = 'qz';
+    $('#qz').classList.remove('hidden');
+    qzPaint();
+  }
+  function qzBtns(list) {
+    $('#qz-opts').innerHTML = list.opts.map(function (o) { return '<button class="qbtn' + (String(o).length > 4 ? ' wide' : '') + '" data-v="' + esc(String(o)) + '">' + esc(String(o)) + '</button>'; }).join('');
+    $('#qz-tools').innerHTML = (list.tools || []).map(function (b) { return '<button class="qtool" data-act="' + b[0] + '">' + b[1] + '</button>'; }).join('');
+    qzIdx = 0; focus();
+  }
+  function qzPaint() {
+    var r = qzRun, dots = '';
+    $('#qz-msg').textContent = ''; $('#qz-msg').className = '';
+    for (var i = 0; i < r.qs.length; i++) dots += '<i class="' + (i < r.i ? 'ok' : i === r.i ? 'now' : '') + '"></i>';
+    $('#qz-dots').innerHTML = r.i >= 0 && r.i < r.qs.length ? dots : '';
+    if (r.i < 0) {                                   // màn mở đầu
+      $('#qz').className = 'screen intro';
+      $('#qz-title').textContent = '';
+      $('#qz-card').innerHTML = '<div class="qz-cloud">☁️<sup>z</sup></div><h1>Mình nghỉ một chút nhé</h1><p>Bây giờ mình cùng chơi số, đếm hình' + (r.age >= 4 ? ', chữ cái' : '') + (r.age >= 5 ? ' và ghép vần' : '') + '</p>';
+      qzBtns({ opts: ['▶ Bắt đầu'], tools: [['parent', '🔒 Bố mẹ']] });
+      say('Mình nghỉ một chút nhé. Cùng chơi nào!');
+      return;
+    }
+    if (r.i >= r.qs.length) {                        // xong
+      $('#qz').className = 'screen intro';
+      $('#qz-title').textContent = '';
+      $('#qz-card').innerHTML = '<div class="qz-star">⭐</div><h1>Con giỏi lắm!</h1><p>Con đã làm xong ' + r.qs.length + ' câu' + (r.wrong ? '' : ', không sai câu nào') + ' 🎉</p>';
+      qzBtns({ opts: ['▶ Xem video tiếp', 'Chơi thêm'] });
+      say('Con giỏi lắm!');
+      return;
+    }
+    var q = r.qs[r.i];
+    $('#qz').className = 'screen';
+    $('#qz-title').textContent = q.t;
+    $('#qz-card').innerHTML = q.v + (q.cap ? '<div class="qz-cap">' + esc(q.cap) + '</div>' : '');
+    var tools = [];
+    if (canSay) tools.push(['say', q.read ? '🔊 Nghe mẫu' : '🔊 Nghe lại']);
+    if (q.read) tools.push(['skip', 'Bố mẹ giúp']);
+    tools.push(['parent', '🔒 Bố mẹ']);
+    qzBtns({ opts: q.opts, tools: tools });
+    if (!q.read) say(q.say);
+  }
+  function qzItems() { return [].slice.call($('#qz-opts').children).concat([].slice.call($('#qz-tools').children)); }
+  function qzPress(b) {
+    if (qzBusy || !b) return;
+    var r = qzRun, act = b.getAttribute('data-act'), v = b.getAttribute('data-v');
+    if (act === 'say') { say(r.qs[r.i].say); return; }
+    if (act === 'parent') { qzPin = true; openPin(); return; }
+    if (act === 'skip') { r.i++; qzPaint(); return; }  // câu đọc to: bố mẹ giúp thì sang câu sau
+    if (r.i < 0) { r.i = 0; qzPaint(); return; }
+    if (r.i >= r.qs.length) {
+      if (v === 'Chơi thêm') { r.qs = qzMake(r.age, qc().count); r.i = 0; r.wrong = 0; qzPaint(); return; }
+      return qzEnd();
+    }
+    var q = r.qs[r.i];
+    if (v === String(q.ans)) {
+      r.right++; b.classList.add('ok'); qzBusy = true;
+      $('#qz-msg').textContent = pick(['Đúng rồi! 🎉', 'Giỏi quá! 👏', 'Chính xác! ⭐']); $('#qz-msg').className = 'ok';
+      say(q.read ? '' : 'Đúng rồi!');
+      setTimeout(function () { qzBusy = false; r.i++; qzPaint(); }, 1100);
+    } else if (!b.classList.contains('no')) {
+      r.wrong++; b.classList.add('no');
+      $('#qz-msg').textContent = 'Chưa đúng, con thử lại nhé!'; $('#qz-msg').className = 'no';
+      say('Chưa đúng, con thử lại nhé');
+    }
+  }
+  function qzEnd() {
+    var r = qzRun;
+    try {   // nhật ký nhỏ trên TV để sau này gửi cho bố mẹ
+      var log = JSON.parse(localStorage.getItem('ct-qz-log') || '[]');
+      log.push({ at: new Date().toISOString(), n: r.qs.length, wrong: r.wrong });
+      localStorage.setItem('ct-qz-log', JSON.stringify(log.slice(-60)));
+    } catch (e) { /* bỏ qua */ }
+    qzSec.n = 0; qzSave();
+    qzRun = null;
+    if (canSay) try { speechSynthesis.cancel(); } catch (e) { /* bỏ qua */ }
+    $('#qz').classList.add('hidden');
+    zone = 'player';
+    if (r.after) r.after();
+  }
+  function qzKey(k) {
+    var it = qzItems(), nOpt = $('#qz-opts').children.length;
+    if (k === K.LEFT && qzIdx > 0) qzIdx--;
+    else if (k === K.RIGHT && qzIdx < it.length - 1) qzIdx++;
+    else if (k === K.DOWN && qzIdx < nOpt && it.length > nOpt) qzIdx = nOpt;
+    else if (k === K.UP && qzIdx >= nOpt) qzIdx = 0;
+    else if (k === K.ENTER) { qzPress(it[qzIdx]); return; }
+    else if (k >= 49 && k <= 57 && qzRun && qzRun.i >= 0 && qzRun.i < qzRun.qs.length) {   // phím số trên remote: chọn đáp án là số đó
+      for (var i = 0; i < nOpt; i++) if (it[i].getAttribute('data-v') === String(k - 48)) { qzIdx = i; focus(); qzPress(it[i]); return; }
+    }
+    focus();
+  }
+  var qzPin = false;
 
   // ---------- Màn xem xong ----------
   var endIdx = 0, endTimer = null;
@@ -1057,6 +1271,8 @@
     sinceHello++;
     usage.n++;
     if (usage.n % 10 === 0) saveDay('ct-usage', usage);
+    qzCount();
+    if (qzDue() && zone === 'player' && !grace && leftSec() > 120) startQuiz(function () { if (playerReady) player.playVideo(); showOsd(); });
     if (!quota.limit) return;
     var left = leftSec();
     if (left > 360) warned = 0;
@@ -1137,6 +1353,7 @@
     if (Date.now() < pinLockUntil) { $('#pin-msg').textContent = 'Sai nhiều lần, đợi ' + Math.ceil((pinLockUntil - Date.now()) / 1000) + ' giây'; return; }
     if (pin.length < 4) { $('#pin-msg').textContent = 'Mã PIN có 4–6 số'; return; }
     rpc('ct_tv_pin', { p_device: device.id, p_secret: device.secret, p_pin: pin }).then(function (ok) {
+      if (ok && qzPin) { pinFails = 0; qzPin = false; $('#pin').classList.add('hidden'); qzEnd(); return; }   // bố mẹ cho bỏ qua giải lao
       if (ok) { pinFails = 0; $('#pin').classList.add('hidden'); openParent(); return; }
       if (++pinFails >= 5) { pinFails = 0; pinLockUntil = Date.now() + 60000; }
       pin = '';
@@ -1153,7 +1370,10 @@
     else if (k === K.UP && pinIdx >= 3) pinIdx -= 3;
     else if (k === K.DOWN && pinIdx < 9) pinIdx += 3;
     else if (k === K.ENTER) pressPad(PAD[pinIdx]);
-    else if (BACK.indexOf(k) >= 0) { closeModal(); return; }
+    else if (BACK.indexOf(k) >= 0) {
+      if (qzPin) { qzPin = false; $('#pin').classList.add('hidden'); zone = 'qz'; focus(); return; }
+      closeModal(); return;
+    }
     focus();
   }
 
@@ -1203,6 +1423,7 @@
     if (k >= 112 && k <= 123) return;  // F1–F12: để trình duyệt xử lý khi thử trên máy tính
     document.body.classList.remove('mouse');
     e.preventDefault();
+    if (zone === 'qz') { qzKey(k); return; }
     if (zone === 'upnext') { if (k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) unGo(true); else if (BACK.indexOf(k) >= 0 || k === K.STOP) unGo(false); return; }
     if (zone === 'player') playerKey(k);
     else if (zone === 'pin') pinKey(k);

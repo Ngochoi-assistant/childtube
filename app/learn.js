@@ -33,7 +33,7 @@ const Learn = {
     const auto = S.family && S.family.end_mode === 'next';
     const autoCard = S.restricted ? '' : `<div class="card lr-auto"><div class="info"><b>${auto ? '▶ Đang phát liên tiếp' : '⏸ Dừng sau mỗi video'}</b>
       <div class="m">${auto ? 'Xem xong, TV tự phát video kế tiếp đã duyệt trong cùng danh mục.' : 'Xem xong mỗi video, TV dừng lại cho bé chọn.'}</div></div>
-      <button class="lr-sw ${auto ? 'on' : ''}" data-a="L2-auto" aria-label="Phát liên tiếp"><i></i></button></div>`;
+      <button class="lr-sw ${auto ? 'on' : ''}" data-a="L2-auto" aria-label="Phát liên tiếp"><i></i></button></div>${quizCard()}`;
     return `${autoCard}<h2>Giáo trình</h2><div class="card">${cur.length ? cur.map(card).join('') : `<div class="empty">Chưa có giáo trình. Bấm <b>＋</b> để nhờ AI soạn hoặc tự tạo.</div>`}</div>
       <h2>🎵 Playlist của gia đình<button class="btn link" data-a="L2-pl">Quản lý ›</button></h2><div class="card">
         ${pls.map((g) => `<div class="item tap" data-a="L2-pl"><div class="ic">${esc(g.emoji || '🎵')}</div><div class="info"><div class="t">${esc(g.name)}</div><div class="m">${g.items.length} mục · bố mẹ tạo</div></div><span class="chev">›</span></div>`).join('')
@@ -175,6 +175,7 @@ $('#view').addEventListener('click', async (e) => {
     const g = S.groups.find((x) => x.id === Learn.gid), l = g && (g.modules || []).flatMap((m) => m.lessons).find((x) => x.id === id);
     const v = l && l.items.find((i) => i.video_id); if (v) previewSheet(v.video_id, l.title, closeSheet); return;
   }
+  if (a === 'L2-quiz') return quizSheet();
   if (a === 'L2-auto') {
     const next = S.family.end_mode === 'next' ? 'stop' : 'next';
     try { await rpc('ct_family_update', { p: { end_mode: next } }); S.family.end_mode = next; toast(next === 'next' ? '▶ Đã bật phát liên tiếp (TV cập nhật trong 2 phút)' : '⏸ Đã chuyển sang dừng sau mỗi video'); render(); } catch (err) { toast(err.message, true); }
@@ -196,3 +197,41 @@ $('#view').addEventListener('click', async (e) => {
   if (a === 'L2-assess') return Learn.assessSheet(b.dataset.v, null);
 });
 // Bấm vào nút trên đường học (SVG) — phần tử <g> có data-a
+
+// ---------- Giải lao học bài trên TV ----------
+// Cứ xem đủ N phút, TV tạm dừng video để bé làm vài câu hợp tuổi (đếm hình, đọc số, chữ cái, ghép vần, cộng trừ) rồi mới xem tiếp.
+const QUIZ_DEF = { on: true, every: 20, count: 5, min_age: 3 };
+const quizOf = () => ({ ...QUIZ_DEF, ...((S.family && S.family.quiz) || {}) });
+function quizKids(q) {
+  const ks = (S.children || []).filter((k) => k.birth), ok = ks.filter((k) => ageYears(k.birth) >= q.min_age);
+  return { ok, young: ks.filter((k) => !ok.includes(k)) };
+}
+function ageYears(birth) { const b = new Date(birth), n = new Date(); let y = n.getFullYear() - b.getFullYear(); if (n < new Date(n.getFullYear(), b.getMonth(), b.getDate())) y--; return y; }
+function quizCard() {
+  if (S.restricted) return '';
+  const q = quizOf(), k = quizKids(q);
+  const who = k.ok.length ? k.ok.map((x) => esc(x.name)).join(', ') : 'chưa có bé nào đủ ' + q.min_age + ' tuổi';
+  return `<div class="card lr-auto tap" data-a="L2-quiz"><div class="info"><b>${q.on ? '🧠 Giải lao học bài: bật' : '🧠 Giải lao học bài: tắt'}</b>
+    <div class="m">${q.on ? `Cứ ${q.every} phút xem, bé làm ${q.count} câu rồi xem tiếp · áp dụng: ${who}` : 'Bật để bé xen giữa giờ xem bằng vài câu đếm, đọc số, chữ cái.'}</div></div><span class="chev">›</span></div>`;
+}
+function quizSheet() {
+  const q = quizOf(), old = !(S.family && 'quiz' in S.family);
+  const chips = (key, vals, unit) => `<div class="chips">${vals.map((v) => `<button class="chip ${q[key] === v ? 'on' : ''}" data-a="qz-set" data-k="${key}" data-v="${v}">${v}${unit}</button>`).join('')}</div>`;
+  const k = quizKids(q);
+  sheet(`<h3>🧠 Giải lao học bài trên TV</h3>
+    <div class="hint" style="margin-top:0">Xem đủ thời gian, TV tạm dừng video và hiện “Mình nghỉ một chút nhé”. Bé trả lời đúng hết các câu (đếm hình, đọc số, chữ cái, ghép vần, cộng trừ — tự chọn theo tuổi) rồi bấm <b>Xem video tiếp</b>. Bố mẹ bỏ qua bằng PIN.</div>
+    <label class="switch"><input type="checkbox" id="qz-on" ${q.on ? 'checked' : ''}> Bật giải lao học bài</label>
+    <label>Cứ xem bao lâu thì giải lao</label>${chips('every', [10, 15, 20, 30, 45], ' phút')}
+    <label>Số câu mỗi lần</label>${chips('count', [3, 5, 10], ' câu')}
+    <label>Áp dụng cho bé từ</label>${chips('min_age', [3, 4, 5, 6], ' tuổi')}
+    <div class="hint">${k.ok.length ? 'Đang áp dụng: <b>' + k.ok.map((x) => esc(x.name)).join(', ') + '</b>.' : 'Chưa có bé nào đủ tuổi, TV sẽ không hỏi.'}${k.young.length ? ' Chưa áp dụng (còn nhỏ): ' + k.young.map((x) => esc(x.name)).join(', ') + '.' : ''}</div>
+    ${old ? '<div class="hint" style="color:var(--danger)">Máy chủ chưa cập nhật tính năng này: TV đang dùng mặc định (20 phút, 5 câu, từ 3 tuổi) và chưa lưu được thay đổi.</div>' : ''}
+    <button class="btn primary" data-a="qz-save">Lưu</button>`, async (a, b) => {
+    if (a === 'qz-set') { q[b.dataset.k] = +b.dataset.v; b.parentElement.querySelectorAll('.chip').forEach((x) => x.classList.toggle('on', x === b)); return; }
+    if (a !== 'qz-save') return;
+    q.on = $('#qz-on').checked;
+    b.disabled = true;
+    try { await rpc('ct_family_update', { p: { quiz: q } }); S.family.quiz = { ...q }; closeSheet(); toast('Đã lưu · TV cập nhật trong 2 phút'); render(); }
+    catch (err) { b.disabled = false; toast(err.message, true); }
+  });
+}

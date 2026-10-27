@@ -935,6 +935,7 @@ function viewSettings() {
     <label>Khi bé xem xong một video</label>
     <label class="switch"><input type="radio" name="endmode" value="next" ${f.end_mode === 'next' ? 'checked' : ''}> <span><b>▶ Phát liên tiếp</b> các video đã duyệt trong cùng danh mục (giáo trình, playlist, kênh). TV báo “Tiếp theo” 5 giây trước khi phát; dừng ở bài đang khoá và khi hết giờ.</span></label>
     <label class="switch"><input type="radio" name="endmode" value="stop" ${f.end_mode !== 'next' ? 'checked' : ''}> <span><b>⏸ Dừng sau mỗi video</b> cho bé chọn: về trang chủ, xem lại hay xem tiếp.</span></label>
+    <label>Giải lao học bài</label>${typeof quizCard === 'function' ? quizCard() : ''}
   </div>
 
   <h2>🎬 Video</h2>
