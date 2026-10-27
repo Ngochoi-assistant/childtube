@@ -473,3 +473,11 @@ body.playing #home { visibility: hidden; }
 .pw-in b { font-size: 1.3vw; line-height: 1.25; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .pw-in em { font-style: normal; font-size: .9vw; color: rgba(255,255,255,.85); margin-top: .3vw; }
 .pw-new { position: absolute; right: 1vw; top: 1vw; font-size: .8vw; font-weight: 800; padding: .2vw .6vw; border-radius: .6vw; background: #fff; color: #ff375f; }
+
+/* ---- Phát liên tiếp: thẻ "Tiếp theo" ---- */
+#upnext { position: fixed; right: 3vw; bottom: 4vw; z-index: 25; display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  width: 40vw; padding: 1vw; border-radius: 1.4vw; background: rgba(28, 28, 30, .94); box-shadow: 0 0 0 .2vw rgba(255,255,255,.25); }
+#upnext img { width: 14vw; height: 7.9vw; object-fit: cover; border-radius: .8vw; margin-right: 1.2vw; -webkit-flex-shrink: 0; flex-shrink: 0; }
+#upnext span { display: block; font-size: 1vw; font-weight: 800; color: #ff6961; text-transform: uppercase; letter-spacing: .06vw; }
+#upnext b { display: block; font-size: 1.35vw; line-height: 1.3; margin: .3vw 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#upnext em { font-style: normal; font-size: .95vw; color: var(--text-2); }

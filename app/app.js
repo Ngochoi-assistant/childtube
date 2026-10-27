@@ -926,7 +926,6 @@ function viewSettings() {
 
   <h2>⏱ Thời gian xem trên TV</h2>
   <div class="card">
-    ${f.end_mode === undefined ? '<div class="hint" style="margin:0 0 8px">⚠ Cần chạy <b>cloud/004_screen_time.sql</b> trong SQL Editor trước khi dùng mục này.</div>' : ''}
     <label>Mỗi ngày bé được xem</label>
     <div class="chips">${[0, 20, 30, 45, 60, 90, 120].concat([0, 20, 30, 45, 60, 90, 120].indexOf(f.daily_minutes || 0) < 0 ? [f.daily_minutes] : [])
       .map((m) => `<button class="chip ${(f.daily_minutes || 0) === m ? 'on' : ''}" data-a="daily" data-m="${m}">${m ? m + ' phút' : 'Không giới hạn'}</button>`).join('')}</div>
@@ -934,8 +933,8 @@ function viewSettings() {
       WHO/AAP khuyên bé 2–5 tuổi xem tối đa 60 phút mỗi ngày; dưới 2 tuổi nên hạn chế và xem cùng bố mẹ.
       Còn 5 phút TV sẽ báo trước; hết giờ bé được xem nốt video đang xem nếu còn ≤ 10 phút. Muốn cho xem thêm: vào "Bố mẹ" trên TV, nhập PIN.</div>
     <label>Khi bé xem xong một video</label>
-    <label class="switch"><input type="radio" name="endmode" value="stop" ${f.end_mode !== 'next' ? 'checked' : ''}> Dừng lại cho bé chọn: về trang chủ, xem lại hay xem tiếp (khuyên dùng)</label>
-    <label class="switch"><input type="radio" name="endmode" value="next" ${f.end_mode === 'next' ? 'checked' : ''}> Tự chuyển sang video kế</label>
+    <label class="switch"><input type="radio" name="endmode" value="next" ${f.end_mode === 'next' ? 'checked' : ''}> <span><b>▶ Phát liên tiếp</b> các video đã duyệt trong cùng danh mục (giáo trình, playlist, kênh). TV báo “Tiếp theo” 5 giây trước khi phát; dừng ở bài đang khoá và khi hết giờ.</span></label>
+    <label class="switch"><input type="radio" name="endmode" value="stop" ${f.end_mode !== 'next' ? 'checked' : ''}> <span><b>⏸ Dừng sau mỗi video</b> cho bé chọn: về trang chủ, xem lại hay xem tiếp.</span></label>
   </div>
 
   <h2>🎬 Video</h2>

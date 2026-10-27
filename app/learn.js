@@ -30,7 +30,11 @@ const Learn = {
     };
     const pls = groupsOf('topic');
     const src = S.sources || [];
-    return `<h2>Giáo trình</h2><div class="card">${cur.length ? cur.map(card).join('') : `<div class="empty">Chưa có giáo trình. Bấm <b>＋</b> để nhờ AI soạn hoặc tự tạo.</div>`}</div>
+    const auto = S.family && S.family.end_mode === 'next';
+    const autoCard = S.restricted ? '' : `<div class="card lr-auto"><div class="info"><b>${auto ? '▶ Đang phát liên tiếp' : '⏸ Dừng sau mỗi video'}</b>
+      <div class="m">${auto ? 'Xem xong, TV tự phát video kế tiếp đã duyệt trong cùng danh mục.' : 'Xem xong mỗi video, TV dừng lại cho bé chọn.'}</div></div>
+      <button class="lr-sw ${auto ? 'on' : ''}" data-a="L2-auto" aria-label="Phát liên tiếp"><i></i></button></div>`;
+    return `${autoCard}<h2>Giáo trình</h2><div class="card">${cur.length ? cur.map(card).join('') : `<div class="empty">Chưa có giáo trình. Bấm <b>＋</b> để nhờ AI soạn hoặc tự tạo.</div>`}</div>
       <h2>🎵 Playlist của gia đình<button class="btn link" data-a="L2-pl">Quản lý ›</button></h2><div class="card">
         ${pls.map((g) => `<div class="item tap" data-a="L2-pl"><div class="ic">${esc(g.emoji || '🎵')}</div><div class="info"><div class="t">${esc(g.name)}</div><div class="m">${g.items.length} mục · bố mẹ tạo</div></div><span class="chev">›</span></div>`).join('')
           || '<div class="empty">Chưa có playlist. Tạo playlist như “Nhạc trước giờ ngủ” để gom video theo ý bạn.</div>'}</div>
@@ -170,6 +174,11 @@ $('#view').addEventListener('click', async (e) => {
   if (a === 'L2-lesson') {
     const g = S.groups.find((x) => x.id === Learn.gid), l = g && (g.modules || []).flatMap((m) => m.lessons).find((x) => x.id === id);
     const v = l && l.items.find((i) => i.video_id); if (v) previewSheet(v.video_id, l.title, closeSheet); return;
+  }
+  if (a === 'L2-auto') {
+    const next = S.family.end_mode === 'next' ? 'stop' : 'next';
+    try { await rpc('ct_family_update', { p: { end_mode: next } }); S.family.end_mode = next; toast(next === 'next' ? '▶ Đã bật phát liên tiếp (TV cập nhật trong 2 phút)' : '⏸ Đã chuyển sang dừng sau mỗi video'); render(); } catch (err) { toast(err.message, true); }
+    return;
   }
   if (a === 'L2-pl') { L.seg = 'pl'; return vGo('groups'); }
   if (a === 'L2-fav') { L.seg = 'fav'; return vGo('groups'); }

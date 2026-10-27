@@ -933,8 +933,30 @@
   function ended() {
     if (!queue || zone !== 'player') return;
     if (timeUp()) { showLimit(); return; }
-    if (quota.end === 'next') { next(); return; }
+    if (quota.end === 'next' && hasNext()) { upNext(); return; }   // phát liên tiếp trong cùng danh mục (chỉ video đã duyệt)
     showEnd();
+  }
+  // Phát liên tiếp: báo "Tiếp theo" 5 giây — OK để phát ngay, Back để dừng lại
+  var unTimer = null, unLeft = 0;
+  function upNext() {
+    var v = queue.videos[queue.idx + 1], g = queue.group;
+    zone = 'upnext'; unLeft = 5;
+    $('#un-img').src = thumb(v.id);
+    $('#un-title').textContent = (g && g.numbered ? lessonLabel(v, queue.idx + 1) + ' · ' : '') + v.title;
+    $('#un-count').textContent = 'Tự phát sau ' + unLeft + ' giây · OK: phát ngay · Back: dừng';
+    $('#upnext').classList.remove('hidden');
+    clearInterval(unTimer);
+    unTimer = setInterval(function () {
+      if (zone !== 'upnext') { clearInterval(unTimer); return; }
+      if (--unLeft <= 0) { unGo(true); return; }
+      $('#un-count').textContent = 'Tự phát sau ' + unLeft + ' giây · OK: phát ngay · Back: dừng';
+    }, 1000);
+  }
+  function unGo(play2) {
+    clearInterval(unTimer);
+    $('#upnext').classList.add('hidden');
+    zone = 'player';
+    if (play2) next(); else showEnd();
   }
 
   // ---------- Màn xem xong ----------
@@ -1181,6 +1203,7 @@
     if (k >= 112 && k <= 123) return;  // F1–F12: để trình duyệt xử lý khi thử trên máy tính
     document.body.classList.remove('mouse');
     e.preventDefault();
+    if (zone === 'upnext') { if (k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) unGo(true); else if (BACK.indexOf(k) >= 0 || k === K.STOP) unGo(false); return; }
     if (zone === 'player') playerKey(k);
     else if (zone === 'pin') pinKey(k);
     else if (zone === 'parent') parentKey(k);

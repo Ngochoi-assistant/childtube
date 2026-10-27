@@ -265,3 +265,12 @@ body.v2 .switch, body.v2 label { color: var(--ink); }
 .jr-tag.win { background: #fff3c4; color: #8a6100; }
 .jr-tip { text-align: left; margin-top: 12px; padding: 12px; border-radius: 12px; background: #eefaf1; font-size: 14px; line-height: 1.45; }
 .jr-tip b { display: block; margin-bottom: 4px; }
+
+/* Công tắc phát liên tiếp (tab Học) */
+.lr-auto { display: flex; align-items: center; gap: 12px; }
+.lr-auto .info { flex: 1; }
+.lr-auto b { font-size: 15px; }
+.lr-sw { flex-shrink: 0; width: 52px; height: 30px; border: 0; border-radius: 15px; background: #d9d4ca; position: relative; transition: background .2s; }
+.lr-sw i { position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .2s; }
+.lr-sw.on { background: #34c759; }
+.lr-sw.on i { left: 25px; }
