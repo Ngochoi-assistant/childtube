@@ -1,4 +1,4 @@
-// ChildTube — tab "Kỷ niệm": bảng tin kiểu mạng xã hội (bài đăng, ảnh, cảm xúc, bình luận của cả nhà).
+// ChildTube — tab "Nhật ký" (mở app là vào đây): bảng tin kiểu mạng xã hội (bài đăng, ảnh, cảm xúc, bình luận của cả nhà).
 // Máy chủ: ct_journal_list (kèm author, reactions, comments), ct_react, ct_comment, ct_comment_delete.
 const Feed = {
   list: null, key: null, open: new Set(), filter: '',
@@ -23,22 +23,24 @@ const Feed = {
     const name = k ? esc(k.name) : 'các bé';
     const composer = canWrite ? `<div class="card fd-comp"><div class="fd-row"><span class="fd-av">${ROLE_ICON[me.role] || '👤'}</span>
         <button class="fd-in" data-a="F2-write">${me.role === 'teacher' ? 'Viết nhận xét về ' + name + '…' : 'Hôm nay ' + name + ' có gì đáng nhớ?'}</button></div>
-        ${me.role === 'teacher' ? '' : `<div class="fd-acts"><button data-a="F2-write">📷 Ảnh/video</button><button data-a="F2-mile">🌟 Cột mốc</button><button data-a="F2-mood">😄 Cảm xúc</button></div>`}</div>` : '';
+        ${me.role === 'teacher' ? '' : `<div class="fd-acts"><button data-a="F2-media">📷 Ảnh/video</button><button data-a="F2-mile">🌟 Cột mốc</button><button data-a="F2-mood">😄 Cảm xúc</button></div>`}</div>` : '';
     const withMedia = (this.list || []).filter((e) => e.media.some((m) => m.url)).slice(0, 8);
     const stories = withMedia.length ? `<div class="fd-stories">${withMedia.map((e) => {
       const m = e.media.find((x) => x.url && x.mime.startsWith('image/')) || e.media[0], c = kidOf(e.child_id);
       return `<button class="fd-story" data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}" style="background-image:url('${esc(mediaUrl(m.url))}')"><span class="fd-sav">${esc(c ? c.emoji : '👨‍👩‍👧')}</span><span class="fd-st">${esc((e.title || jDay(e.day)).slice(0, 28))}</span></button>`;
     }).join('')}</div>` : '';
     const chips = [['', 'Tất cả'], ['photo', 'Ảnh'], ['mile', 'Cột mốc'], ['teacher', 'Thầy cô']].map(([v2, t]) => `<button class="chip ${this.filter === v2 ? 'on' : ''}" data-a="F2-filter" data-v="${v2}">${t}</button>`).join('');
-    const posts = (this.list || []).map((e) => this.post(e)).join('');
     // Kiểu game: bé đã làm được gì (Cột mốc, Thành tích) — cùng dữ liệu với bản đồ Hành trình và TV
     const wins = (this.list || []).filter((e) => e.kind === 'milestone' || e.kind === 'achievement').map((e) => {
       const img = (e.media || []).find((m) => m.url && /^image\/(jpeg|png|webp|gif)/.test(m.mime));
       return { id: e.id, kind: e.kind, title: e.title || e.body || 'Điều mới', text: e.title ? e.body : '', day: e.day, by: e.author ? e.author.name : '', photo: img ? mediaUrl(img.url) : '' };
     });
     Journey.feedWins = wins;
-    const game = wins.length ? `<div class="card jr">${Journey.hud({ wins })}<div class="jr-head"><b>🏆 ${name === 'các bé' ? 'Các bé' : name} đã làm được</b>${k ? '<button class="btn link" data-a="J-road">🗺 Xem hành trình ›</button>' : ''}</div>${Journey.cards({ wins })}</div>` : '';
-    return `${pageHead('')}${composer}${game}${stories}<div class="chips strip fd-filter">${chips}</div>
+    const game = wins.length ? `<div class="card jr fd-game">${Journey.hud({ wins })}<div class="jr-head"><b>🏆 ${name === 'các bé' ? 'Các bé' : name} đã làm được</b>${k ? '<button class="btn link" data-a="J-road">🗺 Xem hành trình ›</button>' : ''}</div>${Journey.cards({ wins })}</div>` : '';
+    const list = (this.list || []).map((e) => this.post(e));
+    if (game) list.splice(Math.min(2, list.length), 0, game);
+    const posts = list.join('');
+    return `${pageHead('')}${composer}${stories}<div class="chips strip fd-filter">${chips}</div>
       ${posts || `<div class="card"><div class="empty">${canWrite ? 'Bài đăng đầu tiên: một bức ảnh, một câu nói ngộ nghĩnh, hay việc bé tự làm được.' : 'Chưa có bài đăng nào được chia sẻ.'}</div></div>`}`;
   },
   post(e) {
@@ -48,7 +50,7 @@ const Feed = {
     const moodI = { vui: '😄', 'bình thường': '🙂', mệt: '🥱', buồn: '😢', cáu: '😠' }[d.mood];
     const media = e.media.filter((m) => m.url);
     const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 3)}">${media.slice(0, 3).map((m, i) => (m.mime.startsWith('image/')
-      ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="lazy" data-a="P-img" data-src="${esc(mediaUrl(m.url))}">` : `<video src="${esc(mediaUrl(m.url))}" controls preload="metadata"></video>`)
+      ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="lazy" data-a="P-img" data-src="${esc(mediaUrl(m.url))}">` : `<video src="${esc(mediaUrl(m.url))}" controls playsinline preload="metadata"></video>`)
       + (i === 2 && media.length > 3 ? `<span class="fd-more">+${media.length - 3}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
@@ -89,6 +91,7 @@ $('#view').addEventListener('click', async (e) => {
   const entry = (Feed.list || []).find((x) => x.id === id);
   try {
     if (a === 'F2-write') return entrySheet(null);
+    if (a === 'F2-media') { entrySheet(null); const f = $('#je-files'); if (f) f.click(); return; }   // mở luôn kho ảnh của điện thoại
     if (a === 'F2-mile') { entrySheet(null); setTimeout(() => { const s = $('#je-kind'); if (s) s.value = 'milestone'; }, 0); return; }
     if (a === 'F2-mood') return checkinSheet(k ? k.id : null);
     if (a === 'F2-filter') { Feed.filter = b.dataset.v; return render(); }

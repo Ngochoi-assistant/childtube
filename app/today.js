@@ -39,7 +39,7 @@ const Today = {
     const sk = d.skills;
     const radar = sk.evidence
       ? `<div class="td-skill">${ch.radar(sk.list, 3, 220)}<div><b>${sk.best.length ? 'Nổi bật: ' + esc(sk.best.join(', ')) : 'Đang theo dõi'}</b><div class="m">${sk.evidence} bằng chứng đã ghi nhận</div></div></div>`
-      : `<div class="empty">Chưa có bằng chứng năng lực. Ghi nhận khi ${name} làm được điều mới (từ bài đăng trong Kỷ niệm hoặc tab Học → Năng lực).</div>`;
+      : `<div class="empty">Chưa có bằng chứng năng lực. Ghi nhận khi ${name} làm được điều mới (từ bài đăng trong Nhật ký hoặc tab Học → Năng lực).</div>`;
     const next = d.next
       ? `<div class="card td-next tap" data-a="T-path" data-id="${d.next.group_id}"><img src="${thumb(d.next.video)}" alt=""><div class="info"><div class="t">${esc(d.next.lesson)}</div>
           <div class="m">${esc(d.next.emoji || '📘')} ${esc(d.next.group)} · ${esc(d.next.chapter)}${d.next.minutes ? ' · ~' + d.next.minutes + ' phút' : ''}</div></div><span class="chev">›</span></div>`

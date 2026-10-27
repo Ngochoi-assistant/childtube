@@ -92,12 +92,7 @@ function checkinSheet(childId) {
       return;
     }
     if (a === 'ck-save') {
-      b.disabled = true;
-      try {
-        const id = await rpc('ct_journal_save', { p: { kind: 'checkin', child_id: st.child, mood: st.mood, interests: [...st.interests], activities: [...st.activities], body: $('#ck-note').value, privacy: $('#ck-priv').value } });
-        await uploadFiles(id, $('#ck-files'));
-        closeSheet(); toast('Đã ghi lại 🌱'); P.ov = null; P.jr = null; P.gal = null; render();
-      } catch (e) { b.disabled = false; toast(e.message, true); }
+      st.saved = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: st.saved || null, p: { kind: 'checkin', child_id: st.child, mood: st.mood, interests: [...st.interests], activities: [...st.activities], body: $('#ck-note').value, privacy: $('#ck-priv').value } }), $('#ck-files'), 'Đã ghi lại 🌱') || st.saved;
     }
   });
   sheetChange = (e) => { if (e.target.id === 'ck-files') previewFiles(e.target, $('#ck-prev')); };
@@ -119,17 +114,72 @@ async function shrink(file) {
     return { blob, type: 'image/jpeg', w, h };
   } catch (e) { return { blob: file, type: file.type, w: null, h: null }; }   // HEIC… trình duyệt không đọc được: gửi nguyên tệp
 }
-async function uploadFiles(entryId, input) {
-  if (!input || !input.files || !input.files.length) return;
-  const tok = (JSON.parse(localStorage.getItem('ct-session') || '{}') || {}).access_token;
-  let i = 0;
-  for (const f of [...input.files].slice(0, 12)) {
-    i++; toast(`Đang tải ảnh/video ${i}/${input.files.length}…`);
-    if (f.size > 50 * 1024 * 1024) { toast(f.name + ': quá 50 MB, bỏ qua', true); continue; }
-    const s = await shrink(f);
-    const r = await fetch(`${CT_CONFIG.url}/media/v1/upload?entry=${entryId}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { Authorization: 'Bearer ' + tok, 'Content-Type': s.type }, body: s.blob });
-    if (!r.ok) { const j = await r.json().catch(() => ({})); toast((j && j.message) || 'Tải lên lỗi', true); }
+// Tệp nhỏ gửi một lần; video lớn gửi từng phần 8 MB (tối đa 500 MB), mỗi phần thử lại 3 lần khi mạng chập chờn.
+// Tệp đã gửi xong được nhớ lại, nên bấm "Thử tải lại" chỉ gửi những tệp còn thiếu. Trả về số tệp chưa gửi được.
+const sentFiles = new WeakSet();
+const BIG = 8 * 1024 * 1024;
+const mimeOf = (f) => f.type || ({ mov: 'video/quicktime', mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', heic: 'image/heic', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' }[(f.name.split('.').pop() || '').toLowerCase()] || '');
+async function upFetch(path, opt, tries = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      const r = await fetch(CT_CONFIG.url + path, opt);
+      const j = await r.json().catch(() => ({}));
+      if (r.ok) return j;
+      if (r.status < 500 || i >= tries) throw Object.assign(new Error((j && j.message) || 'Tải lên lỗi (' + r.status + ')'), { status: r.status });
+    } catch (e) { if (i >= tries || !(e instanceof TypeError)) throw e; }   // TypeError = mất mạng giữa chừng: thử lại
+    await new Promise((ok) => setTimeout(ok, 1500 * i));
   }
+}
+async function sendFile(entryId, f, tok, pct) {
+  const H = { Authorization: 'Bearer ' + tok };
+  const s = await shrink(f), type = s.type || mimeOf(f);
+  if (s.blob.size <= BIG) {
+    pct(0);
+    await upFetch(`/media/v1/upload?entry=${entryId}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 2);
+    return;
+  }
+  let st;
+  try { st = await upFetch(`/media/v1/upload/start?entry=${entryId}&mime=${encodeURIComponent(type)}&size=${s.blob.size}`, { method: 'POST', headers: H }); }
+  catch (e) {   // máy chủ bản cũ chưa có tải từng phần: gửi một lần nếu ≤ 50 MB
+    if (e.status !== 404 || s.blob.size > 50 * 1024 * 1024) throw e;
+    pct(0); return upFetch(`/media/v1/upload?entry=${entryId}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 1);
+  }
+  const parts = [];
+  for (let n = 1, o = 0; o < s.blob.size; n++, o += st.part) {
+    pct(o / s.blob.size);
+    parts.push(await upFetch(`/media/v1/upload/part?id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`, { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }));
+  }
+  pct(1);
+  await upFetch('/media/v1/upload/done', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: entryId, mime: type, parts }) });
+}
+async function uploadFiles(entryId, input, btn) {
+  if (!input || !input.files || !input.files.length) return 0;
+  const tok = (JSON.parse(localStorage.getItem('ct-session') || '{}') || {}).access_token;
+  const files = [...input.files].slice(0, 12).filter((f) => !sentFiles.has(f));
+  let bad = 0, i = 0;
+  for (const f of files) {
+    i++;
+    const label = (f.type || mimeOf(f)).startsWith('video/') ? 'video' : 'ảnh';
+    const pct = (p) => { const t = `Đang tải ${label} ${i}/${files.length}${p ? ' · ' + Math.round(p * 100) + '%' : '…'}`; if (btn) btn.textContent = t; else toast(t); };
+    if (f.size > 500 * 1024 * 1024) { bad++; toast(f.name + ': quá 500 MB. Hãy cắt ngắn video rồi thử lại.', true); continue; }
+    try { await sendFile(entryId, f, tok, pct); sentFiles.add(f); }
+    catch (e) { bad++; toast(f.name + ': ' + e.message, true); }
+  }
+  return bad;
+}
+// Lưu bài trước, rồi gửi ảnh/video. Nếu có tệp lỗi: giữ nguyên khung soạn, lần bấm sau chỉ sửa bài đó + gửi tệp còn thiếu (không tạo bài trùng).
+async function saveWithFiles(b, saveFn, input, doneMsg) {
+  b.disabled = true;
+  const txt = b.dataset.txt || (b.dataset.txt = b.textContent);
+  try {
+    const id = await saveFn();
+    const bad = await uploadFiles(id, input, b);
+    if (bad) { b.disabled = false; b.textContent = '↻ Thử tải lại ' + bad + ' tệp'; toast(`Đã lưu bài, còn ${bad} tệp chưa tải lên. Bấm "Thử tải lại".`, true); return id; }
+    closeSheet(); toast(doneMsg); P.ov = null; P.jr = null; P.gal = null;
+    if (typeof Feed !== 'undefined') Feed.list = null;
+    render();
+    return id;
+  } catch (e) { b.disabled = false; b.textContent = txt; toast(e.message, true); return null; }
 }
 
 // ---------- Nhật ký ----------
@@ -146,7 +196,7 @@ function entryRow(e, compact) {
     ${chips.length ? `<div class="pt-echips">${chips.slice(0, compact ? 4 : 20).map((c) => `<span>${c}</span>`).join('')}</div>` : ''}
     ${media.length ? `<div class="pt-media ${media.length === 1 ? 'one' : ''}">${media.slice(0, compact ? 3 : 12).map((m) => m.mime.startsWith('image/')
       ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="lazy" data-a="P-img" data-src="${esc(mediaUrl(m.url))}">`
-      : `<video src="${esc(mediaUrl(m.url))}" controls preload="metadata"></video>`).join('')}</div>` : ''}
+      : `<video src="${esc(mediaUrl(m.url))}" controls playsinline preload="metadata"></video>`).join('')}</div>` : ''}
     ${compact || !(e.mine || (S.me && ['owner', 'parent'].includes(S.me.role))) ? '' : `<div class="pt-eact"><button class="btn small" data-a="P-edit" data-id="${e.id}">✎ Sửa</button><button class="btn small" data-a="P-del" data-id="${e.id}">🗑 Xoá</button></div>`}
   </div>`;
 }
@@ -168,7 +218,7 @@ function viewJournal() {
     const media = (P.gal || []).flatMap((e) => e.media.filter((m) => m.url).map((m) => ({ ...m, e })));
     body = media.length ? `<div class="pt-gallery">${media.map((m) => m.mime.startsWith('image/')
       ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="lazy" data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc((m.e.title || '') + ' · ' + jDay(m.e.day))}">`
-      : `<video src="${esc(mediaUrl(m.url))}" preload="metadata" controls></video>`).join('')}</div>`
+      : `<video src="${esc(mediaUrl(m.url))}" preload="metadata" controls playsinline></video>`).join('')}</div>`
       : '<div class="card"><div class="empty">Chưa có ảnh/video. Thêm ảnh khi ghi nhanh hoặc ghi Nhật ký.</div></div>';
   } else {
     const kinds = `<div class="chips strip">${[['', 'Mọi loại'], ...Object.entries(JKIND).map(([k, [i, t]]) => [k, i + ' ' + t])].map(([k, t]) => `<button class="chip ${P.jKind === k ? 'on' : ''}" data-a="P-kind" data-v="${k}">${t}</button>`).join('')}</div>`;
@@ -184,6 +234,7 @@ function entrySheet(e) {
   const kids = S.children || [], isNew = !e;
   e = e || { kind: 'note', title: '', body: '', day: new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), child_id: kids[0] ? kids[0].id : null, privacy: 'family', media: [] };
   const mediaOk = S.consents && S.consents.media_storage;
+  let savedId = isNew ? null : e.id;
   sheet(`<h3>${isNew ? '📝 Ghi Nhật ký' : '✎ Sửa mục ghi'}</h3>
     <label>Loại</label><select id="je-kind">${Object.entries(JKIND).filter(([k]) => k !== 'feedback' && k !== 'checkin').map(([k, [i, t]]) => `<option value="${k}" ${e.kind === k ? 'selected' : ''}>${i} ${t}</option>`).join('')}</select>
     <label>Bé</label><select id="je-kid"><option value="">👨‍👩‍👧 Cả nhà</option>${kids.map((k) => `<option value="${k.id}" ${e.child_id === k.id ? 'selected' : ''}>${esc(k.emoji)} ${esc(k.name)}</option>`).join('')}</select>
@@ -197,12 +248,7 @@ function entrySheet(e) {
     <button class="btn primary" data-a="je-save">Lưu</button>`, async (a, b) => {
     if (a === 'je-mdel') { if (!confirm('Xoá ảnh này?')) return; try { await rpc('ct_media_delete', { p_id: b.dataset.id }); b.parentElement.remove(); } catch (err) { toast(err.message, true); } return; }
     if (a !== 'je-save') return;
-    b.disabled = true;
-    try {
-      const id = await rpc('ct_journal_save', { p_id: isNew ? null : e.id, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value } });
-      await uploadFiles(id, $('#je-files'));
-      closeSheet(); toast('Đã lưu'); P.jr = null; P.gal = null; P.ov = null; render();
-    } catch (err) { b.disabled = false; toast(err.message, true); }
+    savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value } }), $('#je-files'), 'Đã đăng') || savedId;
   });
   sheetChange = (ev) => { if (ev.target.id === 'je-files') previewFiles(ev.target, $('#je-prev')); };
 }

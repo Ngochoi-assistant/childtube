@@ -11,7 +11,7 @@ const EMOJI = ['⭐', '🎵', '🔤', '🔢', '🔬', '🦁', '📚', '🎨', '�
 const SUGGEST_TOPICS = [['Âm nhạc', '🎵'], ['Tiếng Anh', '🔤'], ['Toán', '🔢'], ['Khoa học', '🔬'], ['Động vật', '🦁'], ['Truyện', '📚']];
 
 let S = null;          // trạng thái gia đình (ct_state)
-let tab = 'today';
+let tab = 'feed';   // mở app là vào Nhật ký
 let pendingLink = '';  // link nhận từ "Chia sẻ" hoặc extension
 
 // ---------- Tiện ích ----------

@@ -1,4 +1,4 @@
-// ChildTube — Hành trình của bé (bản đồ kiểu game), dùng chung cho tab Học → Lộ trình và tab Kỷ niệm.
+// ChildTube — Hành trình của bé (bản đồ kiểu game), dùng chung cho tab Học → Lộ trình và tab Nhật ký.
 // Cùng dữ liệu với TV (ct_tv_feed): ⭐ điều bé ĐÃ LÀM ĐƯỢC = mục ghi "Cột mốc"/"Thành tích" + mốc năm nay đã xong;
 // 🎯 phía trước = mốc năm nay chưa xong + năng lực nên tập theo tuổi (khung năng lực 6 lĩnh vực).
 // Bấm "Bé làm được rồi" trên một chấm phía trước → ghi Cột mốc (mức Gia đình) → chấm sáng ⭐ trên điện thoại và trên TV.
@@ -65,7 +65,7 @@ const Journey = {
     const L = this.level(d.wins.length);
     return `<div class="jr-hud"><span class="jr-lv">Cấp ${L.lv} · ${L.name}</span><span class="jr-xp"><i style="width:${L.pct}%"></i></span><span class="jr-left">⭐ ${d.wins.length} · còn ${L.left} lên cấp</span></div>`;
   },
-  // Thẻ thành tích ngang (dùng ở tab Kỷ niệm)
+  // Thẻ thành tích ngang (dùng ở tab Nhật ký)
   cards(d, max = 6) {
     if (!d.wins.length) return '';
     return `<div class="jr-cards">${d.wins.slice(0, max).map((w, i) => `<button class="jr-card c${i % 5}" data-a="J-win" data-id="${esc(w.id)}">

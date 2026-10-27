@@ -1,8 +1,8 @@
-// ChildTube — khung giao diện bản 2: 4 tab (Hôm nay · Học · Kỷ niệm · Gia đình), chọn bé ở trên cùng, chuông "Cần bạn".
+// ChildTube — khung giao diện bản 2: 4 tab (Nhật ký · Hôm nay · Học · Gia đình), chọn bé ở trên cùng, chuông "Cần bạn".
 // Các màn hình cũ (duyệt video, kênh, lịch sử, thư viện, tìm, cài đặt) vẫn dùng được như trang con có nút quay lại.
 
 const V = { child: null, back: 'today', counts: null };
-const MAIN = ['today', 'learn', 'feed', 'family'];
+const MAIN = ['feed', 'today', 'learn', 'family'];
 const SUB_OF = { review: 'today', history: 'today', list: 'learn', groups: 'learn', search: 'learn', settings: 'family' };
 const SUB_TITLE = { review: 'Cần bạn', history: 'Lịch sử xem', list: 'Kênh & video', groups: 'Thư viện', search: 'Tìm trên YouTube', settings: 'Cài đặt' };
 const ROLE_ICON = { owner: '👩', parent: '👨', relative: '👵', teacher: '🧑‍🏫', child: '🧒' };
@@ -52,7 +52,7 @@ render = function () {
   topbar();
   const view = $('#view');
   if (S.restricted) {
-    // Người thân / giáo viên: Kỷ niệm (thả cảm xúc, bình luận), Học (chỉ xem), Gia đình (tài khoản)
+    // Người thân / giáo viên: Nhật ký (thả cảm xúc, bình luận), Học (chỉ xem), Gia đình (tài khoản)
     document.body.classList.add('ro2');
     if (!['feed', 'learn', 'family'].includes(tab)) { tab = 'feed'; document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === 'feed')); }
     if (tab === 'feed') return Feed.render();
