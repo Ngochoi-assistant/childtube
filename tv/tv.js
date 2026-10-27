@@ -7,7 +7,7 @@
   var K = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, ENTER: 13, PLAY: 415, PAUSE: 19, PLAYPAUSE: 10252, STOP: 413, FF: 417, RW: 412 };
   var BACK = [10009, 27, 8, 461];
   var COLS = 4;
-  var SEC = { collection: 'Giáo trình', topic: 'Playlist', source: 'Kênh' };
+  var SEC = { collection: 'Giáo trình', topic: 'Playlist của gia đình', source: 'Kênh YouTube', ytpl: 'Playlist YouTube', single: 'Khác' };
   var APP_URL = new URL('../app/', location.href).href;
 
   var lib = [];           // [{section,id,title,emoji,thumb,videos:[{id,title}]}]
@@ -471,9 +471,12 @@
       return '<div class="ov-cur"><img src="' + (v ? thumb(v.id) : '') + '" alt=""><div><b>' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + '</b>' +
         '<span class="ov-bar"><i style="width:' + (n ? d / n * 100 : 0) + '%"></i></span><em>Đã học ' + d + '/' + n + ' bài' + (v && d < n ? ' · tiếp theo: ' + esc(v.title) : '') + '</em></div></div>';
     }).join('');
-    var chips = pl.slice(0, 10).map(function (g) { return '<span class="ov-chip">' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + ' · ' + g.videos.length + '</span>'; }).join('');
+    var chip = function (g) { return '<span class="ov-chip">' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + ' · ' + g.videos.length + '</span>'; };
+    var mine = pl.filter(function (g) { return g.section === 'topic'; }), yt = pl.filter(function (g) { return g.section !== 'topic'; });
+    var chips = (mine.length ? '<div class="ov-plh">Playlist của gia đình</div><div class="ov-chips">' + mine.slice(0, 8).map(chip).join('') + '</div>' : '') +
+      (yt.length ? '<div class="ov-plh">Kênh & playlist YouTube</div><div class="ov-chips">' + yt.slice(0, 8).map(chip).join('') + '</div>' : '');
     return '<div class="ov-kid ov-fam"><div class="ov-kh"><span class="ov-av">👨‍👩‍👧</span><div><h2>Cả nhà đang học</h2><div class="ov-sub">Thêm hồ sơ bé (tên, ngày sinh) trong app ChildTube → Gia đình để thấy lộ trình riêng của từng bé ở đây.</div></div></div>' +
-      (rows || '<div class="ov-none">Chưa có giáo trình nào.</div>') + (chips ? '<div class="ov-plh">Playlist & kênh</div><div class="ov-chips">' + chips + '</div>' : '') + '</div>';
+      (rows || '<div class="ov-none">Chưa có giáo trình nào.</div>') + chips + '</div>';
   }
   // Bài tiếp theo của bé nằm ở đâu trong danh sách của TV
   function findLesson(n) {

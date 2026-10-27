@@ -31,11 +31,15 @@ const Learn = {
     const pls = groupsOf('topic');
     const src = S.sources || [];
     return `<h2>Giáo trình</h2><div class="card">${cur.length ? cur.map(card).join('') : `<div class="empty">Chưa có giáo trình. Bấm <b>＋</b> để nhờ AI soạn hoặc tự tạo.</div>`}</div>
-      <h2>Playlist & kênh</h2><div class="card">
-        ${pls.map((g) => `<div class="item tap" data-a="L2-pl"><div class="ic">${esc(g.emoji || '🎵')}</div><div class="info"><div class="t">${esc(g.name)}</div><div class="m">Playlist · ${g.items.length} mục</div></div><span class="chev">›</span></div>`).join('')}
-        ${src.slice(0, 6).map((s) => `<div class="item tap" data-a="V-go" data-v="list"><img class="ic" src="${esc(s.thumb)}" alt=""><div class="info"><div class="t">${esc(s.title)}</div><div class="m">${s.kind === 'channel' ? 'Kênh' : s.kind === 'playlist' ? 'Playlist YouTube' : 'Video'} · ${s.count || 0} video${s.pending ? ` · <b class="tag-wait">${s.pending} chờ duyệt</b>` : ''}</div></div><span class="chev">›</span></div>`).join('')}
-        ${!pls.length && !src.length ? '<div class="empty">Chưa có playlist hay kênh nào.</div>' : ''}
-        <button class="btn link" data-a="V-go" data-v="list">Quản lý kênh & video ›</button></div>
+      <h2>🎵 Playlist của gia đình<button class="btn link" data-a="L2-pl">Quản lý ›</button></h2><div class="card">
+        ${pls.map((g) => `<div class="item tap" data-a="L2-pl"><div class="ic">${esc(g.emoji || '🎵')}</div><div class="info"><div class="t">${esc(g.name)}</div><div class="m">${g.items.length} mục · bố mẹ tạo</div></div><span class="chev">›</span></div>`).join('')
+          || '<div class="empty">Chưa có playlist. Tạo playlist như “Nhạc trước giờ ngủ” để gom video theo ý bạn.</div>'}</div>
+      ${[['channel', '📺 Kênh YouTube'], ['playlist', '📃 Playlist YouTube']].map(([kd, t]) => {
+        const list = src.filter((s) => s.kind === kd);
+        return list.length ? `<h2>${t} (${list.length})<button class="btn link" data-a="V-go" data-v="list">Quản lý ›</button></h2><div class="card">${list.slice(0, 6).map((s) => `<div class="item tap" data-a="V-go" data-v="list"><img class="ic" src="${esc(s.thumb)}" alt=""><div class="info"><div class="t">${esc(s.title)}</div><div class="m">${s.count || 0} video${s.pending ? ` · <b class="tag-wait">${s.pending} chờ duyệt</b>` : ''}</div></div><span class="chev">›</span></div>`).join('')}${list.length > 6 ? `<button class="btn link" data-a="V-go" data-v="list">Xem tất cả ${list.length} ›</button>` : ''}</div>` : '';
+      }).join('')}
+      ${src.some((s) => s.kind === 'video') ? `<div class="card"><div class="item tap" data-a="V-go" data-v="list"><div class="ic">🎬</div><div class="info"><div class="t">Video lẻ</div><div class="m">${src.filter((s) => s.kind === 'video').length} video</div></div><span class="chev">›</span></div></div>` : ''}
+      ${!src.length ? '<div class="card"><div class="empty">Chưa có kênh YouTube nào. <button class="btn link" data-a="V-go" data-v="list">Thêm kênh ›</button></div></div>' : ''}
       <h2>Video đã lưu ❤️<button class="btn link" data-a="L2-fav">${S.favorites.length} ›</button></h2>
       <div class="v-thumbs">${S.favorites.slice(0, 6).map((f) => `<img src="${thumb(f.video_id)}" alt="" data-a="L2-fav">`).join('') || '<div class="card"><div class="empty">Lưu video hay để dùng sau.</div></div>'}</div>`;
   },

@@ -192,15 +192,22 @@ function viewList() {
     <button class="btn" data-a="add" type="submit">Thêm</button>
   </form>
   <div class="toolbar"><button class="btn small" data-a="paste">📋 Dán từ bộ nhớ</button><button class="btn small" data-a="howto">Cách lấy link?</button></div>
-  <h2>Bé được xem (${src.length})</h2>
-  <div class="card">${src.length ? src.map((s) => `
+  ${srcSections(src)}`;
+}
+// Tách rõ: Kênh YouTube · Playlist YouTube · Video lẻ (trước đây trộn chung một danh sách)
+function srcSections(src) {
+  if (!src.length) return `<h2>Bé được xem</h2><div class="card"><div class="empty">Chưa có gì.<br>Dán link kênh YouTube đầu tiên ở trên, ví dụ <b>youtube.com/@Cocomelon</b></div></div>`;
+  const row = (s) => `
     <div class="row tap" data-a="source" data-id="${s.id}">
       ${s.kind === 'video' ? `<img class="th" src="${esc(s.thumb)}" alt="">` : `<img class="av" src="${esc(s.thumb)}" alt="">`}
       <div class="info"><div class="t">${esc(s.title)}</div>
-        <div class="m"><span class="badge">${KIND[s.kind]}</span>${s.kind === 'video' ? '' : s.count + ' video'}${s.pending ? ` · <span class="pend">⏳ ${s.pending} chờ duyệt</span>` : (s.kind !== 'video' && s.approval === 'auto' ? ' · ▶ tự động' : '')}${tagLine(s.id)}</div></div>
+        <div class="m">${s.kind === 'video' ? 'Video' : s.count + ' video'}${s.pending ? ` · <span class="pend">⏳ ${s.pending} chờ duyệt</span>` : (s.kind !== 'video' && s.approval === 'auto' ? ' · ▶ tự động' : '')}${tagLine(s.id)}</div></div>
       <span class="m">›</span>
-    </div>`).join('') : `<div class="empty">Chưa có gì.<br>Dán link kênh YouTube đầu tiên ở trên, ví dụ <b>youtube.com/@Cocomelon</b></div>`}
-  </div>`;
+    </div>`;
+  return [['channel', '📺 Kênh YouTube'], ['playlist', '📃 Playlist YouTube'], ['video', '🎬 Video lẻ']].map(([k, t]) => {
+    const list = src.filter((s) => s.kind === k);
+    return list.length ? `<h2>${t} (${list.length})</h2><div class="card">${list.map(row).join('')}</div>` : '';
+  }).join('');
 }
 function tagLine(sourceId) {
   const names = S.groups.filter((g) => g.items.some((i) => i.source_id === sourceId)).map((g) => g.emoji + ' ' + g.name);
