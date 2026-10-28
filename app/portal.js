@@ -104,7 +104,19 @@ function previewFiles(input, box) {
   if (!box) return;
   box.innerHTML = [...input.files].slice(0, 12).map((f) => f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="pt-vid">🎬 ${esc(f.name.slice(0, 18))}</span>`).join('');
 }
+function videoSize(file) {
+  return new Promise((done) => {
+    const v = document.createElement('video'), u = URL.createObjectURL(file);
+    const end = (w, h) => { clearTimeout(t); URL.revokeObjectURL(u); done({ w, h }); };
+    const t = setTimeout(() => end(null, null), 4000);
+    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
+    v.onloadedmetadata = () => end(v.videoWidth || null, v.videoHeight || null);
+    v.onerror = () => end(null, null);
+    v.src = u;
+  });
+}
 async function shrink(file) {
+  if ((file.type || mimeOf(file)).startsWith('video/')) { const d = await videoSize(file); return { blob: file, type: file.type || mimeOf(file), w: d.w, h: d.h }; }
   if (!file.type.startsWith('image/') || file.type === 'image/gif') return { blob: file, type: file.type, w: null, h: null };
   try {
     const bmp = await createImageBitmap(file);
@@ -142,7 +154,7 @@ async function sendFile(entryId, f, tok, pct) {
     return;
   }
   let st;
-  try { st = await upFetch(`/media/v1/upload/start?${q}&mime=${encodeURIComponent(type)}&size=${s.blob.size}`, { method: 'POST', headers: H }); }
+  try { st = await upFetch(`/media/v1/upload/start?${q}&mime=${encodeURIComponent(type)}&size=${s.blob.size}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: H }); }
   catch (e) {   // máy chủ bản cũ chưa có tải từng phần: gửi một lần nếu ≤ 50 MB
     if (e.status !== 404 || s.blob.size > 50 * 1024 * 1024) throw e;
     pct(0); return upFetch(`/media/v1/upload?${q}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 1);
@@ -153,7 +165,7 @@ async function sendFile(entryId, f, tok, pct) {
     parts.push(await upFetch(`/media/v1/upload/part?${msg ? 'msg=' + msg + '&' : ''}id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`, { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }));
   }
   pct(1);
-  await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg ? null : entryId, msg, mime: type, parts }) });
+  await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg ? null : entryId, msg, mime: type, parts, w: s.w, h: s.h }) });
 }
 async function uploadFiles(entryId, input, btn) {
   if (!input || !input.files || !input.files.length) return 0;
@@ -258,6 +270,56 @@ function entrySheet(e) {
     savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked, mood: mood ? mood.dataset.v : null } }), $('#je-files'), 'Đã đăng') || savedId;
   });
   sheetChange = (ev) => { if (ev.target.id === 'je-files') previewFiles(ev.target, $('#je-prev')); };
+}
+// ---------- Xem ảnh/video toàn màn hình (vuốt trái/phải), tải về máy ----------
+// items: [{ url, mime }]. Trên iPhone, "Tải về" mở bảng chia sẻ để chọn "Lưu hình ảnh" / "Lưu video".
+function mediaViewer(items, start, cap) {
+  items = (items || []).filter((m) => m && m.url);
+  if (!items.length) return;
+  let k = Math.max(0, Math.min(start || 0, items.length - 1)), ready = null, x0 = null;
+  let el = $('#mv');
+  if (!el) { el = document.createElement('div'); el.id = 'mv'; el.className = 'mv hidden'; document.body.appendChild(el); }
+  const name = (m, i) => `childtube-${new Date().toISOString().slice(0, 10)}-${i + 1}.${({ 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/heic': 'heic', 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm' })[m.mime] || 'jpg'}`;
+  const paint = () => {
+    const m = items[k], vid = m.mime.startsWith('video/');
+    ready = null;
+    el.innerHTML = `<div class="mv-top"><button data-mv="x" aria-label="Đóng">✕</button><span>${items.length > 1 ? `${k + 1} / ${items.length}` : ''}</span><button data-mv="dl" class="mv-dl">⬇ Tải về</button></div>
+      <div class="mv-stage">${vid ? `<video src="${esc(m.url)}" controls playsinline autoplay></video>` : `<img src="${esc(m.url)}" alt="">`}</div>
+      ${items.length > 1 ? `<button class="mv-nav l" data-mv="prev" aria-label="Trước">‹</button><button class="mv-nav r" data-mv="next" aria-label="Sau">›</button>` : ''}
+      ${cap ? `<div class="mv-cap">${esc(cap)}</div>` : ''}`;
+  };
+  const go = (d) => { const n = k + d; if (n < 0 || n >= items.length) return; k = n; paint(); };
+  const close = () => { el.classList.add('hidden'); el.innerHTML = ''; document.body.classList.remove('mv-open'); document.removeEventListener('keydown', key); };
+  const key = (e) => { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') go(-1); else if (e.key === 'ArrowRight') go(1); };
+  const save = async (btn) => {
+    const m = items[k];
+    try {
+      if (ready && navigator.share) { await navigator.share({ files: [ready] }); return; }   // lần bấm thứ hai (iPhone cần thao tác tay để mở bảng chia sẻ)
+      btn.textContent = 'Đang tải…'; btn.disabled = true;
+      const blob = await (await fetch(m.url)).blob();
+      const file = new File([blob], name(m, k), { type: m.mime });
+      btn.disabled = false; btn.textContent = '⬇ Tải về';
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        ready = file;
+        try { await navigator.share({ files: [file] }); } catch (e) { if (e.name === 'NotAllowedError') btn.textContent = '📥 Bấm để lưu'; }
+        return;
+      }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    } catch (e) { btn.disabled = false; btn.textContent = '⬇ Tải về'; if (e.name !== 'AbortError') toast('Chưa tải về được: ' + e.message, true); }
+  };
+  el.onclick = (e) => {
+    const b = e.target.closest('[data-mv]');
+    if (!b) { if (e.target === el || e.target.classList.contains('mv-stage')) close(); return; }
+    const a = b.dataset.mv;
+    if (a === 'x') close(); else if (a === 'prev') go(-1); else if (a === 'next') go(1); else if (a === 'dl') save(b);
+  };
+  el.ontouchstart = (e) => { x0 = e.touches[0].clientX; };
+  el.ontouchend = (e) => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); };
+  document.addEventListener('keydown', key);
+  document.body.classList.add('mv-open');
+  el.classList.remove('hidden');
+  paint();
 }
 function imageSheet(src, cap) { sheet(`<img class="pt-full" src="${esc(src)}" alt="">${cap ? `<div class="hint">${esc(cap)}</div>` : ''}<button class="btn primary" data-a="x">Đóng</button>`, () => closeSheet()); }
 

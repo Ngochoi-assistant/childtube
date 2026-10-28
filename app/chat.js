@@ -328,8 +328,12 @@ const ROLE_NAME = (r) => ({ owner: 'Bố mẹ', parent: 'Bố mẹ', relative: '
 
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a^="C-"]');
-  const img = e.target.closest('#chat [data-a="P-img"]');
-  if (img) return imageSheet(img.dataset.src, img.dataset.cap);
+  const img = e.target.closest('#chat [data-a="P-img"], #chat [data-a="C-play"]');
+  if (img) {   // xem toàn màn hình mọi ảnh/video của tin, tải về được
+    const mm = Chat.msgs.find((x) => x.id === img.closest('.ch-msg').dataset.id), md = ((mm && mm.media) || []).filter((x) => x.url);
+    const i = [...img.parentElement.children].filter((x) => x.matches('img, .fd-vid')).indexOf(img);
+    return mediaViewer(md.map((x) => ({ url: mediaUrl(x.url), mime: x.mime })), Math.max(0, i), mm && mm.body || '');
+  }
   if (!b) return;
   const a = b.dataset.a, m = Chat.msgs.find((x) => x.id === b.dataset.id);
   if (a === 'C-open') return Chat.openChat(b.dataset.id);

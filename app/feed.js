@@ -53,10 +53,10 @@ const Feed = {
     // iPhone không vẽ khung đầu của video nếu thiếu #t và muted → để trống; chạm ▶ thì phát ngay trong bài
     const one = media.length === 1 ? media[0] : null;
     const ratio = one ? (one.w && one.h ? Math.max(0.56, Math.min(1.6, one.w / one.h)) : one.mime.startsWith('video/') ? 0.8 : 1) : 0;
-    const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 3)}"${one ? ` style="aspect-ratio:${ratio.toFixed(3)}"` : ''}>${media.slice(0, 3).map((m, i) => (m.mime.startsWith('image/')
-      ? `<img src="${esc(mediaUrl(m.url))}" alt="" decoding="async" data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}">`
-      : `<div class="fd-vid" data-a="F2-play"><video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play big">▶</span></div>`)
-      + (i === 2 && media.length > 3 ? `<span class="fd-more">+${media.length - 3}</span>` : '')).join('')}</div>` : '';
+    const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 4)}"${one ? ` style="aspect-ratio:${ratio.toFixed(3)}"` : ''}>${media.slice(0, 4).map((m, i) => (m.mime.startsWith('image/')
+      ? `<img src="${esc(mediaUrl(m.url))}" alt="" decoding="async" data-a="F2-view" data-id="${e.id}" data-i="${i}">`
+      : `<div class="fd-vid" data-a="F2-view" data-id="${e.id}" data-i="${i}"><video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play big">▶</span></div>`)
+      + (i === 3 && media.length > 4 ? `<span class="fd-more" data-a="F2-view" data-id="${e.id}" data-i="3">+${media.length - 4}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
     const text = special ? '' : `<div class="fd-text">${kind && e.kind !== 'checkin' ? `<span class="fd-tag">${kind}</span>` : ''}${d.lesson ? '<span class="fd-tag">🎓 Dạy bé · có trên TV</span>' : ''}${e.title ? `<b>${esc(e.title)}</b> ` : ''}${moodI ? `<span class="fd-mood">${moodI} ${k ? esc(k.name) + ' ' : ''}${esc(d.mood)}</span> ` : ''}${esc(e.body || '')}
@@ -92,6 +92,11 @@ $('#view').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a^="F2-"]');
   if (!b) return;
   const a = b.dataset.a, id = b.dataset.id, k = curKid();
+  if (a === 'F2-view') {   // xem toàn màn hình mọi ảnh/video của bài, tải về được
+    const en = (Feed.list || []).find((x) => x.id === id);
+    if (en) mediaViewer(en.media.filter((m) => m.url).map((m) => ({ url: mediaUrl(m.url), mime: m.mime })), +b.dataset.i || 0, en.title || en.body || '');
+    return;
+  }
   if (a === 'F2-play') {   // phát video ngay trong bài: bật tiếng, hiện thanh điều khiển; video khác đang chạy thì dừng
     const v = b.querySelector('video');
     if (b.classList.contains('on')) return;
@@ -123,6 +128,12 @@ $('#view').addEventListener('click', async (e) => {
     }
   } catch (err) { toast(err.message, true); }
 });
+// Video cũ chưa lưu kích thước: đọc được khung hình thì chỉnh khung bài đăng cho vừa (dọc/ngang)
+$('#view').addEventListener('loadedmetadata', (e) => {
+  const v = e.target, box = v.closest && v.closest('.fd-media.n1');
+  if (!box || !v.videoWidth || !v.videoHeight) return;
+  box.style.aspectRatio = Math.max(0.56, Math.min(1.6, v.videoWidth / v.videoHeight)).toFixed(3);
+}, true);
 // Giữ lâu nút "Thương" (hoặc di chuột trên máy tính) để chọn cảm xúc khác
 let feedHold = null;
 const feedPick = (id) => { document.querySelectorAll('.fd-pick').forEach((x) => x.classList.toggle('hidden', x.id !== 'pick-' + id)); };
