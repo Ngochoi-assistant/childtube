@@ -50,8 +50,12 @@ const Feed = {
     const d = e.data || {};
     const moodI = { vui: '😄', 'bình thường': '🙂', mệt: '🥱', buồn: '😢', cáu: '😠' }[d.mood];
     const media = e.media.filter((m) => m.url);
-    const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 3)}">${media.slice(0, 3).map((m, i) => (m.mime.startsWith('image/')
-      ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="lazy" data-a="P-img" data-src="${esc(mediaUrl(m.url))}">` : `<video src="${esc(mediaUrl(m.url))}" controls playsinline preload="metadata"></video>`)
+    // iPhone không vẽ khung đầu của video nếu thiếu #t và muted → để trống; chạm ▶ thì phát ngay trong bài
+    const one = media.length === 1 ? media[0] : null;
+    const ratio = one ? (one.w && one.h ? Math.max(0.56, Math.min(1.6, one.w / one.h)) : one.mime.startsWith('video/') ? 0.8 : 1) : 0;
+    const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 3)}"${one ? ` style="aspect-ratio:${ratio.toFixed(3)}"` : ''}>${media.slice(0, 3).map((m, i) => (m.mime.startsWith('image/')
+      ? `<img src="${esc(mediaUrl(m.url))}" alt="" decoding="async" data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}">`
+      : `<div class="fd-vid" data-a="F2-play"><video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play big">▶</span></div>`)
       + (i === 2 && media.length > 3 ? `<span class="fd-more">+${media.length - 3}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
@@ -89,6 +93,14 @@ $('#view').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a^="F2-"]');
   if (!b) return;
   const a = b.dataset.a, id = b.dataset.id, k = curKid();
+  if (a === 'F2-play') {   // phát video ngay trong bài: bật tiếng, hiện thanh điều khiển; video khác đang chạy thì dừng
+    const v = b.querySelector('video');
+    if (b.classList.contains('on')) return;
+    document.querySelectorAll('.fd-vid.on video').forEach((x) => x.pause());
+    b.classList.add('on'); v.muted = false; v.controls = true;
+    const p = v.play(); if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => {}); });
+    return;
+  }
   const entry = (Feed.list || []).find((x) => x.id === id);
   try {
     if (a === 'F2-write') return entrySheet(null);

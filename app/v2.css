@@ -296,3 +296,14 @@ body.v2 .tabs #tab-kid span.tk-av { width: 30px; height: 30px; border-radius: 50
 .kp-row em { font-style: normal; font-size: 13px; color: var(--mute); }
 .kp-row i { font-style: normal; color: var(--brand); font-weight: 800; font-size: 18px; }
 .kp-row .kb-av { width: 44px; height: 44px; font-size: 24px; }
+
+/* Ảnh, video trong bài đăng: khung có tỉ lệ sẵn (không bị trắng/sụp), video chạm ▶ là phát tại chỗ */
+.fd-media.n1 { max-height: 560px; overflow: hidden; }
+.fd-media.n1 > img, .fd-media.n1 > .fd-vid { height: 100%; max-height: none; }
+.fd-vid { position: relative; background: #111; overflow: hidden; cursor: pointer; min-height: 160px; }
+.fd-vid video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.fd-vid.on video { object-fit: contain; }
+.fd-vid .fd-play.big { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; background: rgba(0,0,0,.5);
+  color: #fff; display: grid; place-items: center; font-size: 22px; padding-left: 4px; pointer-events: none; box-shadow: 0 0 0 2px rgba(255,255,255,.7); }
+.fd-vid.on .fd-play { display: none; }
+.fd-media.n2 .fd-vid, .fd-media.n3 .fd-vid { min-height: 0; height: 100%; }
