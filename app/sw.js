@@ -1,5 +1,5 @@
 // Service worker tối giản: cho phép cài app ra màn hình chính và mở nhanh khi mạng chậm.
-const CACHE = 'childtube-v39';
+const CACHE = 'childtube-v42';
 const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'wizard.js', 'library.js', 'library.css', 'ai-chat.js', 'family.js', 'portal.js', 'v2.css', 'charts.js', 'shell.js', 'today.js', 'learn.js', 'feed.js', 'journey.js', 'familyhub.js', 'chat.js', '../config.js', '../ct-client.js', 'icon-192.png', 'logo.svg'];
 
 self.addEventListener('install', (e) => {

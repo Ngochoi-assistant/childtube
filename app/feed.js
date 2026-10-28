@@ -75,8 +75,7 @@ const Feed = {
       ${text}${special}${grid}
       ${who || cm.length ? `<div class="fd-sum"><span>${who}</span>${cm.length ? `<button data-a="F2-cm" data-id="${e.id}">${cm.length} bình luận</button>` : ''}</div>` : ''}
       <div class="fd-bar">
-        <button class="${r.mine ? 'on' : ''}" data-a="F2-love" data-id="${e.id}">${r.mine || '🤍'} ${r.mine ? 'Đã thả' : 'Thương'}</button>
-        <button data-a="F2-pick" data-id="${e.id}" aria-label="Chọn cảm xúc">😊</button>
+        <button class="fd-love ${r.mine ? 'on' : ''}" data-a="F2-love" data-id="${e.id}" aria-label="Thả cảm xúc (giữ để chọn)">${r.mine || '🤍'} ${r.mine ? ({ '❤️': 'Thương', '😂': 'Haha', '👏': 'Giỏi quá', '😮': 'Wow', '🥹': 'Xúc động' }[r.mine] || 'Đã thả') : 'Thương'}</button>
         <button data-a="F2-cm" data-id="${e.id}">💬 Bình luận</button>
         ${canAssess && e.child_id ? `<button data-a="F2-ass" data-id="${e.id}" data-k="${e.child_id}">🌟 Ghi năng lực</button>` : ''}</div>
       <div class="fd-pick hidden" id="pick-${e.id}">${this.REACTS.map((x) => `<button data-a="F2-react" data-id="${e.id}" data-v="${x}">${x}</button>`).join('')}</div>
@@ -109,6 +108,7 @@ $('#view').addEventListener('click', async (e) => {
     if (a === 'F2-mood') return checkinSheet(k ? k.id : null);
     if (a === 'F2-goto') { const p = document.querySelector(`.fd-post[data-id="${id}"]`); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (a === 'F2-filter') { Feed.filter = b.dataset.v; return render(); }
+    if (a === 'F2-love' && Date.now() - (Feed.held || 0) < 900) return;   // vừa giữ lâu để mở bảng chọn: không thả tim
     if (a === 'F2-love') { await rpc('ct_react', { p_entry: id, p_emoji: entry && entry.reactions.mine ? null : '❤️' }); return Feed.refresh(); }
     if (a === 'F2-pick') return $('#pick-' + id).classList.toggle('hidden');
     if (a === 'F2-react') { await rpc('ct_react', { p_entry: id, p_emoji: entry && entry.reactions.mine === b.dataset.v ? null : b.dataset.v }); return Feed.refresh(); }
@@ -122,6 +122,20 @@ $('#view').addEventListener('click', async (e) => {
       });
     }
   } catch (err) { toast(err.message, true); }
+});
+// Giữ lâu nút "Thương" (hoặc di chuột trên máy tính) để chọn cảm xúc khác
+let feedHold = null;
+const feedPick = (id) => { document.querySelectorAll('.fd-pick').forEach((x) => x.classList.toggle('hidden', x.id !== 'pick-' + id)); };
+$('#view').addEventListener('touchstart', (e) => {
+  const b = e.target.closest('[data-a="F2-love"]'); if (!b) return;
+  feedHold = setTimeout(() => { Feed.held = Date.now(); feedPick(b.dataset.id); if (navigator.vibrate) navigator.vibrate(15); }, 420);
+}, { passive: true });
+['touchend', 'touchmove', 'touchcancel'].forEach((t) => $('#view').addEventListener(t, () => clearTimeout(feedHold), { passive: true }));
+$('#view').addEventListener('contextmenu', (e) => { const b = e.target.closest('[data-a="F2-love"]'); if (b) { e.preventDefault(); Feed.held = Date.now(); feedPick(b.dataset.id); } });
+$('#view').addEventListener('mouseover', (e) => {
+  if ('ontouchstart' in window) return;
+  const b = e.target.closest('[data-a="F2-love"]'); if (!b) return;
+  clearTimeout(feedHold); feedHold = setTimeout(() => feedPick(b.dataset.id), 600);
 });
 $('#view').addEventListener('submit', async (e) => {
   const f = e.target.closest('.fd-reply');

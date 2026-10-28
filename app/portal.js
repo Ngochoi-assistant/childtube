@@ -4,6 +4,7 @@
 const P = { ov: null, jr: null, gal: null, ap: null, jSeg: 'time', jChild: '', jKind: '' };
 const MOOD = [['vui', '😄', 'Vui'], ['bình thường', '🙂', 'Bình thường'], ['mệt', '🥱', 'Mệt'], ['buồn', '😢', 'Buồn'], ['cáu', '😠', 'Cáu']];
 const MOOD_ICON = Object.fromEntries(MOOD.map(([k, i]) => [k, i]));
+const JMOOD = [['vui', '😄'], ['bình thường', '🙂'], ['mệt', '🥱'], ['buồn', '😢'], ['cáu', '😠']];   // cảm xúc của bé (giống ghi nhanh)
 const JKIND = { checkin: ['☀️', 'Ghi nhanh'], note: ['📝', 'Ghi chú'], milestone: ['🌟', 'Cột mốc'], achievement: ['🏆', 'Thành tích'], feedback: ['🧑‍🏫', 'Nhận xét'], activity: ['🎨', 'Hoạt động'] };
 const PRIV = { family: '👨‍👩‍👧 Gia đình', parents: '🔒 Chỉ bố mẹ', sensitive: '⚠️ Nhạy cảm' };
 const INTERESTS = ['khủng long', 'xe cộ', 'vũ trụ', 'động vật', 'vẽ', 'âm nhạc', 'xếp hình', 'sách', 'robot', 'nấu ăn', 'thể thao', 'thiên nhiên'];
@@ -240,6 +241,7 @@ function entrySheet(e) {
   sheet(`<h3>${isNew ? '📝 Ghi Nhật ký' : '✎ Sửa mục ghi'}</h3>
     <label>Loại</label><select id="je-kind">${Object.entries(JKIND).filter(([k]) => k !== 'feedback' && k !== 'checkin').map(([k, [i, t]]) => `<option value="${k}" ${e.kind === k ? 'selected' : ''}>${i} ${t}</option>`).join('')}</select>
     <label>Bé</label><select id="je-kid"><option value="">👨‍👩‍👧 Cả nhà</option>${kids.map((k) => `<option value="${k.id}" ${e.child_id === k.id ? 'selected' : ''}>${esc(k.emoji)} ${esc(k.name)}</option>`).join('')}</select>
+    <label>Cảm xúc của bé</label><div class="chips je-mood">${JMOOD.map(([v, i]) => `<button type="button" class="chip ${e.data && e.data.mood === v ? 'on' : ''}" data-a="je-mood" data-v="${v}">${i} ${v[0].toUpperCase() + v.slice(1)}</button>`).join('')}</div>
     <label>Tiêu đề</label><input id="je-title" value="${esc(e.title)}" maxlength="120" placeholder="Ví dụ: Bin tự đi xe đạp">
     <label>Nội dung</label><textarea id="je-body" rows="4" placeholder="Chuyện gì đã xảy ra, bé nói gì, cảm xúc thế nào…">${esc(e.body)}</textarea>
     <div class="pt-two"><div><label>Ngày</label><input id="je-day" type="date" value="${esc(e.day)}"></div>
@@ -250,8 +252,10 @@ function entrySheet(e) {
     ${(e.media || []).length ? `<div class="pt-media">${e.media.filter((m) => m.url).map((m) => `<span class="pt-mx"><img src="${esc(mediaUrl(m.url))}" alt=""><button class="icon-btn" data-a="je-mdel" data-id="${m.id}">✕</button></span>`).join('')}</div>` : ''}
     <button class="btn primary" data-a="je-save">Lưu</button>`, async (a, b) => {
     if (a === 'je-mdel') { if (!confirm('Xoá ảnh này?')) return; try { await rpc('ct_media_delete', { p_id: b.dataset.id }); b.parentElement.remove(); } catch (err) { toast(err.message, true); } return; }
+    if (a === 'je-mood') { const on = !b.classList.contains('on'); b.parentElement.querySelectorAll('.chip').forEach((x) => x.classList.remove('on')); b.classList.toggle('on', on); return; }
     if (a !== 'je-save') return;
-    savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked } }), $('#je-files'), 'Đã đăng') || savedId;
+    const mood = $('#sheet-body .je-mood .chip.on');
+    savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked, mood: mood ? mood.dataset.v : null } }), $('#je-files'), 'Đã đăng') || savedId;
   });
   sheetChange = (ev) => { if (ev.target.id === 'je-files') previewFiles(ev.target, $('#je-prev')); };
 }

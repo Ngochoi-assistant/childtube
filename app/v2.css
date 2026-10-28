@@ -311,9 +311,13 @@ body.v2 .tabs #tab-kid span.tk-av { width: 30px; height: 30px; border-radius: 50
 /* ---- Tin nhắn nội bộ (kiểu Zalo) ---- */
 .v-chat { margin-left: auto; }
 .v-chat + .v-bell { margin-left: 8px; }
-.chat { position: fixed; inset: 0; z-index: 30; background: var(--bg, #f4f2ee); display: flex; flex-direction: column; }
-body.chat-open { overflow: hidden; }
-.ch-top { display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top)) 12px 10px; background: var(--card); border-bottom: 1px solid var(--line); }
+.chat { position: fixed; top: 0; left: 0; right: 0; height: 100%; z-index: 30; background: #e9edf2; display: flex; flex-direction: column; overflow: hidden; }
+/* khoá trang phía sau để bàn phím iPhone không cuộn cả trang (header chat luôn ở trên) */
+body.chat-open { position: fixed; left: 0; right: 0; overflow: hidden; }
+.ch-top { flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: calc(8px + env(safe-area-inset-top)) 8px 8px; background: linear-gradient(90deg, #0068ff, #0a84ff); color: #fff; }
+.ch-top .icon-btn { background: none; color: #fff; font-size: 17px; border: 0; min-width: 38px; height: 38px; white-space: nowrap; padding: 0 6px; flex-shrink: 0; }
+.ch-top .ch-back { color: #fff; }
+.ch-top .ch-title em { color: rgba(255,255,255,.85); }
 .ch-top h2 { font-size: 21px; margin: 0; flex: 1; }
 .ch-back { border: 0; background: none; font-size: 32px; line-height: 1; padding: 0 6px 4px 0; color: var(--ink); }
 .ch-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
@@ -374,3 +378,82 @@ body.chat-open { overflow: hidden; }
 .ch-person { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
 .ch-person input { width: 20px; height: 20px; margin: 0; }
 .ch-person span { font-size: 22px; } .ch-person b { flex: 1; } .ch-person em { font-style: normal; color: var(--mute); font-size: 13px; }
+.ch-msgs { min-height: 0; }
+.ch-comp, .ch-prev { flex-shrink: 0; }
+.ch-search { display: block; width: calc(100% - 24px); margin: 10px 12px 2px; border: 0; border-radius: 10px; background: var(--card); color: var(--mute); text-align: left; padding: 10px 12px; font: 15px system-ui, sans-serif; }
+.ch-list { background: var(--card); margin-top: 8px; }
+.ch-row2 { display: flex; align-items: flex-end; gap: 6px; }
+.ch-row2.me { justify-content: flex-end; }
+.ch-face { width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.ch-face:not(:empty) { background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.ch-row2 .ch-msg { max-width: 78%; }
+.ch-row2.me .ch-msg { margin-left: 0; }
+.ch-msg.me .ch-bub { background: #d7e8ff; color: #0b1a2e; }
+.ch-find { display: flex; gap: 8px; margin: 6px 0; }
+.ch-find input { flex: 1; margin: 0; }
+.ch-person.pick { width: 100%; font: inherit; color: var(--ink); text-align: left; }
+.ch-person.pick i { font-style: normal; font-size: 18px; }
+
+/* ---- Chat theo mẫu Zalo: tên + chữ + giờ trong bong bóng, ảnh to bo góc, tim góc dưới, nền tối theo điện thoại ---- */
+.chat { --cb-bg: #e2e9f1; --cb-other: #fff; --cb-me: #e5efff; --cb-me-bd: #c6dcff; --cb-ink: #081c36; --cb-mute: #7589a3; --cb-bar: #fff; --cb-line: #e3e8ee; --cb-pill: rgba(0,0,0,.18); background: var(--cb-bg); color: var(--cb-ink); }
+@media (prefers-color-scheme: dark) {
+  .chat { --cb-bg: #000; --cb-other: #2b2b2d; --cb-me: #2a3b52; --cb-me-bd: #3d5677; --cb-ink: #f2f4f7; --cb-mute: #9aa4b2; --cb-bar: #1c1c1e; --cb-line: #2c2c2e; --cb-pill: rgba(255,255,255,.12); }
+  .chat .ch-top { background: #1c1c1e; }
+  .chat .ch-face:not(:empty) { background: #2b2b2d; }
+}
+.chat .ch-msgs { background: var(--cb-bg); padding: 8px 10px 16px; }
+.chat .ch-day { margin: 16px 0 10px; }
+.chat .ch-day span { display: inline-block; background: var(--cb-pill); color: #fff; font-size: 12px; padding: 3px 10px; border-radius: 10px; }
+.chat .ch-row2 { margin-top: 8px; }
+.chat .ch-row2 .ch-msg { margin-top: 0; max-width: 80%; }
+.chat .ch-msg.cont { margin-top: -4px; }
+.chat .ch-bub { position: relative; background: var(--cb-other); color: var(--cb-ink); border-radius: 14px; padding: 8px 12px 6px; min-width: 70px; box-shadow: 0 1px 1px rgba(0,0,0,.06); border: 1px solid transparent; }
+.chat .ch-msg.me .ch-bub { background: var(--cb-me); color: var(--cb-ink); border-color: var(--cb-me-bd); }
+.chat .ch-by { font-size: 13px; font-weight: 600; margin: 0 0 2px; }
+.chat .ch-by.out { margin: 0 0 4px 4px; }
+.chat .ch-txt { font-size: 16px; line-height: 1.4; word-break: break-word; }
+.chat .ch-time { display: block; font-style: normal; font-size: 11.5px; color: var(--cb-mute); margin-top: 4px; }
+.chat .ch-bub.gone { color: var(--cb-mute); background: transparent; border-color: var(--cb-line); }
+.chat .ch-media { width: 72vw; max-width: 300px; border-radius: 14px; border: 1px solid var(--cb-line); overflow: visible; position: relative; margin-bottom: 4px; }
+.chat .ch-media > img, .chat .ch-media > .fd-vid { border-radius: 0; }
+.chat .ch-media.n1 > img, .chat .ch-media.n1 > .fd-vid { border-radius: 13px; height: 100%; max-height: 420px; aspect-ratio: auto; }
+.chat .ch-media.n1:not([style]) > img { max-height: 420px; height: auto; }
+.chat .ch-media:not(.n1) { overflow: hidden; }
+.chat .ch-rx { position: absolute; right: -6px; bottom: -12px; display: flex; gap: 4px; align-items: center; z-index: 1; }
+.chat .ch-media .ch-rx { right: 6px; bottom: -12px; }
+.chat .ch-bub:has(.ch-rx) { margin-bottom: 12px; }
+.chat .ch-media:has(.ch-rx) { margin-bottom: 14px; }
+.chat .ch-heart, .chat .ch-rx-n { border: 0; border-radius: 14px; background: var(--cb-bar); color: var(--cb-mute); box-shadow: 0 1px 3px rgba(0,0,0,.18); font: 600 13px system-ui, sans-serif; height: 26px; }
+.chat .ch-heart { width: 26px; padding: 0; font-size: 15px; }
+.chat .ch-heart.on { color: #e5533d; }
+.chat .ch-rx-n { padding: 0 8px; color: var(--cb-ink); }
+.chat .ch-pin { margin-top: 2px; align-self: flex-start; background: transparent; border-color: var(--cb-line); color: var(--cb-mute); font-weight: 600; }
+.chat .ch-msg.me .ch-pin { align-self: flex-end; }
+.chat .ch-pinned { font-size: 12px; margin: 2px 4px 0; }
+.chat .ch-seen { color: var(--cb-mute); }
+.chat .ch-hello b { color: var(--cb-ink); }
+/* thanh nhập */
+.chat .ch-comp { background: var(--cb-bar); border-top: 1px solid var(--cb-line); align-items: center; gap: 4px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+.chat .ch-comp textarea { background: transparent; border: 0; color: var(--cb-ink); padding: 8px 6px; font-size: 16px; }
+.chat .ch-comp textarea::placeholder { color: var(--cb-mute); }
+.chat .ch-ico { border: 0; background: none; font-size: 24px; padding: 4px 6px; line-height: 1; cursor: pointer; }
+.chat .ch-send { display: none; width: 38px; height: 38px; background: #0068ff; }
+.chat .ch-comp.typing .ch-send { display: block; }
+.chat .ch-comp.typing .ch-pic { display: none; }
+.chat .ch-emo { display: flex; flex-wrap: wrap; gap: 2px; padding: 6px 8px; background: var(--cb-bar); border-top: 1px solid var(--cb-line); }
+.chat .ch-emo.hidden { display: none; }
+.chat .ch-emo button { border: 0; background: none; font-size: 26px; padding: 4px 6px; }
+.chat .ch-prev { background: var(--cb-bar); border-color: var(--cb-line); }
+/* danh sách trò chuyện */
+.chat .ch-list { background: var(--cb-bar); }
+.chat .ch-row { color: var(--cb-ink); border-bottom: 1px solid var(--cb-line); }
+.chat .ch-mid em, .chat .ch-end { color: var(--cb-mute); }
+.chat .ch-search { background: var(--cb-bar); color: var(--cb-mute); }
+.ch-rxpick { display: flex; justify-content: space-around; margin: 8px 0 14px; }
+.ch-rxpick button { border: 0; background: var(--chip); border-radius: 50%; width: 48px; height: 48px; font-size: 26px; }
+.ch-rxpick button.on { box-shadow: 0 0 0 2px var(--brand); }
+
+/* Một nút cảm xúc như Facebook: chạm = thả tim, giữ = chọn cảm xúc */
+.fd-love { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.fd-love.on { color: #e5533d; font-weight: 700; }
+.je-mood .chip.on { background: var(--brand-soft); border-color: var(--brand); color: var(--ink); }
