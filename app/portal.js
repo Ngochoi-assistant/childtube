@@ -130,27 +130,29 @@ async function upFetch(path, opt, tries = 3) {
     await new Promise((ok) => setTimeout(ok, 1500 * i));
   }
 }
+// entryId: id mục Nhật ký, hoặc 'msg=<id>' để gắn vào tin nhắn
 async function sendFile(entryId, f, tok, pct) {
   const H = { Authorization: 'Bearer ' + tok };
+  const q = String(entryId).includes('=') ? String(entryId) : 'entry=' + entryId, msg = q.startsWith('msg=') ? q.slice(4) : null;
   const s = await shrink(f), type = s.type || mimeOf(f);
   if (s.blob.size <= BIG) {
     pct(0);
-    await upFetch(`/media/v1/upload?entry=${entryId}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 2);
+    await upFetch(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 2);
     return;
   }
   let st;
-  try { st = await upFetch(`/media/v1/upload/start?entry=${entryId}&mime=${encodeURIComponent(type)}&size=${s.blob.size}`, { method: 'POST', headers: H }); }
+  try { st = await upFetch(`/media/v1/upload/start?${q}&mime=${encodeURIComponent(type)}&size=${s.blob.size}`, { method: 'POST', headers: H }); }
   catch (e) {   // máy chủ bản cũ chưa có tải từng phần: gửi một lần nếu ≤ 50 MB
     if (e.status !== 404 || s.blob.size > 50 * 1024 * 1024) throw e;
-    pct(0); return upFetch(`/media/v1/upload?entry=${entryId}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 1);
+    pct(0); return upFetch(`/media/v1/upload?${q}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 1);
   }
   const parts = [];
   for (let n = 1, o = 0; o < s.blob.size; n++, o += st.part) {
     pct(o / s.blob.size);
-    parts.push(await upFetch(`/media/v1/upload/part?id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`, { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }));
+    parts.push(await upFetch(`/media/v1/upload/part?${msg ? 'msg=' + msg + '&' : ''}id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`, { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }));
   }
   pct(1);
-  await upFetch('/media/v1/upload/done', { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: entryId, mime: type, parts }) });
+  await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg ? null : entryId, msg, mime: type, parts }) });
 }
 async function uploadFiles(entryId, input, btn) {
   if (!input || !input.files || !input.files.length) return 0;

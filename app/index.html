@@ -21,6 +21,7 @@
 <header class="top">
   <div class="brand"><span class="logo"></span>ChildTube</div>
   <div class="fam" id="fam-name"></div>
+  <button class="v-bell v-chat" id="v-chat" data-a="C-chat" aria-label="Tin nhắn">💬<b class="hidden">0</b></button>
   <button class="v-bell" id="v-bell" data-a="V-bell" aria-label="Việc cần bạn">🔔<b class="hidden">0</b></button>
 </header>
 
@@ -50,6 +51,7 @@
   <div id="view"></div>
 </main>
 
+<div id="chat" class="chat hidden"></div>
 <nav id="tabs" class="tabs hidden">
   <button data-tab="feed" class="on"><span>📔</span>Nhật ký</button>
   <button data-tab="today"><span>☀️</span>Hôm nay<i class="count hidden" id="pend-count"></i></button>
@@ -77,5 +79,6 @@
 <script src="learn.js"></script>
 <script src="feed.js"></script>
 <script src="familyhub.js"></script>
+<script src="chat.js"></script>
 </body>
 </html>
