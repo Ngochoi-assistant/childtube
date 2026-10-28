@@ -1,4 +1,4 @@
-// ChildTube — khung giao diện bản 2: 4 tab (Nhật ký · Hôm nay · Học · Gia đình), chọn bé ở trên cùng, chuông "Cần bạn".
+// ChildTube — khung giao diện bản 2: 4 tab (Nhật ký · Hôm nay · Học · Gia đình) + nút bé ở cuối thanh tab (kiểu ảnh đại diện Facebook), chuông "Cần bạn".
 // Các màn hình cũ (duyệt video, kênh, lịch sử, thư viện, tìm, cài đặt) vẫn dùng được như trang con có nút quay lại.
 
 const V = { child: null, back: 'today', counts: null };
@@ -28,7 +28,27 @@ function kidbarHtml() {
   return `<div class="kb">${ks.map((x) => av(x.id, x.emoji, x.name + (kidAge(x) ? ' · ' + kidAge(x).replace(' tuổi', 't') : ''), k && k.id === x.id)).join('')}
     ${ks.length > 1 ? av('all', '👨‍👩‍👧', 'Cả nhà', !k) : ''}${!ks.length ? '<button class="kb-kid" data-a="V-addkid"><span class="kb-av">＋</span><span class="kb-n">Thêm bé</span></button>' : ''}</div>`;
 }
+// Nút bé ở cuối thanh tab: ảnh đại diện + tên bé đang xem; chạm để đổi bé
+function kidTab() {
+  const el = $('#tab-kid'); if (!el) return;
+  const ks = kids(), k = curKid();
+  el.querySelector('.tk-av').textContent = k ? k.emoji || '🧒' : ks.length ? '👨‍👩‍👧' : '＋';
+  el.querySelector('.tk-n').textContent = k ? k.name + (kidAge(k) ? ' · ' + kidAge(k).replace(' tuổi', 't') : '') : ks.length ? 'Cả nhà' : 'Thêm bé';
+}
+function kidPicker() {
+  const ks = kids(), k = curKid();
+  if (!ks.length) return vGo('settings');
+  const row = (id, emoji, name, sub, on) => `<button class="kp-row ${on ? 'on' : ''}" data-a="kp" data-id="${id}"><span class="kb-av">${esc(emoji)}</span><span><b>${esc(name)}</b><em>${esc(sub)}</em></span>${on ? '<i>✓</i>' : ''}</button>`;
+  sheet(`<h3>Đang xem nhật ký, bài học của</h3><div class="kp">${ks.map((x) => row(x.id, x.emoji || '🧒', x.name, kidAge(x) || '', k && k.id === x.id)).join('')}
+    ${ks.length > 1 ? row('all', '👨‍👩‍👧', 'Cả nhà', 'Tất cả các bé', !k) : ''}
+    ${S.restricted ? '' : '<button class="kp-row" data-a="kp-add"><span class="kb-av">＋</span><span><b>Thêm bé</b><em>Tên, ngày sinh</em></span></button>'}</div>`, (a, b) => {
+    closeSheet();
+    if (a === 'kp') setKid(b.dataset.id);
+    else if (a === 'kp-add') vGo('settings');
+  });
+}
 function topbar() {
+  kidTab();
   const n = V.counts == null ? (typeof pendTotal === 'function' ? pendTotal() : 0) : V.counts;
   const bell = $('#v-bell');
   if (bell) { bell.querySelector('b').textContent = n > 99 ? '99+' : n; bell.querySelector('b').classList.toggle('hidden', !n); }
@@ -68,7 +88,7 @@ render = function () {
   view.insertAdjacentHTML('afterbegin', `<div class="v-sub"><button class="v-back" data-a="V-back">‹</button><b>${esc(SUB_TITLE[tab] || '')}</b></div>`);
 };
 // tiêu đề trang (dùng trong các màn hình mới)
-const pageHead = (title, sub) => `<div class="v-head">${kidbarHtml()}<h1>${title}</h1>${sub ? `<div class="v-subt">${sub}</div>` : ''}</div>`;
+const pageHead = (title, sub) => `<div class="v-head"><h1>${title}</h1>${sub ? `<div class="v-subt">${sub}</div>` : ''}</div>`;
 
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-a^="V-"]');
@@ -79,4 +99,5 @@ document.addEventListener('click', (e) => {
   if (a === 'V-bell') return vGo('review');
   if (a === 'V-go') return vGo(b.dataset.v);
   if (a === 'V-addkid') return vGo('settings');
+  if (a === 'V-kidpick') return kidPicker();
 });

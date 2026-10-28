@@ -282,3 +282,17 @@ body.v2 .switch, body.v2 label { color: var(--ink); }
 .fd-story.vid .fd-sav { z-index: 1; }
 .fd-story.vid .fd-st { position: relative; z-index: 1; }
 .fd-story.vid::after { content: ""; position: absolute; inset: 0; box-shadow: inset 0 -60px 40px -24px rgba(0,0,0,.55); pointer-events: none; }
+
+/* Nút bé ở cuối thanh tab (giống ảnh đại diện trên thanh tab Facebook) */
+#tab-kid em { font-style: normal; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+body.v2 .tabs #tab-kid span.tk-av { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 19px;
+  background: var(--brand-soft); box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--brand); filter: none; opacity: 1; margin: -2px 0 3px; }
+#tab-kid { color: var(--ink); font-weight: 600; }
+.kp { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.kp-row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); }
+.kp-row.on { border-color: var(--brand); background: var(--brand-soft); }
+.kp-row > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; }
+.kp-row b { font-size: 16px; }
+.kp-row em { font-style: normal; font-size: 13px; color: var(--mute); }
+.kp-row i { font-style: normal; color: var(--brand); font-weight: 800; font-size: 18px; }
+.kp-row .kb-av { width: 44px; height: 44px; font-size: 24px; }
