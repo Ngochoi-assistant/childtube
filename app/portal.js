@@ -166,16 +166,17 @@ function upXhr(path, opt, onProg, tries = 3) {
   })();
 }
 // entryId: id mục Nhật ký, hoặc 'msg=<id>' để gắn vào tin nhắn. pct(0..1) báo tiến độ của tệp này.
-// Video lớn: gửi 3 phần 8 MB cùng lúc (nhanh hơn nhiều trên 4G/5G so với gửi lần lượt).
+// entryId cũng có thể là 'stage=1' (gửi trước khi lưu bài). Trả về { id, url } của tệp.
+// Video lớn: gửi 5 phần 8 MB cùng lúc (nhanh hơn nhiều trên 4G/5G so với gửi lần lượt).
 async function sendFile(entryId, f, tok, pct) {
   const H = { Authorization: 'Bearer ' + tok };
   const q = String(entryId).includes('=') ? String(entryId) : 'entry=' + entryId, msg = q.startsWith('msg=') ? q.slice(4) : null;
   const s = await shrink(f), type = s.type || mimeOf(f), size = s.blob.size;
   pct(0);
   if (size <= BIG) {
-    await upXhr(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, (n) => pct(n / size), 2);
+    const r = await upXhr(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, (n) => pct(n / size), 2);
     pct(1);
-    return;
+    return r;
   }
   let st;
   try { st = await upFetch(`/media/v1/upload/start?${q}&mime=${encodeURIComponent(type)}&size=${size}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: H }); }
@@ -196,10 +197,12 @@ async function sendFile(entryId, f, tok, pct) {
       sent[n] = Math.min(st.part, size - o); tick();
     }
   };
-  await Promise.all([worker(), worker(), worker()]);
+  await Promise.all([worker(), worker(), worker(), worker(), worker()]);
   parts.sort((a, b) => a.n - b.n);
-  await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg ? null : entryId, msg, mime: type, parts, w: s.w, h: s.h }) });
+  const stage = q === 'stage=1';
+  const r = await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : stage ? '?stage=1' : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg || stage ? null : entryId, msg, stage, mime: type, parts, w: s.w, h: s.h }) });
   pct(1);
+  return r;
 }
 // Gửi tối đa 2 tệp cùng lúc; nút hiện tiến độ chung "Đang tải 2/5 tệp · 40%"
 async function uploadFiles(entryId, input, btn) {
@@ -296,6 +299,7 @@ function entrySheet(e, opts) {
   e = e || { kind: 'note', title: '', body: '', day: new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), child_id: kids[0] ? kids[0].id : null, privacy: 'family', media: [] };
   const mediaOk = S.consents && S.consents.media_storage;
   let savedId = isNew ? null : e.id;
+  const grp = 'je' + Date.now();   // nhóm tệp của khung soạn này trong hàng đợi tải lên
   sheet(`<h3>${isNew ? '📝 Ghi Nhật ký' : '✎ Sửa mục ghi'}</h3>
     <label>Loại</label><select id="je-kind">${Object.entries(JKIND).filter(([k]) => k !== 'feedback' && k !== 'checkin').map(([k, [i, t]]) => `<option value="${k}" ${e.kind === k ? 'selected' : ''}>${i} ${t}</option>`).join('')}</select>
     <label>Bé</label><select id="je-kid"><option value="">👨‍👩‍👧 Cả nhà</option>${kids.map((k) => `<option value="${k.id}" ${e.child_id === k.id ? 'selected' : ''}>${esc(k.emoji)} ${esc(k.name)}</option>`).join('')}</select>
@@ -304,7 +308,7 @@ function entrySheet(e, opts) {
     <label>Nội dung</label><textarea id="je-body" rows="4" placeholder="Chuyện gì đã xảy ra, bé nói gì, cảm xúc thế nào…">${esc(e.body)}</textarea>
     <div class="pt-two"><div><label>Ngày</label><input id="je-day" type="date" value="${esc(e.day)}"></div>
       <div><label>Ai được xem</label><select id="je-priv">${Object.entries(PRIV).map(([k, t]) => `<option value="${k}" ${e.privacy === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>
-    ${mediaOk ? '<label class="btn small pt-file">📷 Thêm ảnh/video<input type="file" id="je-files" accept="image/*,video/*" multiple hidden></label><div id="je-prev" class="pt-prev"></div>'
+    ${mediaOk ? `<label class="btn small pt-file">📷 Thêm ảnh/video<input type="file" id="je-files" accept="image/*,video/*" multiple hidden></label><div id="je-prev" class="pt-prev up-prev" data-group="${grp}"></div>`
       : '<div class="hint">Muốn đính kèm ảnh? Bật "Lưu ảnh, video của bé" trong Cài đặt → Quyền riêng tư.</div>'}
     <label class="pt-chk"><input type="checkbox" id="je-lesson" ${e.data && e.data.lesson ? 'checked' : ''}> 🎓 Video người thân dạy bé <span class="hint">— hiện ở mục “Người thân dạy” trên TV để bé xem lại</span></label>
     ${(e.media || []).length ? `<div class="pt-media">${e.media.filter((m) => m.url).map((m) => `<span class="pt-mx"><img src="${esc(mediaUrl(m.url))}" alt=""><button class="icon-btn" data-a="je-mdel" data-id="${m.id}">✕</button></span>`).join('')}</div>` : ''}
@@ -312,11 +316,23 @@ function entrySheet(e, opts) {
     if (a === 'je-mdel') { if (!confirm('Xoá ảnh này?')) return; try { await rpc('ct_media_delete', { p_id: b.dataset.id }); b.parentElement.remove(); } catch (err) { toast(err.message, true); } return; }
     if (a === 'je-fa-x') { fa = { feel: null, act: null }; return paintFa(); }
     if (a === 'je-fa') return feelPicker(fa, (r) => { fa = r; paintFa(); });
+    if (a === 'je-up-x') return UpQ.remove(b.dataset.key);
     if (a !== 'je-save') return;
     const mood = fa.feel ? fa.feel.m || null : null;
-    savedId = await saveWithFiles(b, () => rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value, body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked, mood, feel: fa.feel, act: fa.act } }), $('#je-files'), 'Đã đăng') || savedId;
+    const files = UpQ.of(grp);
+    if (!$('#je-title').value.trim() && !$('#je-body').value.trim() && !files.length && !fa.feel && !fa.act) return toast('Hãy ghi vài chữ hoặc thêm ảnh/video.', true);
+    b.disabled = true; b.textContent = 'Đang đăng…';
+    try {
+      savedId = await rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value || (files.length && !$('#je-body').value.trim() ? (files.some((j) => j.vid) ? 'Video mới' : 'Ảnh mới') : ''), body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked, mood, feel: fa.feel, act: fa.act } });
+      const busy = UpQ.busy(grp);
+      UpQ.bind(grp, savedId);   // tệp xong rồi gắn ngay, tệp đang tải gắn khi xong
+      closeSheet(); toast(busy ? 'Đã đăng · ảnh/video đang tải tiếp' : 'Đã đăng');
+      P.ov = null; P.jr = null; P.gal = null;
+      if (typeof Feed !== 'undefined') Feed.list = null;
+      render();
+    } catch (err) { b.disabled = false; b.textContent = 'Lưu'; toast(err.message, true); }
   });
-  sheetChange = (ev) => { if (ev.target.id === 'je-files') previewFiles(ev.target, $('#je-prev')); };
+  sheetChange = (ev) => { if (ev.target.id === 'je-files') { UpQ.add(ev.target.files, grp); ev.target.value = ''; } };   // chọn là gửi ngay
   // Cảm xúc / hoạt động đang gắn (bài cũ chỉ có "mood" thì đổi sang cảm xúc tương ứng)
   const old = e.data || {}, legacy = !old.feel && old.mood ? FEELINGS.find((f) => f[2] === old.mood) : null;
   let fa = { feel: old.feel || (legacy ? { e: legacy[0], t: old.mood === 'bình thường' ? 'bình thường' : legacy[1], m: old.mood } : null), act: old.act || null };

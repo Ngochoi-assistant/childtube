@@ -532,3 +532,21 @@ input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: n
 input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .sheet-body, #sheet-body { overflow-x: hidden; }
 #sheet-body label.pt-chk { display: block; }
+
+/* ---- Tải lên chạy ngầm ---- */
+.up-prev { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.up-it { position: relative; width: 74px; height: 74px; border-radius: 12px; overflow: hidden; background: var(--chip); display: flex; align-items: center; justify-content: center; }
+.up-it img { width: 100%; height: 100%; object-fit: cover; }
+.up-it .up-vi { font-style: normal; font-size: 30px; }
+.up-it b { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,.55); color: #fff; font: 700 12px/20px system-ui, sans-serif; text-align: center; }
+.up-it em { position: absolute; left: 0; bottom: 0; height: 3px; background: #2fa38c; transition: width .2s; }
+.up-it.done b { background: rgba(47,163,140,.85); }
+.up-it.err b { background: rgba(229,83,61,.9); }
+.up-it button { position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; line-height: 22px; padding: 0; }
+.up-bar { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; padding: 10px 14px; border-radius: 14px; background: var(--card); box-shadow: 0 1px 2px rgba(0,0,0,.06); font-size: 14px; font-weight: 600; }
+.up-bar em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--mute); }
+.up-bar i { position: absolute; left: 0; bottom: 0; height: 3px; background: #2fa38c; transition: width .3s; }
+.up-bar.err { background: #fdecea; }
+.up-bar button { border: 0; border-radius: 14px; padding: 5px 12px; background: var(--danger, #e5533d); color: #fff; font: 600 13px system-ui, sans-serif; }
+.fd-up { position: relative; overflow: hidden; margin: 6px 14px 4px; padding: 10px 12px; border-radius: 10px; background: var(--chip); font-size: 13.5px; font-weight: 600; }
+.fd-up i { position: absolute; left: 0; bottom: 0; height: 3px; background: #2fa38c; transition: width .3s; }

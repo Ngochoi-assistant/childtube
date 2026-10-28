@@ -11,6 +11,7 @@ const Feed = {
     catch (e) { return toast(e.message, true); }
     if (tab !== 'feed' || this.key !== key) return;
     v.innerHTML = this.html(k);
+    if (typeof UpQ !== 'undefined') UpQ.paint();
   },
   ago(iso) {
     const s = (Date.now() - new Date(iso)) / 1000;
@@ -41,7 +42,7 @@ const Feed = {
     const list = (this.list || []).map((e) => this.post(e));
     if (game) list.splice(Math.min(2, list.length), 0, game);
     const posts = list.join('');
-    return `${pageHead('')}${composer}${stories}<div class="chips strip fd-filter">${chips}</div>
+    return `${pageHead('')}<div id="up-banner"></div>${composer}${stories}<div class="chips strip fd-filter">${chips}</div>
       ${posts || `<div class="card"><div class="empty">${canWrite ? 'Bài đăng đầu tiên: một bức ảnh, một câu nói ngộ nghĩnh, hay việc bé tự làm được.' : 'Chưa có bài đăng nào được chia sẻ.'}</div></div>`}`;
   },
   post(e) {
@@ -72,7 +73,7 @@ const Feed = {
         <div class="fd-who"><b>${esc(a.name)}</b>${k ? ` cùng <b>${esc(k.emoji)} ${esc(k.name)}</b>` : ''}${a.role === 'teacher' ? ' · Giáo viên' : ''}${feelText(d) ? ` <span class="fd-feel">— ${feelText(d)}</span>` : ''}
           <div class="m">${e.day && e.day !== new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10) ? jDay(e.day) : this.ago(e.created_at)} · ${{ family: '👨‍👩‍👧', parents: '🔒 Chỉ bố mẹ', sensitive: '⚠️ Nhạy cảm' }[e.privacy] || ''}</div></div>
         ${e.mine || (!S.restricted) ? `<button class="icon-btn" data-a="F2-menu" data-id="${e.id}" aria-label="Tuỳ chọn">⋯</button>` : ''}</div>
-      ${text}${special}${grid}
+      ${text}${special}${grid}<div class="fd-up hidden" data-id="${e.id}"></div>
       ${who || cm.length ? `<div class="fd-sum"><span>${who}</span>${cm.length ? `<button data-a="F2-cm" data-id="${e.id}">${cm.length} bình luận</button>` : ''}</div>` : ''}
       <div class="fd-bar">
         <button class="fd-love ${r.mine ? 'on' : ''}" data-a="F2-love" data-id="${e.id}" aria-label="Thả cảm xúc (giữ để chọn)">${r.mine || '🤍'} ${r.mine ? ({ '❤️': 'Thương', '😂': 'Haha', '👏': 'Giỏi quá', '😮': 'Wow', '🥹': 'Xúc động' }[r.mine] || 'Đã thả') : 'Thương'}</button>
@@ -92,6 +93,7 @@ $('#view').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-a^="F2-"]');
   if (!b) return;
   const a = b.dataset.a, id = b.dataset.id, k = curKid();
+  if (a === 'F2-upretry') return UpQ.retry();
   if (a === 'F2-view') {   // xem toàn màn hình mọi ảnh/video của bài, tải về được
     const en = (Feed.list || []).find((x) => x.id === id);
     if (en) mediaViewer(en.media.filter((m) => m.url).map((m) => ({ url: mediaUrl(m.url), mime: m.mime })), +b.dataset.i || 0, en.title || en.body || '');
