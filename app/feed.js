@@ -23,7 +23,7 @@ const Feed = {
     const name = k ? esc(k.name) : 'các bé';
     const composer = canWrite ? `<div class="card fd-comp"><div class="fd-row"><span class="fd-av">${ROLE_ICON[me.role] || '👤'}</span>
         <button class="fd-in" data-a="F2-write">${me.role === 'teacher' ? 'Viết nhận xét về ' + name + '…' : 'Hôm nay ' + name + ' có gì đáng nhớ?'}</button></div>
-        ${me.role === 'teacher' ? '' : `<div class="fd-acts"><button data-a="F2-media">📷 Ảnh/video</button><button data-a="F2-mile">🌟 Cột mốc</button><button data-a="F2-mood">😄 Cảm xúc</button></div>`}</div>` : '';
+        ${me.role === 'teacher' ? '' : `<div class="fd-acts"><button data-a="F2-media">📷 Ảnh/video</button><button data-a="F2-mile">🌟 Cột mốc</button><button data-a="F2-mood">😊 Cảm xúc/Hoạt động</button></div>`}</div>` : '';
     const withMedia = (this.list || []).filter((e) => e.media.some((m) => m.url)).slice(0, 8);
     const stories = withMedia.length ? `<div class="fd-stories">${withMedia.map((e) => {
       const m = e.media.find((x) => x.url && x.mime.startsWith('image/')) || e.media[0], c = kidOf(e.child_id);
@@ -55,11 +55,11 @@ const Feed = {
     const ratio = one ? (one.w && one.h ? Math.max(0.56, Math.min(1.6, one.w / one.h)) : one.mime.startsWith('video/') ? 0.8 : 1) : 0;
     const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 4)}"${one ? ` style="aspect-ratio:${ratio.toFixed(3)}"` : ''}>${media.slice(0, 4).map((m, i) => (m.mime.startsWith('image/')
       ? `<img src="${esc(mediaUrl(m.url))}" alt="" decoding="async" data-a="F2-view" data-id="${e.id}" data-i="${i}">`
-      : `<div class="fd-vid" data-a="F2-view" data-id="${e.id}" data-i="${i}"><video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play big">▶</span></div>`)
+      : `<div class="fd-vid" data-a="F2-play"><video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata" loop></video><span class="fd-play big">▶</span><span class="fd-mute">🔇</span><button class="fd-full" data-a="F2-view" data-id="${e.id}" data-i="${i}" aria-label="Xem lớn, tải về">⤢</button></div>`)
       + (i === 3 && media.length > 4 ? `<span class="fd-more" data-a="F2-view" data-id="${e.id}" data-i="3">+${media.length - 4}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
-    const text = special ? '' : `<div class="fd-text">${kind && e.kind !== 'checkin' ? `<span class="fd-tag">${kind}</span>` : ''}${d.lesson ? '<span class="fd-tag">🎓 Dạy bé · có trên TV</span>' : ''}${e.title ? `<b>${esc(e.title)}</b> ` : ''}${moodI ? `<span class="fd-mood">${moodI} ${k ? esc(k.name) + ' ' : ''}${esc(d.mood)}</span> ` : ''}${esc(e.body || '')}
+    const text = special ? '' : `<div class="fd-text">${kind && e.kind !== 'checkin' ? `<span class="fd-tag">${kind}</span>` : ''}${d.lesson ? '<span class="fd-tag">🎓 Dạy bé · có trên TV</span>' : ''}${e.title ? `<b>${esc(e.title)}</b> ` : ''}${moodI && !d.feel ? `<span class="fd-mood">${moodI} ${k ? esc(k.name) + ' ' : ''}${esc(d.mood)}</span> ` : ''}${esc(e.body || '')}
       ${(d.interests || []).length || (d.activities || []).length ? `<div class="fd-chips">${(d.interests || []).map((x) => `<span>❤️ ${esc(x)}</span>`).join('')}${(d.activities || []).map((x) => `<span>✔ ${esc(x)}</span>`).join('')}</div>` : ''}</div>`;
     const r = e.reactions || { counts: {}, total: 0, names: [], mine: null };
     const icons = Object.entries(r.counts).sort((x, y) => y[1] - x[1]).map(([em]) => em).join('');
@@ -69,7 +69,7 @@ const Feed = {
     const canAssess = !S.restricted || (S.me && S.me.role === 'teacher');
     return `<article class="fd-post" data-id="${e.id}">
       <div class="fd-head"><span class="fd-av ${a.role || ''}">${ROLE_ICON[a.role] || '👤'}</span>
-        <div class="fd-who"><b>${esc(a.name)}</b>${k ? ` cùng <b>${esc(k.emoji)} ${esc(k.name)}</b>` : ''}${a.role === 'teacher' ? ' · Giáo viên' : ''}
+        <div class="fd-who"><b>${esc(a.name)}</b>${k ? ` cùng <b>${esc(k.emoji)} ${esc(k.name)}</b>` : ''}${a.role === 'teacher' ? ' · Giáo viên' : ''}${feelText(d) ? ` <span class="fd-feel">— ${feelText(d)}</span>` : ''}
           <div class="m">${e.day && e.day !== new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10) ? jDay(e.day) : this.ago(e.created_at)} · ${{ family: '👨‍👩‍👧', parents: '🔒 Chỉ bố mẹ', sensitive: '⚠️ Nhạy cảm' }[e.privacy] || ''}</div></div>
         ${e.mine || (!S.restricted) ? `<button class="icon-btn" data-a="F2-menu" data-id="${e.id}" aria-label="Tuỳ chọn">⋯</button>` : ''}</div>
       ${text}${special}${grid}
@@ -97,11 +97,11 @@ $('#view').addEventListener('click', async (e) => {
     if (en) mediaViewer(en.media.filter((m) => m.url).map((m) => ({ url: mediaUrl(m.url), mime: m.mime })), +b.dataset.i || 0, en.title || en.body || '');
     return;
   }
-  if (a === 'F2-play') {   // phát video ngay trong bài: bật tiếng, hiện thanh điều khiển; video khác đang chạy thì dừng
+  if (a === 'F2-play') {   // chạm video: bật tiếng + thanh điều khiển ngay trong bài; video khác đang chạy thì dừng
     const v = b.querySelector('video');
     if (b.classList.contains('on')) return;
-    document.querySelectorAll('.fd-vid.on video').forEach((x) => x.pause());
-    b.classList.add('on'); v.muted = false; v.controls = true;
+    document.querySelectorAll('.fd-vid video').forEach((x) => { if (x !== v) x.pause(); });
+    b.classList.add('on', 'live'); v.muted = false; v.controls = true; v.loop = false;
     const p = v.play(); if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => {}); });
     return;
   }
@@ -110,7 +110,7 @@ $('#view').addEventListener('click', async (e) => {
     if (a === 'F2-write') return entrySheet(null);
     if (a === 'F2-media') { entrySheet(null); const f = $('#je-files'); if (f) f.click(); return; }   // mở luôn kho ảnh của điện thoại
     if (a === 'F2-mile') { entrySheet(null); setTimeout(() => { const s = $('#je-kind'); if (s) s.value = 'milestone'; }, 0); return; }
-    if (a === 'F2-mood') return checkinSheet(k ? k.id : null);
+    if (a === 'F2-mood') return entrySheet(null, { feel: true });
     if (a === 'F2-goto') { const p = document.querySelector(`.fd-post[data-id="${id}"]`); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (a === 'F2-filter') { Feed.filter = b.dataset.v; return render(); }
     if (a === 'F2-love' && Date.now() - (Feed.held || 0) < 900) return;   // vừa giữ lâu để mở bảng chọn: không thả tim
@@ -128,6 +128,19 @@ $('#view').addEventListener('click', async (e) => {
     }
   } catch (err) { toast(err.message, true); }
 });
+// Như Facebook: video tự chạy (không tiếng) khi cuộn tới giữa màn hình, cuộn qua thì dừng
+const feedSeen = 'IntersectionObserver' in window ? new IntersectionObserver((ents) => ents.forEach((en) => {
+  const v = en.target, tile = v.closest('.fd-vid');
+  if (!tile) return;
+  if (en.isIntersecting && en.intersectionRatio >= 0.6) {
+    if (tile.classList.contains('on')) return;   // người xem đã bật tiếng / tự điều khiển
+    if (document.querySelector('.fd-vid.on video:not([paused])') && [...document.querySelectorAll('.fd-vid.on video')].some((x) => !x.paused)) return;
+    v.muted = true; tile.classList.add('live');
+    const p = v.play(); if (p && p.catch) p.catch(() => tile.classList.remove('live'));
+  } else { v.pause(); if (!tile.classList.contains('on')) tile.classList.remove('live'); }
+}), { threshold: [0, 0.6] }) : null;
+new MutationObserver(() => { if (feedSeen) document.querySelectorAll('#view .fd-vid video:not([data-seen])').forEach((v) => { v.dataset.seen = 1; feedSeen.observe(v); }); })
+  .observe($('#view'), { childList: true, subtree: true });
 // Video cũ chưa lưu kích thước: đọc được khung hình thì chỉnh khung bài đăng cho vừa (dọc/ngang)
 $('#view').addEventListener('loadedmetadata', (e) => {
   const v = e.target, box = v.closest && v.closest('.fd-media.n1');
