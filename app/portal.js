@@ -143,43 +143,89 @@ async function upFetch(path, opt, tries = 3) {
     await new Promise((ok) => setTimeout(ok, 1500 * i));
   }
 }
-// entryId: id mục Nhật ký, hoặc 'msg=<id>' để gắn vào tin nhắn
+// Gửi kèm tiến độ (fetch không báo được % khi tải lên): XHR, thử lại khi mạng chập chờn / máy chủ lỗi 5xx
+function upXhr(path, opt, onProg, tries = 3) {
+  const once = () => new Promise((ok, bad) => {
+    const x = new XMLHttpRequest();
+    x.open(opt.method || 'POST', CT_CONFIG.url + path);
+    Object.entries(opt.headers || {}).forEach(([k, v]) => x.setRequestHeader(k, v));
+    if (onProg) x.upload.onprogress = (e) => { if (e.lengthComputable) onProg(e.loaded); };
+    x.onload = () => {
+      let j = {}; try { j = JSON.parse(x.responseText || '{}'); } catch (e) { j = {}; }
+      if (x.status >= 200 && x.status < 300) ok(j);
+      else bad(Object.assign(new Error((j && j.message) || 'Tải lên lỗi (' + x.status + ')'), { status: x.status, retry: x.status >= 500 }));
+    };
+    x.onerror = x.ontimeout = () => bad(Object.assign(new Error('Mất mạng khi đang tải lên'), { retry: true }));
+    x.send(opt.body);
+  });
+  return (async () => {
+    for (let i = 1; ; i++) {
+      try { return await once(); } catch (e) { if (i >= tries || !e.retry) throw e; if (onProg) onProg(0); }
+      await new Promise((ok) => setTimeout(ok, 1500 * i));
+    }
+  })();
+}
+// entryId: id mục Nhật ký, hoặc 'msg=<id>' để gắn vào tin nhắn. pct(0..1) báo tiến độ của tệp này.
+// Video lớn: gửi 3 phần 8 MB cùng lúc (nhanh hơn nhiều trên 4G/5G so với gửi lần lượt).
 async function sendFile(entryId, f, tok, pct) {
   const H = { Authorization: 'Bearer ' + tok };
   const q = String(entryId).includes('=') ? String(entryId) : 'entry=' + entryId, msg = q.startsWith('msg=') ? q.slice(4) : null;
-  const s = await shrink(f), type = s.type || mimeOf(f);
-  if (s.blob.size <= BIG) {
-    pct(0);
-    await upFetch(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 2);
+  const s = await shrink(f), type = s.type || mimeOf(f), size = s.blob.size;
+  pct(0);
+  if (size <= BIG) {
+    await upXhr(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, (n) => pct(n / size), 2);
+    pct(1);
     return;
   }
   let st;
-  try { st = await upFetch(`/media/v1/upload/start?${q}&mime=${encodeURIComponent(type)}&size=${s.blob.size}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: H }); }
+  try { st = await upFetch(`/media/v1/upload/start?${q}&mime=${encodeURIComponent(type)}&size=${size}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: H }); }
   catch (e) {   // máy chủ bản cũ chưa có tải từng phần: gửi một lần nếu ≤ 50 MB
-    if (e.status !== 404 || s.blob.size > 50 * 1024 * 1024) throw e;
-    pct(0); return upFetch(`/media/v1/upload?${q}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, 1);
+    if (e.status !== 404 || size > 50 * 1024 * 1024) throw e;
+    return upXhr(`/media/v1/upload?${q}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, (n) => pct(n / size), 1);
   }
-  const parts = [];
-  for (let n = 1, o = 0; o < s.blob.size; n++, o += st.part) {
-    pct(o / s.blob.size);
-    parts.push(await upFetch(`/media/v1/upload/part?${msg ? 'msg=' + msg + '&' : ''}id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`, { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }));
-  }
-  pct(1);
+  const jobs = [];
+  for (let n = 1, o = 0; o < size; n++, o += st.part) jobs.push({ n, o });
+  const sent = {}, parts = [];
+  const tick = () => pct(Object.values(sent).reduce((a, b) => a + b, 0) / size);
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const { n, o } = jobs[next++];
+      parts.push(await upXhr(`/media/v1/upload/part?${msg ? 'msg=' + msg + '&' : ''}id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`,
+        { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }, (b) => { sent[n] = b; tick(); }));
+      sent[n] = Math.min(st.part, size - o); tick();
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  parts.sort((a, b) => a.n - b.n);
   await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg ? null : entryId, msg, mime: type, parts, w: s.w, h: s.h }) });
+  pct(1);
 }
+// Gửi tối đa 2 tệp cùng lúc; nút hiện tiến độ chung "Đang tải 2/5 tệp · 40%"
 async function uploadFiles(entryId, input, btn) {
   if (!input || !input.files || !input.files.length) return 0;
   const tok = (JSON.parse(localStorage.getItem('ct-session') || '{}') || {}).access_token;
   const files = [...input.files].slice(0, 12).filter((f) => !sentFiles.has(f));
-  let bad = 0, i = 0;
-  for (const f of files) {
-    i++;
-    const label = (f.type || mimeOf(f)).startsWith('video/') ? 'video' : 'ảnh';
-    const pct = (p) => { const t = `Đang tải ${label} ${i}/${files.length}${p ? ' · ' + Math.round(p * 100) + '%' : '…'}`; if (btn) btn.textContent = t; else toast(t); };
-    if (f.size > 500 * 1024 * 1024) { bad++; toast(f.name + ': quá 500 MB. Hãy cắt ngắn video rồi thử lại.', true); continue; }
-    try { await sendFile(entryId, f, tok, pct); sentFiles.add(f); }
-    catch (e) { bad++; toast(f.name + ': ' + e.message, true); }
-  }
+  const total = files.reduce((a, f) => a + f.size, 0) || 1, prog = new Map();
+  let bad = 0, done = 0, next = 0;
+  const vids = files.filter((f) => (f.type || mimeOf(f)).startsWith('video/')).length;
+  const what = vids === files.length ? 'video' : vids ? 'ảnh/video' : 'ảnh';
+  const show = () => {
+    const p = [...prog.entries()].reduce((a, [f, x]) => a + x * f.size, 0) / total;
+    const t = `Đang tải ${what} ${Math.min(done + 1, files.length)}/${files.length} · ${Math.round(p * 100)}%`;
+    if (btn) btn.textContent = t; else toast(t);
+  };
+  const worker = async () => {
+    while (next < files.length) {
+      const f = files[next++];
+      if (f.size > 500 * 1024 * 1024) { bad++; toast(f.name + ': quá 500 MB. Hãy cắt ngắn video rồi thử lại.', true); continue; }
+      try { await sendFile(entryId, f, tok, (x) => { prog.set(f, x); show(); }); sentFiles.add(f); prog.set(f, 1); }
+      catch (e) { bad++; prog.delete(f); toast(f.name + ': ' + e.message, true); }
+      done++; show();
+    }
+  };
+  show();
+  await Promise.all([worker(), worker()]);
   return bad;
 }
 // Lưu bài trước, rồi gửi ảnh/video. Nếu có tệp lỗi: giữ nguyên khung soạn, lần bấm sau chỉ sửa bài đó + gửi tệp còn thiếu (không tạo bài trùng).
