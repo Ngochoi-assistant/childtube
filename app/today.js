@@ -51,6 +51,7 @@ const Today = {
         <div class="card td-ring tap" data-a="V-go" data-v="history">${ch.ring(used, lim || Math.max(used, 60), 'var(--ok)', used + '′', lim ? '/ ' + lim + ' phút' : 'phút')}<b>Giờ xem TV hôm nay</b><span class="m">${lim ? (lim > used ? 'còn ' + (lim - used) + ' phút' : 'đã hết giờ') : 'không giới hạn'}</span></div>
         <div class="card td-ring tap" data-a="T-learn">${ch.ring(d.lessons_week.done, d.lessons_week.target, 'var(--blue)', d.lessons_week.done + '/' + d.lessons_week.target, 'bài tuần này')}<b>Học đều đặn</b><span class="m">${d.streak ? '🔥 ' + d.streak + ' ngày liên tiếp' : 'Bắt đầu chuỗi ngày học hôm nay'}</span></div>
       </div>
+      ${typeof Watch !== 'undefined' ? Watch.card(d.child.id) : ''}
       <h2>Lộ trình học của ${name}<button class="btn link" data-a="T-road">Dài hạn ›</button></h2>${this.pathHtml(d)}
       <h2>Bài tiếp theo</h2>${next}
       <h2>Cảm xúc tuần này</h2><div class="card"><div class="td-week">${week}</div></div>

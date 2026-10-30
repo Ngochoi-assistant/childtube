@@ -590,3 +590,27 @@ body.playing #home { visibility: hidden; }
 #alv-cap em { display: block; font-style: normal; font-size: 1.2vw; color: rgba(255,255,255,.8); margin: .4vw 0; max-width: 70vw; }
 #alv-cap span { font-size: 1.1vw; color: rgba(255,255,255,.8); }
 #alv-n { position: absolute; right: 2.5vw; top: 2.4vw; font-size: 1vw; padding: .4vw 1vw; border-radius: 1vw; background: rgba(0,0,0,.5); }
+
+/* ---- Màn chào: 7 ngày bé xem gì (đúng / lệch giáo trình) ---- */
+.ov-watch { display: -webkit-flex; display: flex; -webkit-align-items: stretch; align-items: stretch; margin: .9vw 0 1vw; padding: .9vw 1.1vw; border-radius: 1vw; background: rgba(255,255,255,.05); border-left: .35vw solid #8e8e93; }
+.ov-watch.ok { border-left-color: #30d158; } .ov-watch.mild { border-left-color: #ffd60a; } .ov-watch.high { border-left-color: #ff453a; }
+.ow-l { -webkit-flex: 1; flex: 1; min-width: 0; }
+.ow-h { display: -webkit-flex; display: flex; -webkit-justify-content: space-between; justify-content: space-between; -webkit-align-items: center; align-items: center; margin-bottom: .5vw; }
+.ow-h b { font-size: 1.2vw; }
+.ow-lv { font-size: 1vw; font-weight: 700; padding: .2vw .7vw; border-radius: 1vw; background: rgba(255,255,255,.08); }
+.ow-share { height: .7vw; border-radius: .35vw; background: #ff9f0a; overflow: hidden; margin-bottom: .45vw; }
+.ow-share i { display: block; height: 100%; background: #30d158; }
+.ow-txt { font-size: 1.05vw; line-height: 1.4; color: var(--text-2); }
+.ow-txt b { color: var(--text); font-size: 1.25vw; }
+.ow-txt em { font-style: normal; font-size: .95vw; }
+.ow-tip { margin-top: .5vw; font-size: 1vw; line-height: 1.35; color: #ffd60a; }
+.ow-bars { display: -webkit-flex; display: flex; -webkit-align-items: flex-end; align-items: flex-end; width: 9vw; margin-left: 1vw; flex-shrink: 0; }
+.ow-bars span { -webkit-flex: 1; flex: 1; height: 100%; min-height: 4vw; margin: 0 .12vw; display: -webkit-flex; display: flex; -webkit-flex-direction: column; flex-direction: column; -webkit-justify-content: flex-end; justify-content: flex-end; background: rgba(255,255,255,.06); border-radius: .3vw; overflow: hidden; }
+.ow-bars i { display: block; width: 100%; }
+.ow-bars i.c { background: #30d158; } .ow-bars i.o { background: #ff9f0a; }
+#ov-kids.n2 .ow-bars, #ov-kids.n3 .ow-bars { width: 4.6vw; margin-left: .7vw; }
+#ov-kids.n2 .ow-h, #ov-kids.n3 .ow-h { -webkit-flex-wrap: wrap; flex-wrap: wrap; }
+#ov-kids.n2 .ow-h b, #ov-kids.n3 .ow-h b { font-size: 1.05vw; margin-right: .5vw; }
+#ov-kids.n2 .ow-lv, #ov-kids.n3 .ow-lv { font-size: .85vw; padding: .1vw .5vw; }
+#ov-kids.n3 .ow-txt em, #ov-kids.n3 .ow-txt br { display: none; }
+#ov-kids.n3 .ow-tip, #ov-kids.n2 .ow-tip { font-size: .9vw; }

@@ -426,6 +426,22 @@
     out += '<text x="' + (R + 40) + '" y="' + (Y + 44) + '" text-anchor="middle" font-size="15" fill="rgba(235,235,245,.6)">' + (g.length ? g.length + ' mục tiêu' : 'mục tiêu') + '</text>';
     return '<svg class="ov-road" viewBox="0 0 ' + W + ' ' + H + '" width="100%">' + out + '</svg>';
   }
+  // Tuần này bé xem gì: đúng hướng hay lệch, % xem đúng giáo trình, 7 ngày, gợi ý (tính ở máy chủ: ct_tv_overview → watch)
+  var WLV = { ok: ['🟢', 'Đúng hướng'], mild: ['🟡', 'Hơi lệch hướng'], high: ['🔴', 'Đang lệch hướng'], little: ['⚪', 'Mới xem ít'] };
+  function tvWatch(k) {
+    var w = k.watch; if (!w) return '';
+    var lv = WLV[w.level] || WLV.little, max = 1, i;
+    for (i = 0; i < (w.series || []).length; i++) max = Math.max(max, w.series[i].cur + w.series[i].other, w.limit || 0);
+    var bars = (w.series || []).map(function (d) {
+      return '<span title="' + d.day + '"><i class="o" style="height:' + (d.other / max * 100) + '%"></i><i class="c" style="height:' + (d.cur / max * 100) + '%"></i></span>'; }).join('');
+    return '<div class="ov-watch ' + w.level + '">' +
+      '<div class="ow-l"><div class="ow-h"><b>📊 7 ngày qua</b><span class="ow-lv">' + lv[0] + ' ' + lv[1] + '</span></div>' +
+      (w.minutes ? '<div class="ow-share"><i style="width:' + w.cur + '%"></i></div>' +
+        '<div class="ow-txt"><b>' + w.cur + '%</b> đúng giáo trình · ' + w.minutes + ' phút xem' + (w.reason && w.level !== 'ok' ? '<br><em>' + esc(w.reason) + '</em>' : '') + '</div>'
+        : '<div class="ow-txt">Tuần này chưa xem video nào.</div>') +
+      (w.tip ? '<div class="ow-tip">💡 ' + esc(w.tip) + '</div>' : '') + '</div>' +
+      (w.minutes ? '<div class="ow-bars">' + bars + '</div>' : '') + '</div>';
+  }
   function paintOverview() {
     var d = new Date();
     $('#ov-clock').innerHTML = '<b>' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2) + '</b><span>' + DAYS[d.getDay()] + ', ' + d.getDate() + ' tháng ' + (d.getMonth() + 1) + '</span>';
@@ -446,7 +462,7 @@
         return '<div class="ov-sk"><span>' + esc(x.icon + ' ' + x.name) + '</span><b><i style="width:' + x.level * 20 + '%"></i></b></div>'; }).join('');
       return '<div class="ov-kid">' +
         '<div class="ov-kh"><span class="ov-av">' + esc(k.emoji || '🧒') + '</span><div><h2>' + esc(k.name) + '</h2><div class="ov-sub">' + (k.age != null ? k.age + ' tuổi · ' : '') + ((k.paths || []).length ? 'đang học ' + k.paths.length + ' giáo trình' : 'chưa có giáo trình') + '</div></div></div>' +
-        tvPaths(k) +
+        tvWatch(k) + tvPaths(k) +
         '<div class="ov-stats">' +
           '<div><b>' + p.done + '/' + p.total + '</b><span>mốc năm nay</span><span class="ov-bar"><i style="width:' + (p.total ? p.done / p.total * 100 : 0) + '%"></i></span></div>' +
           '<div><b>' + k.lessons_week.done + '/' + k.lessons_week.target + '</b><span>bài tuần này</span></div>' +
