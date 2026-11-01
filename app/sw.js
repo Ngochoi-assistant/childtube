@@ -1,6 +1,6 @@
 // Service worker tối giản: cho phép cài app ra màn hình chính và mở nhanh khi mạng chậm.
-const CACHE = 'childtube-v47';
-const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'wizard.js', 'library.js', 'library.css', 'ai-chat.js', 'family.js', 'portal.js', 'v2.css', 'charts.js', 'shell.js', 'today.js', 'learn.js', 'upload.js', 'feeling.js', 'feed.js', 'journey.js', 'familyhub.js', 'chat.js', 'watch.js', '../config.js', '../ct-client.js', 'icon-192.png', 'logo.svg'];
+const CACHE = 'childtube-v50';
+const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'wizard.js', 'library.js', 'library.css', 'ai-chat.js', 'family.js', 'portal.js', 'v2.css', 'charts.js', 'shell.js', 'today.js', 'learn.js', 'upload.js', 'feeling.js', 'feed.js', 'journey.js', 'familyhub.js', 'chat.js', 'watch.js', 'lunar.js', 'events.js', '../config.js', '../ct-client.js', 'icon-192.png', 'logo.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -9,15 +9,14 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
-// Ưu tiên mạng (luôn có bản mới nhất), mất mạng mới dùng bản lưu.
+// Mở app lấy ngay bản đã lưu trong máy (nhanh, không chờ mạng), đồng thời tải bản mới về để lần mở sau dùng.
+// Bản mới có tên CACHE khác → cài lại toàn bộ, nên sau mỗi lần cập nhật app chỉ chậm một lần.
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  e.respondWith(
-    fetch(e.request).then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((c) => c.put(e.request, copy));
-      return res;
-    }).catch(() => caches.match(e.request, { ignoreSearch: true }))
-  );
+  e.respondWith(caches.open(CACHE).then((c) => c.match(e.request, { ignoreSearch: true }).then((hit) => {
+    const net = fetch(e.request).then((res) => { if (res.ok) c.put(e.request, res.clone()); return res; });
+    if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
+    return net.catch(() => (e.request.mode === 'navigate' ? c.match('index.html') : Response.error()));
+  })));
 });

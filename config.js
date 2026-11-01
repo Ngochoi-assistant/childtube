@@ -5,6 +5,7 @@ window.CT_CONFIG = {
   backend: 'cloudflare'
 };
 // Quay lại Supabase cũ (dữ liệu vẫn còn ở tổ chức "ChildTube Family"): xoá khối trên, bỏ chú thích khối dưới.
+// Khi đó thêm lại vào app/index.html (trước config.js): <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 // window.CT_CONFIG = {
 //   url: 'https://hbzrupxqtolaffndfxtf.supabase.co',
 //   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhienJ1cHhxdG9sYWZmbmRmeHRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIyNjc0MzQsImV4cCI6MjEwNzg0MzQzNH0.YmwCDg2kzSST4dxK6CX8qIitvplmaGWOvz3LPfG7QxM'

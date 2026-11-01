@@ -3,21 +3,67 @@
 const Feed = {
   list: null, key: null, open: new Set(), filter: '',
   REACTS: ['❤️', '😂', '👏', '😮', '🥹'],
+  // Vẽ ngay bản đã có (trong máy hoặc lần mở trước), rồi hỏi máy chủ; chỉ vẽ lại khi dữ liệu khác → không nháy, video không tải lại.
   async render() {
     const v = $('#view'), k = curKid(), key = (k ? k.id : 'all') + '|' + this.filter;
-    if (this.key !== key) { this.list = null; this.key = key; }
-    if (!this.list) v.innerHTML = pageHead('') + '<div class="empty"><span class="spin"></span></div>';
-    try { this.list = await rpc('ct_journal_list', { p_child: k ? k.id : null, p_kind: this.filter === 'mile' ? 'milestone' : this.filter === 'teacher' ? 'feedback' : null, p_media: this.filter === 'photo' }); }
+    if (this.key !== key) { this.list = null; this.key = key; this.sig = ''; }
+    if (!this.list && !this.filter) this.list = this.cached(key);
+    if (this.list) { if (!v.querySelector('.fd-post, .fd-comp') || v.dataset.feed !== this.sig) this.paint(k); }
+    else v.innerHTML = pageHead('') + '<div class="empty"><span class="spin"></span></div>';
+    let list;
+    try { list = await rpc('ct_journal_list', { p_child: k ? k.id : null, p_kind: this.filter === 'mile' ? 'milestone' : this.filter === 'teacher' ? 'feedback' : null, p_media: this.filter === 'photo' }); }
     catch (e) { return toast(e.message, true); }
-    if (tab !== 'feed' || this.key !== key) return;
-    v.innerHTML = this.html(k);
+    if (this.key !== key) return;
+    this.list = list;
+    if (!this.filter) this.store(key, list);
+    if (tab === 'feed' && this.sigOf(list) !== v.dataset.feed) this.paint(k);
+  },
+  // Chữ ký dữ liệu bỏ qua link ảnh (link ký lại mỗi lần hỏi máy chủ cũ) để không vẽ lại khi chỉ link đổi
+  sigOf(list) { return JSON.stringify(list, (k2, x) => (k2 === 'url' ? undefined : x)); },
+  paint(k) {
+    const v = $('#view');
+    this.sig = this.sigOf(this.list);
+    v.innerHTML = this.html(k); v.dataset.feed = this.sig;
     if (typeof UpQ !== 'undefined') UpQ.paint();
+  },
+  // Lưu bảng tin trong máy 2 tiếng (link ảnh/video còn hạn) để mở app là thấy ngay
+  cached(key) {
+    try { const c = JSON.parse(localStorage.getItem('ct-feed') || 'null'); return c && c.key === key && Date.now() - c.at < 2 * 3600e3 ? c.list : null; } catch (e) { return null; }
+  },
+  store(key, list) { try { localStorage.setItem('ct-feed', JSON.stringify({ key, at: Date.now(), list: list.slice(0, 30) })); } catch (e) { /* đầy bộ nhớ: bỏ qua */ } },
+  // Chỉ vẽ lại phần cảm xúc, bình luận của một bài (ảnh/video giữ nguyên, không tải lại)
+  patch(id) {
+    const e = (this.list || []).find((x) => x.id === id), old = document.querySelector(`.fd-post[data-id="${id}"]`);
+    if (!e || !old) return;
+    const t = document.createElement('div'); t.innerHTML = this.post(e);
+    const sel = '.fd-sum, .fd-bar, .fd-pick, .fd-cms, .fd-reply';
+    old.querySelectorAll(':scope > :is(' + sel + ')').forEach((x) => x.remove());
+    t.firstElementChild.querySelectorAll(':scope > :is(' + sel + ')').forEach((x) => old.appendChild(x));
+    this.sig = this.sigOf(this.list); $('#view').dataset.feed = this.sig;
+  },
+  // Thả cảm xúc: đổi trên màn hình ngay, gửi máy chủ phía sau; lỗi thì trả lại như cũ
+  async react(id, emoji) {
+    const e = (this.list || []).find((x) => x.id === id); if (!e) return;
+    const r = e.reactions = e.reactions || { counts: {}, total: 0, names: [], mine: null }, before = JSON.stringify(r);
+    const me = (S.me && S.me.name) || 'Bạn', next = r.mine === emoji ? null : emoji;
+    if (r.mine) { r.counts[r.mine]--; if (r.counts[r.mine] <= 0) delete r.counts[r.mine]; r.total--; r.names = r.names.filter((n) => n !== me); }
+    if (next) { r.counts[next] = (r.counts[next] || 0) + 1; r.total++; r.names = [me, ...r.names]; }
+    r.mine = next;
+    this.patch(id);
+    try { await rpc('ct_react', { p_entry: id, p_emoji: next }); }
+    catch (err) { e.reactions = JSON.parse(before); this.patch(id); toast(err.message, true); }
   },
   ago(iso) {
     const s = (Date.now() - new Date(iso)) / 1000;
     if (s < 60) return 'vừa xong'; if (s < 3600) return Math.floor(s / 60) + ' phút trước'; if (s < 86400) return Math.floor(s / 3600) + ' giờ trước';
     if (s < 7 * 86400) return Math.floor(s / 86400) + ' ngày trước';
     return new Date(iso).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
+  },
+  // "5 phút trước" trong 1 tiếng đầu; sau đó "Hôm nay lúc 14:30", "3 tháng 11 lúc 08:15"
+  when(e) {
+    const d = e.data || {}, today = vnNow().slice(0, 10);
+    if (!d.time && e.day === today && e.created_at && Date.now() - new Date(e.created_at) < 3600e3) return this.ago(e.created_at);
+    return jWhen(e) || this.ago(e.created_at);
   },
   html(k) {
     const me = S.me || {}, canWrite = !S.restricted || me.role === 'teacher';
@@ -29,7 +75,7 @@ const Feed = {
     const stories = withMedia.length ? `<div class="fd-stories">${withMedia.map((e) => {
       const m = e.media.find((x) => x.url && x.mime.startsWith('image/')) || e.media[0], c = kidOf(e.child_id);
       const vid = !m.mime.startsWith('image/');   // tin video: hiện khung hình đầu, bấm thì cuộn tới bài
-      return `<button class="fd-story${vid ? ' vid' : ''}" ${vid ? `data-a="F2-goto" data-id="${e.id}"` : `data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}" style="background-image:url('${esc(mediaUrl(m.url))}')"`}>${vid ? `<video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play">▶</span>` : ''}<span class="fd-sav">${esc(c ? c.emoji : '👨‍👩‍👧')}</span><span class="fd-st">${esc((e.title || jDay(e.day)).slice(0, 28))}</span></button>`;
+      return `<button class="fd-story${vid ? ' vid' : ''}" ${vid ? `data-a="F2-goto" data-id="${e.id}"` : `data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}" style="background-image:url('${esc(mediaUrl(m.url))}')"`}>${vid ? `<video data-src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play">▶</span>` : ''}<span class="fd-sav">${esc(c ? c.emoji : '👨‍👩‍👧')}</span><span class="fd-st">${esc((e.title || jDay(e.day)).slice(0, 28))}</span></button>`;
     }).join('')}</div>` : '';
     const chips = [['', 'Tất cả'], ['photo', 'Ảnh'], ['mile', 'Cột mốc'], ['teacher', 'Thầy cô']].map(([v2, t]) => `<button class="chip ${this.filter === v2 ? 'on' : ''}" data-a="F2-filter" data-v="${v2}">${t}</button>`).join('');
     // Kiểu game: bé đã làm được gì (Cột mốc, Thành tích) — cùng dữ liệu với bản đồ Hành trình và TV
@@ -55,8 +101,8 @@ const Feed = {
     const one = media.length === 1 ? media[0] : null;
     const ratio = one ? (one.w && one.h ? Math.max(0.56, Math.min(1.6, one.w / one.h)) : one.mime.startsWith('video/') ? 0.8 : 1) : 0;
     const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 4)}"${one ? ` style="aspect-ratio:${ratio.toFixed(3)}"` : ''}>${media.slice(0, 4).map((m, i) => (m.mime.startsWith('image/')
-      ? `<img src="${esc(mediaUrl(m.url))}" alt="" decoding="async" data-a="F2-view" data-id="${e.id}" data-i="${i}">`
-      : `<div class="fd-vid" data-a="F2-play"><video src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata" loop></video><span class="fd-play big">▶</span><span class="fd-mute">🔇</span><button class="fd-full" data-a="F2-view" data-id="${e.id}" data-i="${i}" aria-label="Xem lớn, tải về">⤢</button></div>`)
+      ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="${i || e !== this.list[0] ? 'lazy' : 'eager'}" decoding="async" data-a="F2-view" data-id="${e.id}" data-i="${i}">`
+      : `<div class="fd-vid" data-a="F2-play"><video data-src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata" loop></video><span class="fd-play big">▶</span><span class="fd-mute">🔇</span><button class="fd-full" data-a="F2-view" data-id="${e.id}" data-i="${i}" aria-label="Xem lớn, tải về">⤢</button></div>`)
       + (i === 3 && media.length > 4 ? `<span class="fd-more" data-a="F2-view" data-id="${e.id}" data-i="3">+${media.length - 4}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
@@ -71,7 +117,7 @@ const Feed = {
     return `<article class="fd-post" data-id="${e.id}">
       <div class="fd-head"><span class="fd-av ${a.role || ''}">${ROLE_ICON[a.role] || '👤'}</span>
         <div class="fd-who"><b>${esc(a.name)}</b>${k ? ` cùng <b>${esc(k.emoji)} ${esc(k.name)}</b>` : ''}${a.role === 'teacher' ? ' · Giáo viên' : ''}${feelText(d) ? ` <span class="fd-feel">— ${feelText(d)}</span>` : ''}
-          <div class="m">${e.day && e.day !== new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10) ? jDay(e.day) : this.ago(e.created_at)} · ${{ family: '👨‍👩‍👧', parents: '🔒 Chỉ bố mẹ', sensitive: '⚠️ Nhạy cảm' }[e.privacy] || ''}</div></div>
+          <div class="m">${this.when(e)} · ${{ family: '👨‍👩‍👧', parents: '🔒 Chỉ bố mẹ', sensitive: '⚠️ Nhạy cảm' }[e.privacy] || ''}</div></div>
         ${e.mine || (!S.restricted) ? `<button class="icon-btn" data-a="F2-menu" data-id="${e.id}" aria-label="Tuỳ chọn">⋯</button>` : ''}</div>
       ${text}${special}${grid}<div class="fd-up hidden" data-id="${e.id}"></div>
       ${who || cm.length ? `<div class="fd-sum"><span>${who}</span>${cm.length ? `<button data-a="F2-cm" data-id="${e.id}">${cm.length} bình luận</button>` : ''}</div>` : ''}
@@ -102,6 +148,7 @@ $('#view').addEventListener('click', async (e) => {
   if (a === 'F2-play') {   // chạm video: bật tiếng + thanh điều khiển ngay trong bài; video khác đang chạy thì dừng
     const v = b.querySelector('video');
     if (b.classList.contains('on')) return;
+    if (v.dataset.src) { v.src = v.dataset.src; delete v.dataset.src; }
     document.querySelectorAll('.fd-vid video').forEach((x) => { if (x !== v) x.pause(); });
     b.classList.add('on', 'live'); v.muted = false; v.controls = true; v.loop = false;
     const p = v.play(); if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => {}); });
@@ -116,11 +163,17 @@ $('#view').addEventListener('click', async (e) => {
     if (a === 'F2-goto') { const p = document.querySelector(`.fd-post[data-id="${id}"]`); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     if (a === 'F2-filter') { Feed.filter = b.dataset.v; return render(); }
     if (a === 'F2-love' && Date.now() - (Feed.held || 0) < 900) return;   // vừa giữ lâu để mở bảng chọn: không thả tim
-    if (a === 'F2-love') { await rpc('ct_react', { p_entry: id, p_emoji: entry && entry.reactions.mine ? null : '❤️' }); return Feed.refresh(); }
+    if (a === 'F2-love') return Feed.react(id, entry && entry.reactions && entry.reactions.mine ? entry.reactions.mine : '❤️');
     if (a === 'F2-pick') return $('#pick-' + id).classList.toggle('hidden');
-    if (a === 'F2-react') { await rpc('ct_react', { p_entry: id, p_emoji: entry && entry.reactions.mine === b.dataset.v ? null : b.dataset.v }); return Feed.refresh(); }
-    if (a === 'F2-cm') { Feed.open.add(id); const f = $('#rep-' + id); if (f) { f.classList.remove('hidden'); f.querySelector('input').focus(); } if ((entry.comments || []).length > 2) render(); return; }
-    if (a === 'F2-cdel') { if (!confirm('Xoá bình luận?')) return; await rpc('ct_comment_delete', { p_id: id }); return Feed.refresh(); }
+    if (a === 'F2-react') return Feed.react(id, b.dataset.v);
+    if (a === 'F2-cm') { Feed.open.add(id); if ((entry.comments || []).length > 2) Feed.patch(id); const f = $('#rep-' + id); if (f) { f.classList.remove('hidden'); f.querySelector('input').focus(); } return; }
+    if (a === 'F2-cdel') {
+      if (!confirm('Xoá bình luận?')) return;
+      await rpc('ct_comment_delete', { p_id: id });
+      const en = (Feed.list || []).find((x) => (x.comments || []).some((c) => c.id === id));
+      if (en) { en.comments = en.comments.filter((c) => c.id !== id); Feed.patch(en.id); }
+      return;
+    }
     if (a === 'F2-ass') { V.child = b.dataset.k; return Learn.assessSheet(null, id); }
     if (a === 'F2-menu') {
       sheet(`<h3>Bài đăng</h3><button class="choice" data-a="m-edit">✎ Sửa bài</button><button class="choice" data-a="m-del" style="color:var(--danger)">🗑 Xoá bài (kèm ảnh)</button>`, async (x) => {
@@ -141,8 +194,16 @@ const feedSeen = 'IntersectionObserver' in window ? new IntersectionObserver((en
     const p = v.play(); if (p && p.catch) p.catch(() => tile.classList.remove('live'));
   } else { v.pause(); if (!tile.classList.contains('on')) tile.classList.remove('live'); }
 }), { threshold: [0, 0.6] }) : null;
-new MutationObserver(() => { if (feedSeen) document.querySelectorAll('#view .fd-vid video:not([data-seen])').forEach((v) => { v.dataset.seen = 1; feedSeen.observe(v); }); })
-  .observe($('#view'), { childList: true, subtree: true });
+// Video chỉ bắt đầu tải khi sắp cuộn tới (cách ~1 màn hình): mở bảng tin không phải tải hết mọi video cùng lúc
+const feedNear = 'IntersectionObserver' in window ? new IntersectionObserver((ents) => ents.forEach((en) => {
+  if (!en.isIntersecting) return;
+  const v = en.target; feedNear.unobserve(v);
+  if (v.dataset.src) { v.src = v.dataset.src; delete v.dataset.src; }
+}), { rootMargin: '900px 400px' }) : null;
+new MutationObserver(() => {
+  document.querySelectorAll('#view video[data-src]:not([data-near])').forEach((v) => { v.dataset.near = 1; if (feedNear) feedNear.observe(v); else { v.src = v.dataset.src; delete v.dataset.src; } });
+  if (feedSeen) document.querySelectorAll('#view .fd-vid video:not([data-seen])').forEach((v) => { v.dataset.seen = 1; feedSeen.observe(v); });
+}).observe($('#view'), { childList: true, subtree: true });
 // Video cũ chưa lưu kích thước: đọc được khung hình thì chỉnh khung bài đăng cho vừa (dọc/ngang)
 $('#view').addEventListener('loadedmetadata', (e) => {
   const v = e.target, box = v.closest && v.closest('.fd-media.n1');
@@ -170,5 +231,13 @@ $('#view').addEventListener('submit', async (e) => {
   const inp = f.querySelector('input'), body = inp.value.trim();
   if (!body) return;
   inp.disabled = true;
-  try { await rpc('ct_comment', { p_entry: f.dataset.id, p_body: body }); Feed.open.add(f.dataset.id); Feed.refresh(); } catch (err) { inp.disabled = false; toast(err.message, true); }
+  try {
+    const id = f.dataset.id, cid = await rpc('ct_comment', { p_entry: id, p_body: body }), en = (Feed.list || []).find((x) => x.id === id);
+    Feed.open.add(id);
+    if (!en) return Feed.refresh();
+    const me = S.me || {};
+    en.comments = [...(en.comments || []), { id: typeof cid === 'string' ? cid : 'new' + Date.now(), body, at: new Date().toISOString(), name: me.name || 'Bạn', role: me.role, me: true }];
+    Feed.patch(id);
+    if (typeof cid !== 'string') Feed.list = null;   // máy chủ không trả mã bình luận: lần sau hỏi lại để xoá được
+  } catch (err) { inp.disabled = false; toast(err.message, true); }
 });

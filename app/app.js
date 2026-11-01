@@ -40,12 +40,24 @@ async function yt(body) {
 async function act(fn, okMsg) {
   try { const r = await fn(); if (okMsg) toast(okMsg); return r; } catch (e) { toast(e.message, true); }
 }
+// Mở app: vẽ ngay bằng trạng thái lần trước (lưu trong máy), rồi hỏi máy chủ; chỉ vẽ lại khi có thay đổi.
+const stateUid = () => { try { const s = JSON.parse(localStorage.getItem('ct-session') || '{}') || {}; return (s.user && s.user.id) || ''; } catch (e) { return ''; } };
 async function load() {
-  S = await rpc('ct_state');
+  const uid = stateUid();
+  let old = '';
+  if (!S) {
+    try { const c = JSON.parse(localStorage.getItem('ct-state') || 'null'); if (c && c.uid === uid && c.S) { S = c.S; old = JSON.stringify(S); showState(); } } catch (e) { /* bỏ qua */ }
+  }
+  const fresh = await rpc('ct_state'), j = JSON.stringify(fresh);
+  S = fresh;
+  try { localStorage.setItem('ct-state', JSON.stringify({ uid, S: fresh })); } catch (e) { /* bỏ qua */ }
+  if (j !== old) showState(); else updateBadge();
+  offerPair();
+}
+function showState() {
   $('#fam-name').textContent = S.family.name;
   updateBadge();
   render();
-  offerPair();
 }
 // Cập nhật dữ liệu mà không vẽ lại màn hình (để không nháy khi đang duyệt hàng loạt).
 async function quietLoad() { S = await rpc('ct_state'); updateBadge(); }
@@ -154,6 +166,7 @@ sb.auth.onAuthStateChange((ev, session) => {
     else setTimeout(start, 0);
   } else {
     S = null;
+    try { localStorage.removeItem('ct-state'); localStorage.removeItem('ct-feed'); } catch (e) { /* bỏ qua */ }
     showApp(false);
   }
 });

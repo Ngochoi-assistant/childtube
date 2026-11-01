@@ -42,10 +42,12 @@ const Hub = {
       const g = Object.fromEntries(this.GROUPS.map((x) => [x[0], x]));
       v.innerHTML = `<div class="v-head"><h1>Gia đình</h1><div class="v-subt">Cài một lần rồi quên — mọi cài đặt ở đây</div></div>
         <div class="card hub">${['kids', 'tv', 'members'].map((k) => row(k, g[k][1], g[k][2])).join('')}</div>
+        <div class="card hub"><div class="item tap" data-a="H-open" data-v="events"><div class="ic">📅</div><div class="info"><div class="t">Ngày quan trọng</div><div class="m">${Events.summary()}</div></div><span class="chev">›</span></div></div>
         <div class="card hub">${row('privacy', '🔐', 'Quyền riêng tư')}<div class="item tap" data-a="F-audit"><div class="ic">📜</div><div class="info"><div class="t">Lịch sử hoạt động</div><div class="m">Ai đã làm gì, kể cả lần bị chặn</div></div><span class="chev">›</span></div></div>
         <div class="card hub">${row('account', '🔑', 'Tài khoản')}</div>`;
       return;
     }
+    if (this.sub === 'events') return Events.render(v);   // events.js
     const g = this.GROUPS.find((x) => x[0] === this.sub) || this.GROUPS[0];
     const sec = this.sections()[this.sub] || [];
     const me = S.me || {};

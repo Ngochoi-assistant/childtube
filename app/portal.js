@@ -18,6 +18,16 @@ const jDay = (d) => {
   const [Y, M, D] = d.split('-'); return `${+D} tháng ${+M}${Y !== t.slice(0, 4) ? ' ' + Y : ''}`;
 };
 const mins = (s) => Math.round((s || 0) / 60);
+// Giờ:phút của bài: giờ bố mẹ chọn (data.time), không có thì giờ đăng nếu đăng đúng ngày đó (giờ Việt Nam)
+const vnNow = () => new Date(Date.now() + 7 * 3600e3).toISOString();
+const jTime = (e) => {
+  const d = e.data || {};
+  if (d.time) return d.time;
+  if (!e.created_at) return '';
+  const t = new Date(new Date(e.created_at).getTime() + 7 * 3600e3).toISOString();
+  return t.slice(0, 10) === e.day ? t.slice(11, 16) : '';
+};
+const jWhen = (e) => { const t = jTime(e); return e.day ? jDay(e.day) + (t ? ' lúc ' + t : '') : t; };
 
 // ---------- Tổng quan ----------
 async function renderHome() {
@@ -147,12 +157,12 @@ async function upFetch(path, opt, tries = 3) {
 function upXhr(path, opt, onProg, tries = 3) {
   const once = () => new Promise((ok, bad) => {
     const x = new XMLHttpRequest();
-    x.open(opt.method || 'POST', CT_CONFIG.url + path);
+    x.open(opt.method || 'POST', /^https?:/.test(path) ? path : CT_CONFIG.url + path);
     Object.entries(opt.headers || {}).forEach(([k, v]) => x.setRequestHeader(k, v));
     if (onProg) x.upload.onprogress = (e) => { if (e.lengthComputable) onProg(e.loaded); };
     x.onload = () => {
       let j = {}; try { j = JSON.parse(x.responseText || '{}'); } catch (e) { j = {}; }
-      if (x.status >= 200 && x.status < 300) ok(j);
+      if (x.status >= 200 && x.status < 300) ok(Object.assign(j, { etag: j.etag || (x.getResponseHeader('ETag') || '').replace(/"/g, '') }));
       else bad(Object.assign(new Error((j && j.message) || 'Tải lên lỗi (' + x.status + ')'), { status: x.status, retry: x.status >= 500 }));
     };
     x.onerror = x.ontimeout = () => bad(Object.assign(new Error('Mất mạng khi đang tải lên'), { retry: true }));
@@ -167,13 +177,15 @@ function upXhr(path, opt, onProg, tries = 3) {
 }
 // entryId: id mục Nhật ký, hoặc 'msg=<id>' để gắn vào tin nhắn. pct(0..1) báo tiến độ của tệp này.
 // entryId cũng có thể là 'stage=1' (gửi trước khi lưu bài). Trả về { id, url } của tệp.
-// Video lớn: gửi 5 phần 8 MB cùng lúc (nhanh hơn nhiều trên 4G/5G so với gửi lần lượt).
+// Máy chủ có link thẳng vào R2 (st.urls): mọi tệp gửi thẳng vào kho, không qua Worker (đường qua Worker từ VN chỉ ~0,1 MB/giây).
+// Không có: tệp nhỏ gửi một lần qua Worker, video lớn gửi 5 phần 8 MB cùng lúc qua Worker.
+let upDirect = null;   // null = chưa biết máy chủ có link thẳng không
 async function sendFile(entryId, f, tok, pct) {
   const H = { Authorization: 'Bearer ' + tok };
   const q = String(entryId).includes('=') ? String(entryId) : 'entry=' + entryId, msg = q.startsWith('msg=') ? q.slice(4) : null;
   const s = await shrink(f), type = s.type || mimeOf(f), size = s.blob.size;
   pct(0);
-  if (size <= BIG) {
+  if (size <= BIG && upDirect === false) {
     const r = await upXhr(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, (n) => pct(n / size), 2);
     pct(1);
     return r;
@@ -186,18 +198,20 @@ async function sendFile(entryId, f, tok, pct) {
   }
   const jobs = [];
   for (let n = 1, o = 0; o < size; n++, o += st.part) jobs.push({ n, o });
+  const direct = upDirect = !!(st.urls && st.urls.length === jobs.length);
   const sent = {}, parts = [];
   const tick = () => pct(Object.values(sent).reduce((a, b) => a + b, 0) / size);
   let next = 0;
   const worker = async () => {
     while (next < jobs.length) {
       const { n, o } = jobs[next++];
-      parts.push(await upXhr(`/media/v1/upload/part?${msg ? 'msg=' + msg + '&' : ''}id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`,
-        { method: 'PUT', headers: H, body: s.blob.slice(o, o + st.part) }, (b) => { sent[n] = b; tick(); }));
+      const r = await upXhr(direct ? st.urls[n - 1] : `/media/v1/upload/part?${msg ? 'msg=' + msg + '&' : ''}id=${st.id}&upload=${encodeURIComponent(st.upload)}&n=${n}`,
+        { method: 'PUT', headers: direct ? {} : H, body: s.blob.slice(o, o + st.part) }, (b) => { sent[n] = b; tick(); }, direct ? 5 : 3);
+      parts.push({ n, etag: r.etag });
       sent[n] = Math.min(st.part, size - o); tick();
     }
   };
-  await Promise.all([worker(), worker(), worker(), worker(), worker()]);
+  await Promise.all(jobs.slice(0, 5).map(worker));
   parts.sort((a, b) => a.n - b.n);
   const stage = q === 'stage=1';
   const r = await upFetch('/media/v1/upload/done' + (msg ? '?msg=' + msg : stage ? '?stage=1' : ''), { method: 'POST', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: st.id, upload: st.upload, entry: msg || stage ? null : entryId, msg, stage, mime: type, parts, w: s.w, h: s.h }) });
@@ -254,7 +268,7 @@ function entryRow(e, compact) {
   const media = (e.media || []).filter((m) => m.url);
   return `<div class="pt-entry ${compact ? 'compact' : ''}">
     <div class="pt-eh"><span class="pt-ei">${k[0]}</span><div class="pt-et"><b>${esc(e.title || k[1])}</b>
-      <span class="m">${kidLabel(e.child_id)} · ${jDay(e.day)}${e.source === 'teacher' ? ' · 🧑‍🏫 giáo viên' : ''}</span></div>
+      <span class="m">${kidLabel(e.child_id)} · ${jWhen(e)}${e.source === 'teacher' ? ' · 🧑‍🏫 giáo viên' : ''}</span></div>
       ${compact ? '' : `<span class="badge">${PRIV[e.privacy] || ''}</span>`}</div>
     ${e.body ? `<div class="pt-eb">${esc(e.body)}</div>` : ''}
     ${chips.length ? `<div class="pt-echips">${chips.slice(0, compact ? 4 : 20).map((c) => `<span>${c}</span>`).join('')}</div>` : ''}
@@ -307,7 +321,8 @@ function entrySheet(e, opts) {
     <label>Tiêu đề</label><input id="je-title" value="${esc(e.title)}" maxlength="120" placeholder="Ví dụ: Bin tự đi xe đạp">
     <label>Nội dung</label><textarea id="je-body" rows="4" placeholder="Chuyện gì đã xảy ra, bé nói gì, cảm xúc thế nào…">${esc(e.body)}</textarea>
     <div class="pt-two"><div><label>Ngày</label><input id="je-day" type="date" value="${esc(e.day)}"></div>
-      <div><label>Ai được xem</label><select id="je-priv">${Object.entries(PRIV).map(([k, t]) => `<option value="${k}" ${e.privacy === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div></div>
+      <div><label>Giờ</label><input id="je-time" type="time" value="${esc(isNew ? vnNow().slice(11, 16) : jTime(e))}"></div></div>
+    <label>Ai được xem</label><select id="je-priv">${Object.entries(PRIV).map(([k, t]) => `<option value="${k}" ${e.privacy === k ? 'selected' : ''}>${t}</option>`).join('')}</select>
     ${mediaOk ? `<label class="btn small pt-file">📷 Thêm ảnh/video<input type="file" id="je-files" accept="image/*,video/*" multiple hidden></label><div id="je-prev" class="pt-prev up-prev" data-group="${grp}"></div>`
       : '<div class="hint">Muốn đính kèm ảnh? Bật "Lưu ảnh, video của bé" trong Cài đặt → Quyền riêng tư.</div>'}
     <label class="pt-chk"><input type="checkbox" id="je-lesson" ${e.data && e.data.lesson ? 'checked' : ''}> 🎓 Video người thân dạy bé <span class="hint">— hiện ở mục “Người thân dạy” trên TV để bé xem lại</span></label>
@@ -323,7 +338,7 @@ function entrySheet(e, opts) {
     if (!$('#je-title').value.trim() && !$('#je-body').value.trim() && !files.length && !fa.feel && !fa.act) return toast('Hãy ghi vài chữ hoặc thêm ảnh/video.', true);
     b.disabled = true; b.textContent = 'Đang đăng…';
     try {
-      savedId = await rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value || (files.length && !$('#je-body').value.trim() ? (files.some((j) => j.vid) ? 'Video mới' : 'Ảnh mới') : ''), body: $('#je-body').value, day: $('#je-day').value, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked, mood, feel: fa.feel, act: fa.act } });
+      savedId = await rpc('ct_journal_save', { p_id: savedId, p: { kind: $('#je-kind').value, child_id: $('#je-kid').value || null, title: $('#je-title').value || (files.length && !$('#je-body').value.trim() ? (files.some((j) => j.vid) ? 'Video mới' : 'Ảnh mới') : ''), body: $('#je-body').value, day: $('#je-day').value, time: $('#je-time').value || null, privacy: $('#je-priv').value, lesson: $('#je-lesson').checked, mood, feel: fa.feel, act: fa.act } });
       const busy = UpQ.busy(grp);
       UpQ.bind(grp, savedId);   // tệp xong rồi gắn ngay, tệp đang tải gắn khi xong
       closeSheet(); toast(busy ? 'Đã đăng · ảnh/video đang tải tiếp' : 'Đã đăng');
