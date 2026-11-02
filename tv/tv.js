@@ -1682,7 +1682,7 @@
     else if (zone === 'al') alKey(k);
     else if (zone === 'alv') alvKey(k);
     else if (zone === 'albtn') {
-      if (k === K.ENTER) showAlbum('side');
+      if (k === K.ENTER) goTab('fd');   // Album theo ngày đã thay bằng Bảng tin lướt liền các ngày
       else if (k === K.DOWN || k === K.RIGHT) { zone = 'rmbtn'; focus(); }
       else if (BACK.indexOf(k) >= 0) { zone = 'tab'; focus(); }
     }
@@ -1716,7 +1716,7 @@
     if (zone === 'fd' || (zone === 'tab' && tab === 'fd')) { var fp = t.closest('.fp'); if (fp) { zone = 'fd'; fd.idx = +fp.getAttribute('data-i'); focus(); fdOpen(fd.idx); } return; }
     if (zone === 'rm') { var rb = t.closest('.obtn'); if (rb) rmAct(rb); return; }
     if (t.closest('#rm-btn')) { showRoad('side'); return; }
-    if (t.closest('#al-btn')) { showAlbum('side'); return; }
+    if (t.closest('#al-btn')) { goTab('fd'); return; }
     if (zone === 'alv') { closeStory(); return; }
     if (zone === 'al') {
       var ac = t.closest('.al-card'), at = t.closest('.al-tab');

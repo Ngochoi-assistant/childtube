@@ -1,6 +1,7 @@
 // Kết nối máy chủ ChildTube trên Cloudflare (Worker childtube-api, tài khoản ngochoi.assistant@gmail.com) — từ 2026-10-26.
+// Từ 03/11/2026 đi qua cổng childtube-api.pages.dev (cloudflare/gateway): nhà mạng VN bóp *.workers.dev còn ~12 KB/giây.
 window.CT_CONFIG = {
-  url: 'https://childtube-api.ngochoi-assistant.workers.dev',
+  url: 'https://childtube-api.pages.dev',
   key: '',
   backend: 'cloudflare'
 };
