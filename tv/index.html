@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <!-- Font tải không chặn: mạng chậm vẫn hiện giao diện ngay -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<link rel="stylesheet" href="tv.css?v=24">
+<link rel="stylesheet" href="tv.css?v=25">
 </head>
 <body>
 <div id="loading"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="loading-msg">Đang tải…</div></div>
@@ -29,7 +29,7 @@
   <div id="pair-msg"></div>
 </div>
 
-<!-- Tổng quan: hiện đầu tiên khi mở TV — bé đang ở đâu trên lộ trình, hôm nay thế nào; rồi bố mẹ chọn chương trình -->
+<!-- Trang chính: hiện đầu tiên khi mở TV — lộ trình tuần này đúng hay lệch, gợi ý điều chỉnh, bấm là mở giáo trình -->
 <div id="ov" class="hidden">
   <header id="ov-top"><div class="logo"><span class="logo-play"></span>ChildTube</div><div id="ov-clock"></div></header>
   <div id="ov-hi"></div>
@@ -37,21 +37,22 @@
   <div id="ov-btns"></div>
 </div>
 
+<!-- Bảng tin: như trên điện thoại, mỗi bài tràn hết bề ngang màn hình -->
+<div id="fd" class="hidden"><div id="fd-list"></div></div>
+
+<!-- Thanh dưới: Trang chính · Xem video · Bảng tin -->
+<nav id="tabbar" class="hidden">
+  <button class="tb" data-tab="ov"><span>🏠</span>Trang chính</button>
+  <button class="tb" data-tab="home"><span>▶</span>Xem video</button>
+  <button class="tb" data-tab="fd"><span>📰</span>Bảng tin</button>
+</nav>
+
 <!-- Lộ trình: bé đang ở đâu, đang học gì, mốc và mục tiêu phía trước -->
 <div id="rm" class="hidden">
   <header id="rm-top"><h1>🗺 Hành trình của bé</h1><div id="rm-kids"></div></header>
   <div id="rm-body"></div>
   <div id="rm-btns"></div>
 </div>
-
-<!-- Ảnh kỷ niệm: ảnh bố mẹ, ông bà… đăng trong bảng tin ChildTube (mức "Gia đình") -->
-<div id="ph" class="hidden">
-  <header id="ph-top"><h1>🏆 Bảng tin của bé</h1><div id="ph-chips"></div></header>
-  <div id="ph-wins" class="hidden"></div>
-  <div id="ph-hero"><img id="ph-a" alt=""><img id="ph-b" alt=""><div id="ph-cap"></div></div>
-  <div id="ph-grid"></div>
-</div>
-<div id="phv" class="hidden"><img id="phv-img" alt=""><div id="phv-cap"></div><div id="phv-n"></div></div>
 
 <!-- Album của bé: xem lại từng ngày (ảnh, video, ghi nhanh) + video người thân dạy -->
 <div id="al" class="hidden">
@@ -67,7 +68,6 @@
     <div class="logo"><span class="logo-play"></span>ChildTube</div>
     <div id="al-btn"><span>📸</span>Album của bé</div>
     <div id="rm-btn"><span>🗺</span>Hành trình của bé</div>
-    <div id="ph-btn"><span>🏆</span>Bảng tin của bé</div>
     <div id="channels"></div>
   </aside>
   <main id="main">
@@ -151,7 +151,7 @@
 
 <script src="../config.js"></script>
 <script src="qrcode.js"></script>
-<script src="tv.js?v=24"></script>
+<script src="tv.js?v=25"></script>
 <script async src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

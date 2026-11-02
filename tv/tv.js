@@ -101,7 +101,8 @@
     if (first) zone = 'side';
     setLib(rows, family);
     if (first) { showOverview(); return; }
-    if (zone !== 'ov') $('#home').classList.remove('hidden');
+    if (zone === 'side' || zone === 'grid') $('#home').classList.remove('hidden');
+    if (tab === 'ov' && (zone === 'ov' || zone === 'tab')) paintOverview();   // danh sách giáo trình đổi: nút chọn giáo trình đổi theo
     checkLimit();
   }
   function hello() {
@@ -153,7 +154,7 @@
     if (!window.fetch || !MY_V) return;
     fetch('./?nc=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (html) {
       var m = /tv\.js\?v=(\d+)/.exec(html), v = m ? +m[1] : 0, tried = null;
-      if (v <= MY_V || !(zone === 'ov' || zone === 'side' || zone === 'grid' || zone === 'pair' || zone === 'limit')) return;
+      if (v <= MY_V || !(zone === 'ov' || zone === 'tab' || zone === 'fd' || zone === 'side' || zone === 'grid' || zone === 'pair' || zone === 'limit')) return;
       try { tried = sessionStorage.getItem('ct-upd'); sessionStorage.setItem('ct-upd', String(v)); } catch (e) { /* bỏ qua */ }
       if (tried !== String(v)) location.replace(location.pathname + '?v=' + v);   // mỗi bản chỉ thử một lần, tránh tải lại liên tục
     }).catch(function () { /* mạng chậm: để lần sau */ });
@@ -164,7 +165,7 @@
     // Chưa ghép: hỏi mỗi 4 giây. Đã ghép: mỗi 2 phút (chỉ khi bé đang ở trang chủ).
     var wait = zone === 'pair' || zone === 'loading' ? 4000 : 120000;
     pollTimer = setTimeout(function () {
-      if (zone === 'pair' || zone === 'loading' || zone === 'ov' || zone === 'side' || zone === 'grid' || zone === 'limit') hello().then(function () { if (zone === 'ov') return loadOverview(); }).then(checkVersion).then(schedule, schedule); else schedule();
+      if (zone === 'pair' || zone === 'loading' || zone === 'ov' || zone === 'tab' || zone === 'fd' || zone === 'side' || zone === 'grid' || zone === 'limit') hello().then(function () { if (tab === 'ov' && (zone === 'ov' || zone === 'tab')) return loadOverview(); }).then(checkVersion).then(schedule, schedule); else schedule();
     }, wait);
   }
   // TV bật lại từ chế độ chờ / quay lại app: cập nhật ngay.
@@ -173,7 +174,7 @@
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) { hiddenAt = Date.now(); return; }
     if (zone === 'player') return;
-    if (hiddenAt && Date.now() - hiddenAt > 30 * 60000 && (zone === 'side' || zone === 'grid')) showOverview();
+    if (hiddenAt && Date.now() - hiddenAt > 30 * 60000 && (zone === 'side' || zone === 'grid' || zone === 'fd' || zone === 'tab')) showOverview();
     hello().then(schedule, schedule);
   });
   // Lỗi bất ngờ không được làm đứng app: ghi lại và báo nhẹ.
@@ -314,13 +315,13 @@
     else if (zone === 'end') el = $('#end-btns').children[endIdx];
     else if (zone === 'qz') el = qzItems()[qzIdx];
     else if (zone === 'limit') el = $('#limit-btns').children[0];
-    else if (zone === 'ov') el = $('#ov-btns').children[ovIdx];
+    else if (zone === 'ov') el = ovItems()[ovIdx];
+    else if (zone === 'tab') el = $('#tabbar').children[TABS.indexOf(tab)];
+    else if (zone === 'fd') el = fdFocus();
     else if (zone === 'rm') el = mapRow === 'btn' ? $('#rm-btns').children[rmIdx2] : null;
     else if (zone === 'rmbtn') el = $('#rm-btn');
-    else if (zone === 'phbtn') el = $('#ph-btn');
     else if (zone === 'albtn') el = $('#al-btn');
     else if (zone === 'al') el = alFocusEl();
-    else if (zone === 'ph') { el = ph.at === 'chips' ? $('#ph-chips').children[ph.chip] : phCells()[ph.idx]; if (el && ph.at === 'grid') reveal(el, $('#ph-grid')); }
     if (el) el.classList.add('focus');
     $('#grid').classList.toggle('dim', zone === 'grid');   // đang chọn video: làm mờ các video còn lại
   }
@@ -339,10 +340,10 @@
     var n;
     if (zone === 'side') {
       n = sideItems().length;
-      if (k === K.UP && sideIdx === 0) { zone = 'phbtn'; focus(); return; }
+      if (k === K.UP && sideIdx === 0) { zone = 'rmbtn'; focus(); return; }
       if (k === K.UP && sideIdx > 0) sideIdx--;
       else if (k === K.DOWN && sideIdx < n - 1) sideIdx++;
-      else if (BACK.indexOf(k) >= 0) { showOverview(); return; }
+      else if (k === K.DOWN || BACK.indexOf(k) >= 0) { zone = 'tab'; focus(); return; }
       else if ((k === K.RIGHT || k === K.ENTER) && sideIdx < lib.length) {
         if (gridItems().length) { zone = 'grid'; gridIdx = startIndex(lib[chIdx]); }
       } else if (k === K.ENTER && sideIdx === lib.length) { openPin(); return; }
@@ -353,6 +354,7 @@
       else if (k === K.RIGHT && gridIdx % COLS < COLS - 1 && gridIdx + 1 < n) gridIdx++;
       else if (k === K.UP && gridIdx >= COLS) gridIdx -= COLS;
       else if (k === K.DOWN && Math.floor(gridIdx / COLS) < Math.floor((n - 1) / COLS)) gridIdx = Math.min(gridIdx + COLS, n - 1);
+      else if (k === K.DOWN) { zone = 'tab'; focus(); return; }
       else if (k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) {
         if (isLocked(lib[chIdx], gridIdx)) { toast('Hãy xem bài trước nhé! 🔒'); return; }
         play(lib[chIdx].videos, gridIdx); return;
@@ -362,85 +364,123 @@
     focus();
   }
 
-  // ---------- Màn tổng quan ----------
-  // Mở TV: thấy ngay từng bé đang ở đâu trên lộ trình, hôm nay xem bao lâu, mốc năm nay — rồi bố mẹ mới chọn chương trình.
+  // ---------- Thanh dưới: Trang chính · Xem video · Bảng tin ----------
+  // Mỗi tab là một màn hình; các màn phụ (Hành trình, Album) mở toàn màn hình và ẩn thanh dưới.
+  // Remote: Back từ nội dung → xuống thanh dưới; ◀ ▶ đổi tab ngay; ▲ hoặc OK → vào nội dung.
+  var tab = 'ov', TABS = ['ov', 'home', 'fd'];
+  function screen(id) {
+    ['ov', 'home', 'fd', 'rm', 'al', 'end'].forEach(function (s) { $('#' + s).classList.toggle('hidden', s !== id); });
+    $('#tabbar').classList.toggle('hidden', TABS.indexOf(id) < 0);
+    if (id !== 'fd') fdStop();
+    if (TABS.indexOf(id) >= 0) tab = id;
+    var b = $('#tabbar').children;
+    for (var i = 0; i < b.length; i++) b[i].classList.toggle('on', b[i].getAttribute('data-tab') === tab);
+  }
+  // stay: giữ con trỏ ở thanh dưới (đang lướt qua các tab)
+  function goTab(t, stay) {
+    clearTimeout(endTimer);
+    if (t === 'ov') showOverview();
+    else if (t === 'fd') showFeed();
+    else {
+      screen('home'); zone = 'side'; sideIdx = chIdx < 0 ? 0 : chIdx;
+      if (!stay && timeUp()) { showLimit(); return; }
+    }
+    if (stay) zone = 'tab';
+    focus();
+  }
+  function tabKey(k) {
+    var i = TABS.indexOf(tab);
+    if (k === K.LEFT && i > 0) goTab(TABS[i - 1], true);
+    else if (k === K.RIGHT && i < TABS.length - 1) goTab(TABS[i + 1], true);
+    else if (k === K.UP || k === K.ENTER) goTab(tab, false);
+    else if (BACK.indexOf(k) >= 0) {
+      if (tab !== 'ov') goTab('ov', true);
+      else try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* không phải TV */ }
+    }
+  }
+  // Chọn ô kế bên theo vị trí trên màn hình (các nút xếp nhiều hàng, không theo một dãy)
+  function nearest(list, i, k) {
+    if (!list[i]) return -1;
+    var a = list[i].getBoundingClientRect(), best = -1, bd = 1e9, j, b, dx, dy, ok, d;
+    for (j = 0; j < list.length; j++) {
+      if (j === i) continue;
+      b = list[j].getBoundingClientRect();
+      dx = b.left + b.width / 2 - (a.left + a.width / 2); dy = b.top + b.height / 2 - (a.top + a.height / 2);
+      ok = k === K.LEFT ? dx < -2 && Math.abs(dy) < a.height : k === K.RIGHT ? dx > 2 && Math.abs(dy) < a.height : k === K.UP ? dy < -a.height / 2 : dy > a.height / 2;
+      if (!ok) continue;
+      d = k === K.LEFT || k === K.RIGHT ? Math.abs(dx) : Math.abs(dy) * 2 + Math.abs(dx);
+      if (d < bd) { bd = d; best = j; }
+    }
+    return best;
+  }
+
+  // ---------- Trang chính ----------
+  // Mở TV: mỗi bé một thẻ gọn — lộ trình tuần này đúng hay lệch, gợi ý điều chỉnh, và các giáo trình để chọn luôn.
   try { ov = JSON.parse(localStorage.getItem('ct-ov')); } catch (e) { ov = null; }
   function showOverview() {
     clearTimeout(endTimer);
-    $('#home').classList.add('hidden');
-    $('#end').classList.add('hidden');
-    $('#ov').classList.remove('hidden');
+    screen('ov');
     zone = 'ov';
     ovIdx = 0;
     paintOverview();
     loadOverview();
   }
-  function hideOverview() {
-    $('#ov').classList.add('hidden');
-    $('#home').classList.remove('hidden');
-    zone = 'side';
-    sideIdx = chIdx;
-    if (timeUp()) { showLimit(); return; }
-    focus();
-  }
   function loadOverview() {
     return rpc('ct_tv_overview', { p_device: device.id, p_secret: device.secret }).then(function (r) {
       ov = r;
       try { localStorage.setItem('ct-ov', JSON.stringify(r)); } catch (e) { /* bộ nhớ đầy */ }
-      if (zone === 'ov') paintOverview();
+      if (zone === 'ov' || (zone === 'tab' && tab === 'ov')) paintOverview();
     }).catch(function () { /* mạng chậm: giữ bản đã lưu */ });
   }
   var MOOD = { 'vui': '😄', 'bình thường': '🙂', 'mệt': '🥱', 'buồn': '😢', 'cáu': '😠' };
   function hi() { var h = new Date().getHours(); return h < 11 ? 'Chào buổi sáng' : h < 14 ? 'Chào buổi trưa' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối'; }
 
-  // Lộ trình ngắn của giáo trình đang học: đã xong / đang học / bài tiếp theo (lộ trình dài hạn theo tuổi chỉ xem trong app)
-  function tvPaths(k) {
-    var ps = (k.paths || []).slice(0, 1);
-    if (!ps.length) return '<div class="ov-none ov-pnone">Bố mẹ thêm giáo trình cho bé trong app ChildTube để thấy lộ trình học ở đây.</div>';
-    return ps.map(function (p) {
-      var st = (p.from ? '<div class="tp-s more"><i>…</i><span></span></div>' : '') + p.steps.map(function (s) {
-        return '<div class="tp-s' + (s.done ? ' done' : s.now ? ' now' : '') + '"><i>' + (s.done ? '✓' : s.now ? '▶' : s.n) + '</i><span>' + esc(s.title) + '</span></div>';
-      }).join('') + (p.from + p.steps.length < p.total ? '<div class="tp-s more"><i>+' + (p.total - p.from - p.steps.length) + '</i><span>bài nữa</span></div>' : '') +
-        '<div class="tp-s end' + (p.done === p.total ? ' done' : '') + '"><i>🏁</i><span>Hoàn thành</span></div>';
-      return '<div class="tp"><div class="tp-h"><b>' + esc((p.emoji || '📘') + ' ' + p.name) + '</b><span>' + p.done + '/' + p.total + ' bài</span></div>' +
-        '<span class="ov-bar tp-bar"><i style="width:' + (p.total ? p.done / p.total * 100 : 0) + '%"></i></span><div class="tp-row">' + st + '</div></div>';
-    }).join('');
-  }
-  // Đường lộ trình 3 → 18 tuổi: các giai đoạn (đã qua / đang ở / phía trước), bé đứng ở tuổi hiện tại, cờ mục tiêu ở cuối
-  function journey(k, W) {
-    var H = 150, L = 30, R = W - 80, Y = 74, A0 = 3, A1 = 18;
-    var sx = function (a) { return L + (R - L) * (a - A0) / (A1 - A0); };
-    var st = (k.road && k.road.stages) || [], out = '', i, s, x0, x1, col;
-    for (i = 0; i < st.length; i++) {
-      s = st[i]; x0 = sx(s.from); x1 = sx(s.to + 1) - 6;
-      col = s.state === 'past' ? '#30d158' : s.state === 'now' ? '#ff453a' : 'rgba(255,255,255,.18)';
-      out += '<rect x="' + x0 + '" y="' + (Y - 7) + '" width="' + (x1 - x0) + '" height="14" rx="7" fill="' + col + '"/>';
-      out += '<text x="' + ((x0 + x1) / 2) + '" y="' + (Y + 44) + '" text-anchor="middle" font-size="18" font-weight="' + (s.state === 'now' ? 800 : 600) + '" fill="' + (s.state === 'now' ? '#fff' : 'rgba(235,235,245,.6)') + '">' + esc(s.name) + '</text>';
-      out += '<text x="' + ((x0 + x1) / 2) + '" y="' + (Y + 66) + '" text-anchor="middle" font-size="15" fill="rgba(235,235,245,.4)">' + s.from + '–' + s.to + ' tuổi</text>';
-    }
-    var age = k.age == null ? A0 : Math.max(A0, Math.min(A1 - 1, k.age)), ax = sx(age + 0.5);
-    out += '<circle cx="' + ax + '" cy="' + Y + '" r="27" fill="#fff"/><text x="' + ax + '" y="' + (Y + 11) + '" text-anchor="middle" font-size="30">' + esc(k.emoji || '🧒') + '</text>';
-    out += '<text x="' + (ax < 140 ? L - 6 : ax) + '" y="' + (Y - 40) + '" text-anchor="' + (ax < 140 ? 'start' : 'middle') + '" font-size="17" font-weight="800" fill="#ff6961">' + (k.age != null ? k.age + ' tuổi · ' : '') + 'bé đang ở đây</text>';
-    var g = (k.road && k.road.goals) || [];
-    out += '<text x="' + (R + 40) + '" y="' + (Y + 12) + '" text-anchor="middle" font-size="36">🎯</text>';
-    out += '<text x="' + (R + 40) + '" y="' + (Y + 44) + '" text-anchor="middle" font-size="15" fill="rgba(235,235,245,.6)">' + (g.length ? g.length + ' mục tiêu' : 'mục tiêu') + '</text>';
-    return '<svg class="ov-road" viewBox="0 0 ' + W + ' ' + H + '" width="100%">' + out + '</svg>';
-  }
-  // Tuần này bé xem gì: đúng hướng hay lệch, % xem đúng giáo trình, 7 ngày, gợi ý (tính ở máy chủ: ct_tv_overview → watch)
+  // Bảng thông báo lộ trình: tuần này xem đúng hướng hay lệch, vì sao, và gợi ý điều chỉnh (tính ở máy chủ: ct_tv_overview → watch)
   var WLV = { ok: ['🟢', 'Đúng hướng'], mild: ['🟡', 'Hơi lệch hướng'], high: ['🔴', 'Đang lệch hướng'], little: ['⚪', 'Mới xem ít'] };
-  function tvWatch(k) {
+  // % thời gian xem theo loại nội dung: một thanh nhiều màu + chú thích
+  var SHARE = [['cur', 'Giáo trình'], ['topic', 'Playlist gia đình'], ['fav', 'Yêu thích'], ['free', 'Kênh, video khác']];
+  function shareBar(w) {
+    var sh = w.share || { cur: w.cur, free: 100 - w.cur };
+    var seg = SHARE.filter(function (s) { return sh[s[0]] > 0; });
+    return '<div class="ow-share">' + seg.map(function (s) { return '<i class="' + s[0] + '" style="width:' + sh[s[0]] + '%"></i>'; }).join('') + '</div>' +
+      '<div class="ow-leg">' + seg.map(function (s) { return '<span><i class="' + s[0] + '"></i>' + s[1] + ' <b>' + sh[s[0]] + '%</b></span>'; }).join('') + '</div>';
+  }
+  // Biểu đồ 7 ngày: mỗi cột là số phút xem trong ngày (xanh = bài giáo trình, cam = ngoài giáo trình), vạch trắng = giới hạn mỗi ngày
+  var WD_S = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  function dayChart(w) {
+    var ser = w.series || [], max = w.limit || 0, i;
+    for (i = 0; i < ser.length; i++) max = Math.max(max, ser[i].cur + ser[i].other);
+    if (!max) max = 1;
+    var cols = ser.map(function (d, j) {
+      var x = String(d.day).split('-'), wd = x.length === 3 ? new Date(Date.UTC(+x[0], +x[1] - 1, +x[2])).getUTCDay() : 0, tot = d.cur + d.other, last = j === ser.length - 1;
+      return '<div class="ow-d' + (last ? ' now' : '') + '"><b>' + (tot ? tot + "'" : '') + '</b><span class="ow-col">' +
+        '<i class="o" style="height:' + (d.other / max * 100) + '%"></i><i class="c" style="height:' + (d.cur / max * 100) + '%"></i>' +
+        (w.limit ? '<s style="bottom:' + (w.limit / max * 100) + '%"></s>' : '') + '</span><em>' + (last ? 'Hôm nay' : WD_S[wd]) + '</em></div>';
+    }).join('');
+    return '<div class="ow-chart"><div class="ow-plot">' + cols + '</div>' +
+      '<div class="ow-leg"><span><i class="cur"></i>Bài giáo trình</span><span><i class="free"></i>Ngoài giáo trình</span>' + (w.limit ? '<span><i class="lim"></i>Giới hạn ' + w.limit + "'/ngày</span>" : '') + '</div></div>';
+  }
+  function roadNotice(k) {
     var w = k.watch; if (!w) return '';
-    var lv = WLV[w.level] || WLV.little, max = 1, i;
-    for (i = 0; i < (w.series || []).length; i++) max = Math.max(max, w.series[i].cur + w.series[i].other, w.limit || 0);
-    var bars = (w.series || []).map(function (d) {
-      return '<span title="' + d.day + '"><i class="o" style="height:' + (d.other / max * 100) + '%"></i><i class="c" style="height:' + (d.cur / max * 100) + '%"></i></span>'; }).join('');
-    return '<div class="ov-watch ' + w.level + '">' +
-      '<div class="ow-l"><div class="ow-h"><b>📊 7 ngày qua</b><span class="ow-lv">' + lv[0] + ' ' + lv[1] + '</span></div>' +
-      (w.minutes ? '<div class="ow-share"><i style="width:' + w.cur + '%"></i></div>' +
-        '<div class="ow-txt"><b>' + w.cur + '%</b> đúng giáo trình · ' + w.minutes + ' phút xem' + (w.reason && w.level !== 'ok' ? '<br><em>' + esc(w.reason) + '</em>' : '') + '</div>'
-        : '<div class="ow-txt">Tuần này chưa xem video nào.</div>') +
+    var lv = WLV[w.level] || WLV.little;
+    return '<div class="ov-watch ' + w.level + '"><div class="ow-l"><div class="ow-h"><b>🗺 Lộ trình 7 ngày qua</b><span class="ow-lv">' + lv[0] + ' ' + lv[1] + '</span></div>' +
+      (w.minutes ? '<div class="ow-txt"><b>' + w.cur + '%</b> đúng giáo trình · ' + w.minutes + ' phút xem</div>' + shareBar(w) +
+        (w.reason && w.level !== 'ok' ? '<div class="ow-txt"><em>' + esc(w.reason) + '</em></div>' : '') : '<div class="ow-txt">Tuần này chưa xem video nào.</div>') +
       (w.tip ? '<div class="ow-tip">💡 ' + esc(w.tip) + '</div>' : '') + '</div>' +
-      (w.minutes ? '<div class="ow-bars">' + bars + '</div>' : '') + '</div>';
+      ((w.series || []).length ? dayChart(w) : '') + '</div>';
+  }
+  // Nút chọn giáo trình ngay trên trang chính: giáo trình được gợi ý đứng đầu
+  function curBtn(c, sug) {
+    return '<button class="obtn cur' + (sug ? ' sug' : '') + '" data-act="cur" data-id="' + esc(c.id) + '">' + (sug ? '<em>Gợi ý</em>' : '') +
+      esc((c.emoji || '📘') + ' ' + c.name) + '<small>' + (c.total ? c.done + '/' + c.total + ' bài' : '') + '</small></button>';
+  }
+  function kidActs(k, i) {
+    var w = k.watch || {}, cs = (w.curriculum || []).slice(), out = [], j;
+    for (j = 0; j < cs.length; j++) if (cs[j].id === w.tip_id) { cs.unshift(cs.splice(j, 1)[0]); break; }
+    if (k.next && findLesson(k.next)) out.push('<button class="obtn main" data-act="next" data-i="' + i + '">▶ Học tiếp: ' + esc(k.next.lesson) + '</button>');
+    cs.forEach(function (c) { if (libIndex(c.id) >= 0) out.push(curBtn(c, c.id === w.tip_id)); });
+    if (!out.length) out.push('<button class="obtn main" data-act="lib">📚 Chọn giáo trình</button>');
+    return '<div class="ov-acts">' + out.join('') + '</div>';
   }
   function paintOverview() {
     var d = new Date();
@@ -451,81 +491,61 @@
       '<div class="ov-today"><span>📺 Hôm nay đã xem <b>' + used + (lim ? ' / ' + lim : '') + ' phút</b></span>' +
       (lim ? '<span class="ov-bar"><i style="width:' + Math.min(100, used / lim * 100) + '%"></i></span><span>' + (lim > used ? 'còn ' + (lim - used) + ' phút' : 'đã hết giờ') + '</span>' : '') + '</div>';
     $('#ov-kids').className = 'n' + Math.min(kids.length, 3);
-    $('#ov-kids').innerHTML = kids.length ? kids.map(function (k) {
-      var p = (k.road && k.road.progress) || { done: 0, total: 0 }, ms = (k.road && k.road.milestones) || [], now = null, i;
-      for (i = 0; i < ((k.road && k.road.stages) || []).length; i++) if (k.road.stages[i].state === 'now') now = k.road.stages[i];
-      ms = ms.filter(function (m) { return m.status !== 'done'; }).slice(0, 3);
-      var chips = ms.length ? ms.map(function (m) { return '<span class="ov-chip ' + m.status + '">' + (m.status === 'done' ? '✓' : m.status === 'doing' ? '◐' : '○') + ' ' + esc(m.title) + '</span>'; }).join('')
-        : '<span class="ov-none">' + (p.total ? 'Đã xong mọi mốc năm nay 🎉' : 'Chưa có mốc năm nay — bố mẹ thêm trong app (Học → Lộ trình)') + '</span>';
-      var moods = (k.moods || []).map(function (m) { return '<i>' + (m ? MOOD[m] || '📝' : '·') + '</i>'; }).join('');
-      var sk = (k.skills && k.skills.list) || [], bars = sk.filter(function (x) { return x.level; }).slice(0, 6).map(function (x) {
-        return '<div class="ov-sk"><span>' + esc(x.icon + ' ' + x.name) + '</span><b><i style="width:' + x.level * 20 + '%"></i></b></div>'; }).join('');
+    $('#ov-kids').innerHTML = kids.length ? kids.slice(0, 3).map(function (k, i) {
       return '<div class="ov-kid">' +
-        '<div class="ov-kh"><span class="ov-av">' + esc(k.emoji || '🧒') + '</span><div><h2>' + esc(k.name) + '</h2><div class="ov-sub">' + (k.age != null ? k.age + ' tuổi · ' : '') + ((k.paths || []).length ? 'đang học ' + k.paths.length + ' giáo trình' : 'chưa có giáo trình') + '</div></div></div>' +
-        tvWatch(k) + tvPaths(k) +
-        '<div class="ov-stats">' +
-          '<div><b>' + p.done + '/' + p.total + '</b><span>mốc năm nay</span><span class="ov-bar"><i style="width:' + (p.total ? p.done / p.total * 100 : 0) + '%"></i></span></div>' +
-          '<div><b>' + k.lessons_week.done + '/' + k.lessons_week.target + '</b><span>bài tuần này</span></div>' +
-          '<div><b>' + (k.streak ? '🔥 ' + k.streak : '0') + '</b><span>ngày liên tiếp</span></div>' +
-          '<div class="ov-moods"><b>' + moods + '</b><span>cảm xúc 7 ngày</span></div>' +
-        '</div>' +
-        '<div class="ov-plh">Mốc gần nhất</div><div class="ov-chips">' + chips + '</div>' +
-        (bars ? '<div class="ov-sks">' + bars + '</div>' : '') +
-        (k.next ? '<div class="ov-next"><img src="' + thumb(k.next.video) + '" alt=""><div><span>Bài tiếp theo</span><b>' + esc(k.next.lesson) + '</b><em>' + esc((k.next.emoji || '📘') + ' ' + k.next.group) + '</em></div></div>' : '') +
-        '</div>';
+        '<div class="ov-kh"><span class="ov-av">' + esc(k.emoji || '🧒') + '</span><div><h2>' + esc(k.name) + '</h2><div class="ov-sub">' + (k.age != null ? k.age + ' tuổi · ' : '') +
+          ((k.paths || []).length ? 'đang học ' + k.paths.length + ' giáo trình' : 'chưa có giáo trình') + (k.streak ? ' · 🔥 ' + k.streak + ' ngày liên tiếp' : '') + '</div></div></div>' +
+        roadNotice(k) + kidActs(k, i) + '</div>';
     }).join('') : familyCard();
-    var btns = ['<button class="obtn main" data-act="lib">📚 Chọn chương trình</button>'];
-    if (curList().length) btns.push('<button class="obtn" data-act="road">🗺 Hành trình của bé</button>');
-    btns.splice(1, 0, '<button class="obtn" data-act="album">📸 Album của bé</button>');
-    btns.push('<button class="obtn" data-act="photos">🏆 Bảng tin của bé</button>');
-    kids.forEach(function (k, i) { if (k.next && findLesson(k.next)) btns.push('<button class="obtn" data-act="next" data-i="' + i + '">▶ ' + esc(k.name) + ' học tiếp: ' + esc(k.next.lesson) + '</button>'); });
-    $('#ov-btns').innerHTML = btns.join('');
-    if (ovIdx >= btns.length) ovIdx = 0;
-    focus();
+    $('#ov-btns').innerHTML = curList().length ? '<button class="obtn" data-act="road">🗺 Hành trình của bé</button>' : '';
+    if (ovIdx >= ovItems().length) ovIdx = 0;
+    if (zone === 'ov') focus();
   }
-  // Chưa có hồ sơ bé: vẫn cho thấy cả nhà đang học tới đâu (tiến độ từng giáo trình, các playlist) từ danh sách của TV
+  // Chưa có hồ sơ bé: chọn thẳng giáo trình của cả nhà
   function familyCard() {
-    var cur = lib.filter(function (g) { return g.numbered; }), pl = lib.filter(function (g) { return !g.numbered && g.section !== 'fav'; });
-    var rows = cur.slice(0, 3).map(function (g) {
-      var n = g.videos.length, d = doneCount(g), v = g.videos[startIndex(g)];
-      return '<div class="ov-cur"><img src="' + (v ? thumb(v.id) : '') + '" alt=""><div><b>' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + '</b>' +
-        '<span class="ov-bar"><i style="width:' + (n ? d / n * 100 : 0) + '%"></i></span><em>Đã học ' + d + '/' + n + ' bài' + (v && d < n ? ' · tiếp theo: ' + esc(v.title) : '') + '</em></div></div>';
-    }).join('');
-    var chip = function (g) { return '<span class="ov-chip">' + esc((g.emoji ? g.emoji + ' ' : '') + g.title) + ' · ' + g.videos.length + '</span>'; };
-    var mine = pl.filter(function (g) { return g.section === 'topic'; }), yt = pl.filter(function (g) { return g.section !== 'topic'; });
-    var chips = (mine.length ? '<div class="ov-plh">Playlist của gia đình</div><div class="ov-chips">' + mine.slice(0, 8).map(chip).join('') + '</div>' : '') +
-      (yt.length ? '<div class="ov-plh">Kênh & playlist YouTube</div><div class="ov-chips">' + yt.slice(0, 8).map(chip).join('') + '</div>' : '');
-    return '<div class="ov-kid ov-fam"><div class="ov-kh"><span class="ov-av">👨‍👩‍👧</span><div><h2>Cả nhà đang học</h2><div class="ov-sub">Thêm hồ sơ bé (tên, ngày sinh) trong app ChildTube → Gia đình để thấy lộ trình riêng của từng bé ở đây.</div></div></div>' +
-      (rows || '<div class="ov-none">Chưa có giáo trình nào.</div>') + chips + '</div>';
+    var cur = lib.filter(function (g) { return g.numbered; }).slice(0, 4);
+    return '<div class="ov-kid ov-fam"><div class="ov-kh"><span class="ov-av">👨‍👩‍👧</span><div><h2>Cả nhà đang học</h2><div class="ov-sub">Thêm hồ sơ bé trong app ChildTube → Gia đình để thấy lộ trình và gợi ý riêng của từng bé.</div></div></div>' +
+      '<div class="ov-acts">' + (cur.length ? cur.map(function (g) { return curBtn({ id: g.id, emoji: g.emoji, name: g.title, done: doneCount(g), total: g.videos.length }, false); }).join('')
+        : '<button class="obtn main" data-act="lib">📚 Xem video</button>') + '</div></div>';
   }
+  function libIndex(id) { for (var i = 0; i < lib.length; i++) if (lib[i].id === id) return i; return -1; }
   // Bài tiếp theo của bé nằm ở đâu trong danh sách của TV
   function findLesson(n) {
-    for (var i = 0; i < lib.length; i++) if (lib[i].id === n.group_id) {
-      for (var j = 0; j < lib[i].videos.length; j++) if (lib[i].videos[j].id === n.video) return { ch: i, idx: j };
-    }
+    var i = libIndex(n.group_id);
+    if (i >= 0) for (var j = 0; j < lib[i].videos.length; j++) if (lib[i].videos[j].id === n.video) return { ch: i, idx: j };
     return null;
   }
+  // Mở một giáo trình trong tab Xem video, con trỏ đứng ở bài nên học tiếp
+  function openCur(i) {
+    goTab('home');
+    if (zone !== 'side') return;                            // hết giờ xem
+    chIdx = -1; showChannel(i); sideIdx = i;
+    zone = 'grid'; gridIdx = startIndex(lib[i]);
+    focus();
+  }
+  function ovItems() { return $('#ov').querySelectorAll('.obtn'); }
   function ovAct(b) {
     var act = b.getAttribute('data-act');
-    if (act === 'lib') { hideOverview(); return; }
+    if (act === 'lib') { goTab('home'); return; }
     if (act === 'road') { showRoad('ov'); return; }
-    if (act === 'photos') { showPhotos('ov'); return; }
-    if (act === 'album') { showAlbum('ov'); return; }
+    if (act === 'cur') { var ci = libIndex(b.getAttribute('data-id')); if (ci >= 0) openCur(ci); else goTab('home'); return; }
     var k = ov && ov.kids[+b.getAttribute('data-i')], at = k && findLesson(k.next);
-    if (!at) { hideOverview(); return; }
-    $('#ov').classList.add('hidden');
-    $('#home').classList.remove('hidden');
-    zone = 'side';
-    chIdx = -1; showChannel(at.ch); sideIdx = at.ch;
-    if (isLocked(lib[at.ch], at.idx)) { focus(); toast('Hãy xem bài trước nhé! 🔒'); return; }
+    if (!at) { goTab('home'); return; }
+    openCur(at.ch);
+    if (zone !== 'grid') return;
+    gridIdx = at.idx; focus();
+    if (isLocked(lib[at.ch], at.idx)) { toast('Hãy xem bài trước nhé! 🔒'); return; }
     play(lib[at.ch].videos, at.idx);
   }
   function ovKey(k) {
-    var n = $('#ov-btns').children.length;
-    if ((k === K.LEFT || k === K.UP) && ovIdx > 0) ovIdx--;
-    else if ((k === K.RIGHT || k === K.DOWN) && ovIdx < n - 1) ovIdx++;
-    else if (k === K.ENTER) { ovAct($('#ov-btns').children[ovIdx]); return; }
-    else if (k === 10009) { try { tizen.application.getCurrentApplication().exit(); } catch (err) { /* không phải TV */ } return; }
+    var items = ovItems(), j;
+    if (k === K.ENTER) { if (items[ovIdx]) ovAct(items[ovIdx]); return; }
+    if (BACK.indexOf(k) >= 0) { zone = 'tab'; focus(); return; }
+    if (k === K.LEFT || k === K.RIGHT || k === K.UP || k === K.DOWN) {
+      j = nearest(items, ovIdx, k);
+      if (j >= 0) ovIdx = j;
+      else if (k === K.DOWN) { zone = 'tab'; }
+    }
     focus();
   }
 
@@ -648,7 +668,7 @@
   }
   function showRoad(from) {
     rmFrom = from || 'side';
-    $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#rm').classList.remove('hidden');
+    screen('rm');
     zone = 'rm'; mapRow = 'map'; mapSel = -1; mapMoved = false;
     paintRoad();
     loadComp().then(function () { if (zone === 'rm') paintRoad(); }, function () {});
@@ -656,10 +676,9 @@
     loadOverview().then(function () { if (zone === 'rm') paintRoad(); });
   }
   function hideRoad() {
-    $('#rm').classList.add('hidden');
     if (rmFrom === 'ov') { showOverview(); return; }
-    $('#home').classList.remove('hidden');
-    zone = 'side'; sideIdx = chIdx < 0 ? 0 : chIdx; focus();
+    screen('home');
+    zone = 'rmbtn'; focus();
   }
   function paintRoad() {
     var m = mapNodes(), nodes = m.nodes, i, nowI = 0;
@@ -685,7 +704,7 @@
     $('#rm-body').innerHTML = '<div class="mp-map">' + mapSvg(nodes, mapRow === 'map' ? mapSel : -1) + '</div><div class="mp-det">' + det + '</div>';
     var btns = [], cs = curList();
     if (cs.length) btns.push('<button class="obtn main" data-act="rm-next">▶ Học tiếp</button>');
-    btns.push('<button class="obtn" data-act="rm-feed">🏆 Bảng tin của bé</button>');
+    btns.push('<button class="obtn" data-act="rm-feed">📰 Bảng tin</button>');
     btns.push('<button class="obtn" data-act="rm-back">' + (rmFrom === 'ov' ? '← Quay lại' : '← Thư viện') + '</button>');
     $('#rm-btns').innerHTML = btns.join('');
     if (rmIdx2 >= btns.length) rmIdx2 = 0;
@@ -694,12 +713,12 @@
   function rmAct(b) {
     var act = b.getAttribute('data-act');
     if (act === 'rm-back') return hideRoad();
-    if (act === 'rm-feed') { $('#rm').classList.add('hidden'); showPhotos(rmFrom === 'ov' ? 'ov' : 'side'); return; }
+    if (act === 'rm-feed') { goTab('fd'); return; }
     var gi = curList()[0], g = lib[gi];
     if (!g) return hideRoad();
     var ls = curLessons(g), cur = null;
     for (var i = 0; i < ls.length; i++) if (!ls[i].done) { cur = ls[i]; break; }
-    $('#rm').classList.add('hidden'); $('#home').classList.remove('hidden');
+    screen('home');
     zone = 'side'; chIdx = -1; showChannel(gi); sideIdx = gi;
     if (!cur) { focus(); return; }
     if (isLocked(g, cur.idx)) { focus(); toast('Hãy xem bài trước nhé! 🔒'); return; }
@@ -721,135 +740,10 @@
     focus();
   }
 
-  // ---------- Ảnh kỷ niệm (kiểu Google Photos) ----------
-  // Ảnh trong bảng tin ChildTube ở mức "Gia đình": bố mẹ, ông bà, người thân đăng. Lọc theo người đăng; trình chiếu tự chạy.
-  var ph = { list: [], who: '', idx: 0, chip: 0, at: 'grid', timer: null, vIdx: 0, vAuto: false, vTimer: null, from: 'side' };
-  ph.list = (feed && feed.photos) || [];
+  // ---------- Ảnh, video gia đình: link có ký, ngày, vai trò người đăng ----------
   var ROLE = { owner: 'Bố mẹ', parent: 'Bố mẹ', relative: 'Người thân', teacher: 'Giáo viên' };
   function phUrl(p) { return /^https?:/.test(p.url) ? p.url : CT_CONFIG.url + p.url; }
-  function phShown() { return ph.who ? ph.list.filter(function (p) { return (p.by || '') === ph.who; }) : ph.list; }
   function phDay(d) { var x = (d || '').split('-'); return x.length === 3 ? +x[2] + '/' + +x[1] + '/' + x[0] : ''; }
-  function phCap(p) {
-    return '<b>' + esc(p.title || (p.child ? 'Khoảnh khắc của ' + p.child : 'Khoảnh khắc gia đình')) + '</b>' +
-      '<span>' + phDay(p.day) + (p.by ? ' · 📸 ' + esc(p.by) + (ROLE[p.role] && p.by !== ROLE[p.role] ? ' (' + ROLE[p.role] + ')' : '') : '') + '</span>';
-  }
-  function showPhotos(from) {
-    ph.from = from || 'side';
-    $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#ph').classList.remove('hidden');
-    zone = 'ph'; ph.at = 'grid'; ph.idx = 0;
-    paintPhotos();
-    loadFeed().then(function (r) {
-      ph.enabled = r.enabled; ph.list = r.photos || []; ph.err = false;
-      if (zone === 'ph') paintPhotos();
-    }, function () { ph.err = true; if (zone === 'ph') paintPhotos(); });
-  }
-  function hidePhotos() {
-    clearInterval(ph.timer);
-    $('#ph').classList.add('hidden');
-    if (ph.from === 'ov') { showOverview(); return; }
-    $('#home').classList.remove('hidden');
-    zone = 'side'; sideIdx = chIdx < 0 ? 0 : chIdx; focus();
-  }
-  function paintPhotos() {
-    var whos = [], i, list;
-    for (i = 0; i < ph.list.length; i++) if (ph.list[i].by && whos.indexOf(ph.list[i].by) < 0) whos.push(ph.list[i].by);
-    if (ph.who && whos.indexOf(ph.who) < 0) ph.who = '';
-    var chips = [['', 'Tất cả · ' + ph.list.length]].concat(whos.map(function (w) { return [w, '📸 ' + w]; }));
-    $('#ph-chips').innerHTML = chips.map(function (c) { return '<button class="obtn ph-chip' + (c[0] === ph.who ? ' on' : '') + '" data-who="' + esc(c[0]) + '">' + esc(c[1]) + '</button>'; }).join('') +
-      '<button class="obtn main ph-chip" data-act="show">▶ Trình chiếu</button>';
-    list = phShown();
-    // Thẻ thành tích kiểu game: mới nhất trước, mỗi thẻ một màu, có huy hiệu, ngày, người ghi
-    var wins = (feed && feed.wins) || [], nW = wins.length;
-    $('#ph-wins').classList.toggle('hidden', !nW);
-    $('#ph-wins').innerHTML = nW ? '<div class="pw-h"><b>🏆 Bé đã làm được</b><span>⭐ ' + nW + ' thành tích · Cấp ' + Math.min(LEVELS.length, Math.floor(nW / 3) + 1) + ' ' + LEVELS[Math.min(LEVELS.length, Math.floor(nW / 3) + 1) - 1] + '</span></div><div class="pw-row">' +
-      wins.slice(0, 5).map(function (w, k) {
-        return '<div class="pw-card c' + (k % 5) + '">' + (w.photo ? '<img src="' + phUrl({ url: w.photo }) + '" alt="">' : '') +
-          '<div class="pw-in"><span class="pw-badge">' + (w.kind === 'achievement' ? '🏆' : '⭐') + '</span><b>' + esc(w.title) + '</b><em>' + phDay(w.day) + (w.by ? ' · ' + esc(w.by) : '') + '</em>' +
-          (k === 0 ? '<span class="pw-new">MỚI</span>' : '') + '</div></div>'; }).join('') + '</div>' : '';
-    if (!list.length) {
-      $('#ph-hero').classList.add('hidden');
-      $('#ph-grid').innerHTML = '<div class="rm-empty">' + (ph.err ? 'Chưa tải được ảnh, hãy thử lại sau.' : ph.enabled === false
-        ? 'Gia đình chưa bật lưu ảnh.<br>Trong app ChildTube: Cài đặt → Quyền riêng tư → bật "Lưu ảnh, video của bé".'
-        : 'Chưa có ảnh nào.<br>Bố mẹ, ông bà đăng ảnh vào Bảng tin trong app ChildTube (mức "Gia đình") để ảnh hiện ở đây.') + '</div>';
-      clearInterval(ph.timer);
-    } else {
-      $('#ph-hero').classList.toggle('hidden', !!nW);   // có thành tích thì dải thẻ thay cho ảnh lớn
-      // Lưới theo tháng
-      var html = '', month = '';
-      list.forEach(function (p, k) {
-        var m = (p.day || '').slice(0, 7);
-        if (m !== month) { month = m; html += '<div class="ph-month">Tháng ' + +m.slice(5, 7) + ', ' + m.slice(0, 4) + '</div>'; }
-        html += '<div class="ph-cell" data-k="' + k + '"><img src="' + phUrl(p) + '" alt=""' + (k > 17 ? ' loading="lazy"' : '') + ' decoding="async"></div>';
-      });
-      $('#ph-grid').innerHTML = html;
-      phHero(0);
-      clearInterval(ph.timer);
-      ph.timer = setInterval(function () { if (zone === 'ph') phHero(ph.hero + 1); }, 7000);
-    }
-    if (ph.idx >= list.length) ph.idx = 0;
-    focus();
-  }
-  // Ảnh lớn phía trên: hai lớp ảnh chuyển mờ dần
-  function phHero(k) {
-    var list = phShown(); if (!list.length) return;
-    ph.hero = (k + list.length) % list.length;
-    var p = list[ph.hero], a = $('#ph-a'), b = $('#ph-b'), top = a.classList.contains('on') ? b : a, old = top === a ? b : a;
-    top.onload = function () { top.classList.add('on'); old.classList.remove('on'); };
-    top.src = phUrl(p);
-    $('#ph-cap').innerHTML = phCap(p);
-  }
-  function phCells() { return document.querySelectorAll('#ph-grid .ph-cell'); }
-  var PH_COLS = 6;
-  function phKey(k) {
-    var cells = phCells(), chips = $('#ph-chips').children;
-    if (BACK.indexOf(k) >= 0) { hidePhotos(); return; }
-    if (ph.at === 'chips') {
-      if (k === K.LEFT && ph.chip > 0) ph.chip--;
-      else if (k === K.RIGHT && ph.chip < chips.length - 1) ph.chip++;
-      else if (k === K.DOWN && cells.length) ph.at = 'grid';
-      else if (k === K.ENTER) {
-        var c = chips[ph.chip];
-        if (c.getAttribute('data-act') === 'show') { openViewer(0, true); return; }
-        ph.who = c.getAttribute('data-who'); ph.idx = 0; paintPhotos(); return;
-      }
-    } else {
-      if (k === K.UP && ph.idx < PH_COLS) { ph.at = 'chips'; }
-      else if (k === K.UP) ph.idx -= PH_COLS;
-      else if (k === K.DOWN && ph.idx + PH_COLS < cells.length) ph.idx += PH_COLS;
-      else if (k === K.LEFT && ph.idx > 0) ph.idx--;
-      else if (k === K.RIGHT && ph.idx < cells.length - 1) ph.idx++;
-      else if (k === K.ENTER && cells.length) { openViewer(ph.idx, false); return; }
-    }
-    focus();
-  }
-  // Xem toàn màn hình: ◀ ▶ đổi ảnh, OK bật/tắt trình chiếu tự động
-  function openViewer(k, auto) {
-    zone = 'phv'; ph.vAuto = !!auto;
-    $('#phv').classList.remove('hidden');
-    phShow(k);
-  }
-  function phShow(k) {
-    var list = phShown(); if (!list.length) return closeViewer();
-    ph.vIdx = (k + list.length) % list.length;
-    var p = list[ph.vIdx];
-    $('#phv-img').src = phUrl(p);
-    $('#phv-cap').innerHTML = phCap(p) + (p.text ? '<em>' + esc(p.text) + '</em>' : '');
-    $('#phv-n').textContent = (ph.vIdx + 1) + ' / ' + list.length + (ph.vAuto ? ' · ▶ đang trình chiếu' : ' · OK: trình chiếu');
-    clearTimeout(ph.vTimer);
-    if (ph.vAuto) ph.vTimer = setTimeout(function () { if (zone === 'phv') phShow(ph.vIdx + 1); }, 6000);
-  }
-  function closeViewer() {
-    clearTimeout(ph.vTimer);
-    $('#phv').classList.add('hidden');
-    zone = 'ph'; ph.idx = Math.min(ph.vIdx, phCells().length - 1); ph.at = 'grid';
-    focus();
-  }
-  function phvKey(k) {
-    if (BACK.indexOf(k) >= 0 || k === K.STOP) { closeViewer(); return; }
-    if (k === K.LEFT || k === K.RW) phShow(ph.vIdx - 1);
-    else if (k === K.RIGHT || k === K.FF) phShow(ph.vIdx + 1);
-    else if (k === K.ENTER || k === K.PLAYPAUSE || k === K.PLAY || k === K.PAUSE) { ph.vAuto = !ph.vAuto; phShow(ph.vIdx); }
-  }
 
   // ---------- Album của bé: xem lại từng ngày + video người thân dạy ----------
   // Mỗi ngày là một dải thẻ (ảnh, video, ghi nhanh) theo giờ đăng; "Xem lại cả ngày" chạy như story.
@@ -886,19 +780,18 @@
   }
   function showAlbum(from) {
     al.from = from || 'side';
-    $('#home').classList.add('hidden'); $('#ov').classList.add('hidden'); $('#al').classList.remove('hidden');
+    screen('al');
     zone = 'al'; al.tab = 1; al.at = 'row'; al.idx = 0;
     paintAlbum();
-    rpc('ct_tv_album', { p_device: device.id, p_secret: device.secret }).then(function (r) {
-      al.data = r; al.err = false; al.at = 'row'; al.idx = 0;
+    loadAlbum().then(function (r) {
+      al.at = 'row'; al.idx = 0;
       if (!alSlides(alTabs()[1]).length && (r.lessons || []).length) { al.tab = 0; }   // hôm nay chưa có gì: mở video dạy bé
       if (zone === 'al') paintAlbum();
-    }, function () { al.err = true; if (zone === 'al') paintAlbum(); });
+    }, function () { if (zone === 'al') paintAlbum(); });
   }
   function hideAlbum() {
-    $('#al').classList.add('hidden');
     if (al.from === 'ov') { showOverview(); return; }
-    $('#home').classList.remove('hidden');
+    screen('home');
     zone = 'albtn'; focus();
   }
   function alThumb(s, k) {
@@ -977,6 +870,7 @@
   // Xem toàn màn hình kiểu story: ảnh/chữ 7 giây, video chạy hết rồi sang khung sau.
   // Video dạy bé: xem xong một video thì dừng lại (◀ ▶ để xem video khác).
   function openStory(k, chain) {
+    if (zone === 'al') al.back = 'al';
     zone = 'alv'; al.chain = chain; al.paused = false;
     $('#alv').classList.remove('hidden');
     alShow(k);
@@ -1009,6 +903,7 @@
     clearTimeout(al.timer);
     var v = $('#alv-vid'); v.pause(); v.removeAttribute('src'); v.load();
     $('#alv').classList.add('hidden');
+    if (al.back === 'fd') { zone = 'fd'; focus(); return; }   // mở từ Bảng tin
     zone = 'al'; al.at = 'row';
     var off = al.slides.length > 1 && !al.slides[0].lesson ? 1 : 0;
     al.idx = Math.min(al.vIdx + off, alCards().length - 1);
@@ -1038,6 +933,149 @@
       if (al.chain) al.timer = setTimeout(function () { if (zone === 'alv') alShow(al.vIdx + 1); }, 3000);
     });
   })();
+
+  // ---------- Bảng tin (tab dưới): như trên điện thoại, mỗi bài tràn hết bề ngang ----------
+  // Cùng dữ liệu với Album (ct_tv_album, mức "Gia đình", 45 ngày). ▲ ▼ lướt từng bài.
+  // Bài có video: video tự chạy ngay trong bảng tin (tắt tiếng), OK bật tiếng → tạm dừng → chạy tiếp. Bài chỉ có ảnh: OK xem toàn màn hình.
+  // Ảnh/video chỉ tải cho vài bài quanh bài đang chọn để TV không bị nặng.
+  var fd = { idx: 0, posts: [], sound: false };
+  var ROLE_I = { owner: '👤', parent: '👤', relative: '👵', teacher: '🧑‍🏫' };
+  var KIND_T = { milestone: '🌟 Cột mốc', achievement: '🏆 Thành tích', feedback: '🎤 Nhận xét', activity: '🎨 Hoạt động' };
+  function loadAlbum() {
+    return rpc('ct_tv_album', { p_device: device.id, p_secret: device.secret }).then(function (r) { al.data = r; al.err = false; return r; },
+      function (e) { al.err = true; throw e; });
+  }
+  function fdPosts() {
+    var out = [];
+    ((al.data && al.data.days) || []).forEach(function (g) {
+      g.items.slice().sort(function (a, b) { return String(b.time || '').localeCompare(String(a.time || '')); })
+        .forEach(function (it) { out.push({ it: it, day: g.day }); });
+    });
+    return out;
+  }
+  function showFeed() {
+    screen('fd'); zone = 'fd';
+    if (!fd.posts.length) paintFeed();
+    loadAlbum().then(function () { if (tab === 'fd') paintFeed(); }, function () { if (tab === 'fd' && !fd.posts.length) paintFeed(); });
+  }
+  function fdMedia(ms) {
+    if (!ms.length) return '';
+    var tile = function (m, i, more) {
+      return '<div class="fm' + (m.type === 'video' ? ' v' : '') + '"><' + (m.type === 'video' ? 'video muted preload="metadata"' : 'img alt=""') + ' data-src="' + esc(phUrl(m) + (m.type === 'video' ? '#t=0.5' : '')) + '">' +
+        (m.type === 'video' ? '</video><i class="al-play">▶</i><span class="fm-snd"></span>' : '') + (more ? '<span class="fm-more">+' + more + '</span>' : '') + '</div>';
+    };
+    var n = Math.min(ms.length, 4), more = ms.length - 4;
+    if (n === 1) {
+      // Một ảnh/video: tràn bề ngang, cao theo tỉ lệ ảnh (tối đa ~3/4 màn hình). Ảnh ngang phủ kín bề ngang;
+      // ảnh dọc để nguyên cả ảnh ở giữa, hai bên là nền mờ của chính ảnh.
+      var m = ms[0], W = window.innerWidth, H = m.w && m.h ? Math.round(W * m.h / m.w) : Math.round(W * 9 / 16), tall = m.w && m.h && m.h > m.w;
+      return '<div class="fd-media n1' + (tall ? ' tall' : '') + '" style="height:' + Math.min(H, Math.round(window.innerHeight * 0.74)) + 'px">' +
+        (tall && m.type === 'img' ? '<div class="fm-bg" data-bg="' + esc(phUrl(m)) + '"></div>' : '') + tile(m, 0) + '</div>';
+    }
+    if (n === 2) return '<div class="fd-media n2">' + tile(ms[0]) + tile(ms[1]) + '</div>';
+    if (n === 3) return '<div class="fd-media n3">' + tile(ms[0]) + '<div class="fm-col">' + tile(ms[1]) + tile(ms[2]) + '</div></div>';
+    return '<div class="fd-media n4"><div class="fm-col">' + tile(ms[0]) + tile(ms[1]) + '</div><div class="fm-col">' + tile(ms[2]) + tile(ms[3], 3, more > 0 ? more : 0) + '</div></div>';
+  }
+  function fdPost(p, i) {
+    var it = p.it, special = it.kind === 'milestone' || it.kind === 'achievement' || it.kind === 'feedback';
+    var rx = it.reacts || {}, rk = Object.keys(rx), rn = 0, j;
+    for (j = 0; j < rk.length; j++) rn += rx[rk[j]];
+    var feel = it.mood ? (MOOD[it.mood] || '🙂') + ' đang cảm thấy ' + esc(it.mood) : '';
+    var head = '<div class="fp-head"><span class="fp-av">' + (ROLE_I[it.role] || '👤') + '</span><div class="fp-who"><div><b>' + esc(it.by || 'Gia đình') + '</b>' +
+      (it.child ? ' cùng <b>' + esc((it.emoji || '🧒') + ' ' + it.child) + '</b>' : '') + (feel ? ' <span class="fp-feel">— ' + feel + '</span>' : '') + '</div>' +
+      '<span class="fp-when">' + alDayName(p.day) + (it.time ? ' lúc ' + it.time : '') + ' · 👨‍👩‍👧 Gia đình</span></div></div>';
+    var body = special
+      ? '<div class="fp-mile"><span>' + (it.kind === 'feedback' ? '🎤' : it.kind === 'achievement' ? '🏆' : '🌟') + '</span><div><b>' + esc(it.title || KIND_T[it.kind]) + '</b>' + (it.text ? '<p>' + esc(it.text) + '</p>' : '') + '</div></div>'
+      : (it.title || it.text || (it.acts || []).length ? '<div class="fp-text">' + (KIND_T[it.kind] ? '<span class="fp-tag">' + KIND_T[it.kind] + '</span>' : '') +
+        (it.title ? '<b>' + esc(it.title) + '</b> ' : '') + esc(it.text || '') +
+        ((it.acts || []).length ? '<div class="fp-chips">' + it.acts.map(function (a) { return '<span>✔ ' + esc(a) + '</span>'; }).join('') + '</div>' : '') + '</div>' : '');
+    var sum = rn || it.n_cm ? '<div class="fp-sum"><span>' + (rn ? rk.join('') + ' ' + rn : '') + '</span><span>' + (it.n_cm ? it.n_cm + ' bình luận' : '') + '</span></div>' : '';
+    var cms = (it.comments || []).map(function (c) { return '<div class="fp-cm"><b>' + esc(c.by || 'Người thân') + '</b>' + esc(c.body) + '</div>'; }).join('');
+    return '<article class="fp" data-i="' + i + '">' + head + body + fdMedia(it.media || []) + sum + (cms ? '<div class="fp-cms">' + cms + '</div>' : '') + '</article>';
+  }
+  function paintFeed() {
+    fd.posts = fdPosts();
+    var list = $('#fd-list');
+    if (!fd.posts.length) {
+      list.innerHTML = '<div class="fd-empty">' + (!al.data ? (al.err ? 'Chưa tải được bảng tin, hãy thử lại sau.' : 'Đang mở bảng tin…')
+        : (al.data.enabled === false ? 'Gia đình chưa bật lưu ảnh, video. Trong app: Cài đặt → Quyền riêng tư → bật “Lưu ảnh, video của bé”.<br>' : '') +
+          'Chưa có bài nào gần đây.<br>Bố mẹ, ông bà đăng vào Nhật ký trong app ChildTube (mức “Gia đình”) để bài hiện ở đây.') + '</div>';
+      return;
+    }
+    list.innerHTML = '<h1 class="fd-h">📰 Bảng tin gia đình</h1>' + fd.posts.map(fdPost).join('');
+    if (fd.idx >= fd.posts.length) fd.idx = 0;
+    if (zone === 'fd') focus(); else fdNear();
+  }
+  function fdItems() { return $('#fd-list').querySelectorAll('.fp'); }
+  // Gắn ảnh/video cho bài đang chọn và 2 bài kế tiếp
+  function fdNear() {
+    var ps = fdItems(), i, j, el, src;
+    for (i = Math.max(0, fd.idx - 1); i <= Math.min(ps.length - 1, fd.idx + 2); i++) {
+      el = ps[i].querySelectorAll('[data-src], [data-bg]');
+      for (j = 0; j < el.length; j++) {
+        src = el[j].getAttribute('data-src');
+        if (src) { el[j].src = src; el[j].removeAttribute('data-src'); }
+        else { el[j].style.backgroundImage = 'url("' + el[j].getAttribute('data-bg') + '")'; el[j].removeAttribute('data-bg'); }
+      }
+    }
+  }
+  function fdFocus() {
+    var el = fdItems()[fd.idx], box = $('#fd');
+    if (!el) return null;
+    box.scrollTop = fd.idx ? el.offsetTop - box.clientHeight * 0.03 : 0;
+    fdNear();
+    fdPlay(el);
+    return el;
+  }
+  // Chỉ video của bài đang chọn được chạy; rời bài hoặc rời bảng tin thì dừng
+  function fdStop(keep) {
+    var vs = $('#fd').querySelectorAll('video');
+    for (var i = 0; i < vs.length; i++) if (vs[i] !== keep) { vs[i].removeAttribute('data-hold'); if (!vs[i].paused) vs[i].pause(); }
+  }
+  function fdPlay(el) {
+    var v = el && el.querySelector('video');
+    fdStop(v);
+    if (!v || v.getAttribute('data-err') || v.getAttribute('data-hold')) return;
+    v.loop = true; v.muted = !fd.sound;
+    var p = v.play(); if (p && p.catch) p.catch(function () { /* TV tự xử lý */ });
+    fdSnd(v);
+  }
+  function fdSnd(v) {
+    var t = v.parentNode, b = t.querySelector('.fm-snd');
+    t.classList.toggle('on', !v.paused);
+    if (b) b.textContent = v.getAttribute('data-err') ? 'TV chưa mở được video này 😕' : v.paused ? '⏸ OK: chạy tiếp' : v.muted ? '🔇 OK: bật tiếng' : '🔊 OK: tạm dừng';
+  }
+  // OK trên bài có video: bật tiếng → tạm dừng → chạy tiếp
+  function fdToggle(v) {
+    if (v.getAttribute('data-err')) return;
+    if (v.muted && !v.paused) { fd.sound = true; v.muted = false; }
+    else if (!v.paused) { v.pause(); v.setAttribute('data-hold', '1'); }
+    else { v.removeAttribute('data-hold'); v.muted = !fd.sound; var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+    fdSnd(v);
+  }
+  (function () {
+    var box = $('#fd');
+    box.addEventListener('play', function (e) { fdSnd(e.target); }, true);
+    box.addEventListener('pause', function (e) { fdSnd(e.target); }, true);
+    box.addEventListener('error', function (e) { if (e.target.tagName === 'VIDEO') { e.target.setAttribute('data-err', '1'); fdSnd(e.target); } }, true);
+  })();
+  function fdOpen(i) {
+    var p = fd.posts[i], v = fdItems()[i] && fdItems()[i].querySelector('video'); if (!p) return;
+    if (v) { fdToggle(v); return; }
+    fdStop();
+    al.slides = p.it.media && p.it.media.length ? p.it.media.map(function (m) { return { m: m, it: p.it, day: p.day }; }) : [{ m: null, it: p.it, day: p.day }];
+    al.back = 'fd';
+    openStory(0, true);
+  }
+  function fdKey(k) {
+    var n = fdItems().length;
+    if (BACK.indexOf(k) >= 0) { zone = 'tab'; focus(); return; }
+    if (k === K.UP && fd.idx > 0) fd.idx--;
+    else if (k === K.DOWN) { if (fd.idx < n - 1) fd.idx++; else zone = 'tab'; }
+    else if (k === K.UP && !n) zone = 'tab';
+    else if (k === K.ENTER || k === K.PLAY || k === K.PLAYPAUSE) { fdOpen(fd.idx); return; }
+    focus();
+  }
 
   // ---------- Lịch sử xem ----------
   // Mỗi lần bé mở một video là một dòng; cập nhật số giây đã xem mỗi 30 giây và khi thoát/hết video.
@@ -1638,27 +1676,21 @@
     else if (zone === 'parent') parentKey(k);
     else if (zone === 'side' || zone === 'grid') homeKey(k);
     else if (zone === 'ov') ovKey(k);
+    else if (zone === 'tab') tabKey(k);
+    else if (zone === 'fd') fdKey(k);
     else if (zone === 'rm') rmKey(k);
-    else if (zone === 'ph') phKey(k);
-    else if (zone === 'phv') phvKey(k);
     else if (zone === 'al') alKey(k);
     else if (zone === 'alv') alvKey(k);
     else if (zone === 'albtn') {
       if (k === K.ENTER) showAlbum('side');
       else if (k === K.DOWN || k === K.RIGHT) { zone = 'rmbtn'; focus(); }
-      else if (BACK.indexOf(k) >= 0) showOverview();
-    }
-    else if (zone === 'phbtn') {
-      if (k === K.ENTER) showPhotos('side');
-      else if (k === K.UP) { zone = 'rmbtn'; focus(); }
-      else if (k === K.DOWN || k === K.RIGHT) { zone = 'side'; sideIdx = 0; focus(); }
-      else if (BACK.indexOf(k) >= 0) showOverview();
+      else if (BACK.indexOf(k) >= 0) { zone = 'tab'; focus(); }
     }
     else if (zone === 'rmbtn') {
       if (k === K.ENTER) showRoad('side');
       else if (k === K.UP) { zone = 'albtn'; focus(); }
-      else if (k === K.DOWN || k === K.RIGHT) { zone = 'phbtn'; focus(); }
-      else if (BACK.indexOf(k) >= 0) showOverview();
+      else if (k === K.DOWN || k === K.RIGHT) { zone = 'side'; sideIdx = 0; focus(); }
+      else if (BACK.indexOf(k) >= 0) { zone = 'tab'; focus(); }
     }
     else if (zone === 'end') endKey(k);
     else if (zone === 'limit') limitKey(k);
@@ -1678,10 +1710,12 @@
     var t = e.target;
     var ch = t.closest('.ch'), card = t.closest('.card'), key = t.closest('.key'), pb = t.closest('.pbtn');
     if (zone === 'player') { if (t.closest('#osd-back')) stop(); else toggle(); return; }
-    if (zone === 'ov') { var ob = t.closest('.obtn'); if (ob) ovAct(ob); return; }
+    var tb = t.closest('.tb');
+    if (tb) { goTab(tb.getAttribute('data-tab')); return; }
+    if (zone === 'ov' || (zone === 'tab' && tab === 'ov')) { var ob = t.closest('.obtn'); if (ob) ovAct(ob); return; }
+    if (zone === 'fd' || (zone === 'tab' && tab === 'fd')) { var fp = t.closest('.fp'); if (fp) { zone = 'fd'; fd.idx = +fp.getAttribute('data-i'); focus(); fdOpen(fd.idx); } return; }
     if (zone === 'rm') { var rb = t.closest('.obtn'); if (rb) rmAct(rb); return; }
     if (t.closest('#rm-btn')) { showRoad('side'); return; }
-    if (t.closest('#ph-btn')) { showPhotos('side'); return; }
     if (t.closest('#al-btn')) { showAlbum('side'); return; }
     if (zone === 'alv') { closeStory(); return; }
     if (zone === 'al') {
@@ -1690,9 +1724,7 @@
       else if (at) { al.tab = [].indexOf.call($('#al-tabs').children, at); al.idx = 0; paintAlbum(); }
       return;
     }
-    if (zone === 'phv') { closeViewer(); return; }
-    if (zone === 'ph') { var pc = t.closest('.ph-cell'), pk = t.closest('.ph-chip'); if (pc) openViewer(+pc.getAttribute('data-k'), false); else if (pk) { if (pk.getAttribute('data-act') === 'show') openViewer(0, true); else { ph.who = pk.getAttribute('data-who'); paintPhotos(); } } return; }
-    if (t.closest('#who')) { showOverview(); return; }
+    if (t.closest('#who')) { goTab('ov'); return; }
     if (zone === 'pin') { if (key) { pinIdx = +key.getAttribute('data-i'); focus(); pressPad(PAD[pinIdx]); } else if (t === $('#pin')) closeModal(); return; }
     if (zone === 'parent') { if (pb) parentAct(pb.getAttribute('data-act')); else if (t === $('#parent')) closeModal(); return; }
     if (zone === 'end') { var eb = t.closest('.ebtn'); if (eb) endAct(eb.getAttribute('data-act')); return; }
