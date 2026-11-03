@@ -70,13 +70,7 @@ const Feed = {
     const name = k ? esc(k.name) : 'các bé';
     const composer = canWrite ? `<div class="card fd-comp"><div class="fd-row"><span class="fd-av">${ROLE_ICON[me.role] || '👤'}</span>
         <button class="fd-in" data-a="F2-write">${me.role === 'teacher' ? 'Viết nhận xét về ' + name + '…' : 'Hôm nay ' + name + ' có gì đáng nhớ?'}</button></div>
-        ${me.role === 'teacher' ? '' : `<div class="fd-acts"><button data-a="F2-media">📷 Ảnh/video</button><button data-a="F2-mile">🌟 Cột mốc</button><button data-a="F2-mood">😊 Cảm xúc/Hoạt động</button></div>`}</div>` : '';
-    const withMedia = (this.list || []).filter((e) => e.media.some((m) => m.url)).slice(0, 8);
-    const stories = withMedia.length ? `<div class="fd-stories">${withMedia.map((e) => {
-      const m = e.media.find((x) => x.url && x.mime.startsWith('image/')) || e.media[0], c = kidOf(e.child_id);
-      const vid = !m.mime.startsWith('image/');   // tin video: hiện khung hình đầu, bấm thì cuộn tới bài
-      return `<button class="fd-story${vid ? ' vid' : ''}" ${vid ? `data-a="F2-goto" data-id="${e.id}"` : `data-a="P-img" data-src="${esc(mediaUrl(m.url))}" data-cap="${esc(e.title || '')}" style="background-image:url('${esc(mediaUrl(m.url))}')"`}>${vid ? `<video data-src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play">▶</span>` : ''}<span class="fd-sav">${esc(c ? c.emoji : '👨‍👩‍👧')}</span><span class="fd-st">${esc((e.title || jDay(e.day)).slice(0, 28))}</span></button>`;
-    }).join('')}</div>` : '';
+        ${me.role === 'teacher' ? '' : `<div class="fd-acts"><button data-a="F2-media">📷 Ảnh/video</button><button data-a="F2-mood">😊 Cảm xúc/Hoạt động</button></div>`}</div>` : '';
     const chips = [['', 'Tất cả'], ['photo', 'Ảnh'], ['mile', 'Cột mốc'], ['teacher', 'Thầy cô']].map(([v2, t]) => `<button class="chip ${this.filter === v2 ? 'on' : ''}" data-a="F2-filter" data-v="${v2}">${t}</button>`).join('');
     // Kiểu game: bé đã làm được gì (Cột mốc, Thành tích) — cùng dữ liệu với bản đồ Hành trình và TV
     const wins = (this.list || []).filter((e) => e.kind === 'milestone' || e.kind === 'achievement').map((e) => {
@@ -88,11 +82,12 @@ const Feed = {
     const list = (this.list || []).map((e) => this.post(e));
     if (game) list.splice(Math.min(2, list.length), 0, game);
     const posts = list.join('');
-    return `${pageHead('')}<div id="up-banner"></div>${composer}${stories}<div class="chips strip fd-filter">${chips}</div>
+    return `${pageHead('')}<div id="up-banner"></div>${composer}<div class="chips strip fd-filter">${chips}</div>
       ${posts || `<div class="card"><div class="empty">${canWrite ? 'Bài đăng đầu tiên: một bức ảnh, một câu nói ngộ nghĩnh, hay việc bé tự làm được.' : 'Chưa có bài đăng nào được chia sẻ.'}</div></div>`}`;
   },
   post(e) {
     const k = kidOf(e.child_id), a = e.author || { name: 'Gia đình', role: null };
+    const canAssess = !S.restricted || (S.me && S.me.role === 'teacher');
     const kind = { checkin: '☀️ Ghi nhanh', note: '📝 Ghi chú', milestone: '🌟 Cột mốc', achievement: '🏆 Thành tích', feedback: '🧑‍🏫 Nhận xét', activity: '🎨 Hoạt động' }[e.kind] || '';
     const d = e.data || {};
     const moodI = { vui: '😄', 'bình thường': '🙂', mệt: '🥱', buồn: '😢', cáu: '😠' }[d.mood];
@@ -102,7 +97,7 @@ const Feed = {
     const ratio = one ? (one.w && one.h ? Math.max(0.56, Math.min(1.6, one.w / one.h)) : one.mime.startsWith('video/') ? 0.8 : 1) : 0;
     const grid = media.length ? `<div class="fd-media n${Math.min(media.length, 4)}"${one ? ` style="aspect-ratio:${ratio.toFixed(3)}"` : ''}>${media.slice(0, 4).map((m, i) => (m.mime.startsWith('image/')
       ? `<img src="${esc(mediaUrl(m.url))}" alt="" loading="${i || e !== this.list[0] ? 'lazy' : 'eager'}" decoding="async" data-a="F2-view" data-id="${e.id}" data-i="${i}">`
-      : `<div class="fd-vid" data-a="F2-play"><video data-src="${esc(mediaUrl(m.url))}#t=0.5" muted playsinline preload="metadata" loop></video><span class="fd-play big">▶</span><span class="fd-mute">🔇</span><button class="fd-full" data-a="F2-view" data-id="${e.id}" data-i="${i}" aria-label="Xem lớn, tải về">⤢</button></div>`)
+      : `<div class="fd-vid" data-a="F2-play">${vidTag(m, 'loop')}<span class="fd-play big">▶</span><span class="fd-mute">🔇</span><button class="fd-full" data-a="F2-view" data-id="${e.id}" data-i="${i}" aria-label="Xem lớn, tải về">⤢</button></div>`)
       + (i === 3 && media.length > 4 ? `<span class="fd-more" data-a="F2-view" data-id="${e.id}" data-i="3">+${media.length - 4}</span>` : '')).join('')}</div>` : '';
     const special = (e.kind === 'milestone' || e.kind === 'feedback' || e.kind === 'achievement') && !media.length
       ? `<div class="fd-mile"><span>${e.kind === 'feedback' ? '🎤' : e.kind === 'achievement' ? '🏆' : '🌟'}</span><div><b>${esc(e.title || kind)}</b>${e.body ? `<div>${esc(e.body)}</div>` : ''}</div></div>` : '';
@@ -113,18 +108,16 @@ const Feed = {
     const who = r.total ? `${icons} ${esc(r.names.slice(0, 2).join(', '))}${r.total > 2 ? ` và ${r.total - 2} người khác` : ''}` : '';
     const cm = e.comments || [], openAll = this.open.has(e.id);
     const shown = openAll ? cm : cm.slice(-2);
-    const canAssess = !S.restricted || (S.me && S.me.role === 'teacher');
     return `<article class="fd-post" data-id="${e.id}">
       <div class="fd-head"><span class="fd-av ${a.role || ''}">${ROLE_ICON[a.role] || '👤'}</span>
         <div class="fd-who"><b>${esc(a.name)}</b>${k ? ` cùng <b>${esc(k.emoji)} ${esc(k.name)}</b>` : ''}${a.role === 'teacher' ? ' · Giáo viên' : ''}${feelText(d) ? ` <span class="fd-feel">— ${feelText(d)}</span>` : ''}
           <div class="m">${this.when(e)} · ${{ family: '👨‍👩‍👧', parents: '🔒 Chỉ bố mẹ', sensitive: '⚠️ Nhạy cảm' }[e.privacy] || ''}</div></div>
-        ${e.mine || (!S.restricted) ? `<button class="icon-btn" data-a="F2-menu" data-id="${e.id}" aria-label="Tuỳ chọn">⋯</button>` : ''}</div>
+        ${e.mine || !S.restricted || (canAssess && e.child_id) ? `<button class="icon-btn" data-a="F2-menu" data-id="${e.id}" aria-label="Tuỳ chọn">⋯</button>` : ''}</div>
       ${text}${special}${grid}<div class="fd-up hidden" data-id="${e.id}"></div>
       ${who || cm.length ? `<div class="fd-sum"><span>${who}</span>${cm.length ? `<button data-a="F2-cm" data-id="${e.id}">${cm.length} bình luận</button>` : ''}</div>` : ''}
       <div class="fd-bar">
         <button class="fd-love ${r.mine ? 'on' : ''}" data-a="F2-love" data-id="${e.id}" aria-label="Thả cảm xúc (giữ để chọn)">${r.mine || '🤍'} ${r.mine ? ({ '❤️': 'Thương', '😂': 'Haha', '👏': 'Giỏi quá', '😮': 'Wow', '🥹': 'Xúc động' }[r.mine] || 'Đã thả') : 'Thương'}</button>
-        <button data-a="F2-cm" data-id="${e.id}">💬 Bình luận</button>
-        ${canAssess && e.child_id ? `<button data-a="F2-ass" data-id="${e.id}" data-k="${e.child_id}">🌟 Ghi năng lực</button>` : ''}</div>
+        <button data-a="F2-cm" data-id="${e.id}">💬 Bình luận</button></div>
       <div class="fd-pick hidden" id="pick-${e.id}">${this.REACTS.map((x) => `<button data-a="F2-react" data-id="${e.id}" data-v="${x}">${x}</button>`).join('')}</div>
       ${shown.length ? `<div class="fd-cms">${cm.length > shown.length ? `<button class="btn link" data-a="F2-cm" data-id="${e.id}">Xem cả ${cm.length} bình luận</button>` : ''}
         ${shown.map((c) => `<div class="fd-cm"><span class="fd-av sm">${ROLE_ICON[c.role] || '👤'}</span><div class="fd-bub"><b>${esc(c.name)}</b>${esc(c.body)}</div>
@@ -176,7 +169,10 @@ $('#view').addEventListener('click', async (e) => {
     }
     if (a === 'F2-ass') { V.child = b.dataset.k; return Learn.assessSheet(null, id); }
     if (a === 'F2-menu') {
-      sheet(`<h3>Bài đăng</h3><button class="choice" data-a="m-edit">✎ Sửa bài</button><button class="choice" data-a="m-del" style="color:var(--danger)">🗑 Xoá bài (kèm ảnh)</button>`, async (x) => {
+      // Việc ít dùng gom vào ⋯ cho thanh dưới bài chỉ còn Thương + Bình luận
+      const own = entry.mine || !S.restricted, ass = (!S.restricted || (S.me && S.me.role === 'teacher')) && entry.child_id;
+      sheet(`<h3>Bài đăng</h3>${ass ? '<button class="choice" data-a="m-ass">🌟 Ghi năng lực từ bài này</button>' : ''}${own ? `<button class="choice" data-a="m-edit">✎ Sửa bài</button><button class="choice" data-a="m-del" style="color:var(--danger)">🗑 Xoá bài (kèm ảnh)</button>` : ''}`, async (x) => {
+        if (x === 'm-ass') { closeSheet(); V.child = entry.child_id; return Learn.assessSheet(null, id); }
         if (x === 'm-edit') return entrySheet(entry);
         if (x === 'm-del') { if (!confirm('Xoá bài đăng này?')) return; try { await rpc('ct_journal_delete', { p_id: id }); closeSheet(); Feed.refresh(); } catch (err) { toast(err.message, true); } }
       });
@@ -189,12 +185,27 @@ const feedSeen = 'IntersectionObserver' in window ? new IntersectionObserver((en
   if (!tile) return;
   if (en.isIntersecting && en.intersectionRatio >= 0.6) {
     if (tile.classList.contains('on')) return;   // người xem đã bật tiếng / tự điều khiển
+    if (v.getAttribute('poster')) return;         // đã có ảnh bìa: không tự phát (video gốc 4K nặng), bấm ▶ mới tải
     if (document.querySelector('.fd-vid.on video:not([paused])') && [...document.querySelectorAll('.fd-vid.on video')].some((x) => !x.paused)) return;
     v.muted = true; tile.classList.add('live');
     const p = v.play(); if (p && p.catch) p.catch(() => tile.classList.remove('live'));
   } else { v.pause(); if (!tile.classList.contains('on')) tile.classList.remove('live'); }
 }), { threshold: [0, 0.6] }) : null;
 // Video chỉ bắt đầu tải khi sắp cuộn tới (cách ~1 màn hình): mở bảng tin không phải tải hết mọi video cùng lúc
+// Thẻ video trong bảng tin: có ảnh bìa thì hiện ảnh, chỉ tải video khi bấm ▶; chưa có thì tải khung đầu (máy này chụp lại làm ảnh bìa)
+function vidTag(m, extra = '') {
+  return m.poster
+    ? `<video data-src="${esc(mediaUrl(m.url))}" poster="${esc(mediaUrl(m.poster))}" muted playsinline preload="none" ${extra}></video>`
+    : `<video data-src="${esc(mediaUrl(m.url))}#t=0.5" data-mid="${esc(m.id)}" crossorigin="anonymous" muted playsinline preload="metadata" ${extra}></video>`;
+}
+// Video cũ chưa có ảnh bìa: máy nào xem được khung hình đầu thì chụp gửi lên một lần, lần sau cả nhà thấy ảnh bìa ngay
+const posterSent = new Set();
+$('#view').addEventListener('loadeddata', (e) => {
+  const v = e.target, id = v.dataset && v.dataset.mid;
+  if (!id || posterSent.has(id) || S.restricted || typeof posterOf !== 'function') return;
+  posterSent.add(id);
+  setTimeout(() => posterOf(v).then((b) => b && sendPoster(id, b).catch(() => {})), 300);
+}, true);
 const feedNear = 'IntersectionObserver' in window ? new IntersectionObserver((ents) => ents.forEach((en) => {
   if (!en.isIntersecting) return;
   const v = en.target; feedNear.unobserve(v);

@@ -114,19 +114,38 @@ function previewFiles(input, box) {
   if (!box) return;
   box.innerHTML = [...input.files].slice(0, 12).map((f) => f.type.startsWith('image/') ? `<img src="${URL.createObjectURL(f)}" alt="">` : `<span class="pt-vid">🎬 ${esc(f.name.slice(0, 18))}</span>`).join('');
 }
+// Kích thước + ảnh bìa (khung hình ở giây 0,5, cạnh dài 720px) của video vừa chọn: bảng tin hiện ảnh bìa ngay, chỉ tải video khi bấm ▶
 function videoSize(file) {
   return new Promise((done) => {
     const v = document.createElement('video'), u = URL.createObjectURL(file);
-    const end = (w, h) => { clearTimeout(t); URL.revokeObjectURL(u); done({ w, h }); };
-    const t = setTimeout(() => end(null, null), 4000);
-    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
-    v.onloadedmetadata = () => end(v.videoWidth || null, v.videoHeight || null);
-    v.onerror = () => end(null, null);
+    let w = null, h = null;
+    const end = (poster) => { clearTimeout(t); URL.revokeObjectURL(u); done({ w, h, poster: poster || null }); };
+    const t = setTimeout(() => end(null), 6000);
+    v.preload = 'auto'; v.muted = true; v.playsInline = true;
+    v.onloadedmetadata = () => { w = v.videoWidth || null; h = v.videoHeight || null; try { v.currentTime = Math.min(0.5, (v.duration || 1) / 2); } catch (e) { end(null); } };
+    v.onseeked = () => posterOf(v).then(end, () => end(null));
+    v.onerror = () => end(null);
     v.src = u;
   });
 }
+// Chụp khung hình đang hiện của thẻ <video> thành JPEG nhỏ (null nếu không chụp được)
+function posterOf(v) {
+  return new Promise((ok) => {
+    try {
+      if (!v.videoWidth) return ok(null);
+      const k = Math.min(1, 720 / Math.max(v.videoWidth, v.videoHeight)), c = document.createElement('canvas');
+      c.width = Math.round(v.videoWidth * k); c.height = Math.round(v.videoHeight * k);
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob((b) => ok(b && b.size > 2000 && b.size < 400 * 1024 ? b : null), 'image/jpeg', 0.72);
+    } catch (e) { ok(null); }   // video khác nguồn chưa cho đọc: bỏ qua
+  });
+}
+const posterFor = new WeakMap();   // tệp video → ảnh bìa đã chụp
+function sendPoster(id, blob, tok) {
+  return upFetch('/media/v1/poster?id=' + id, { method: 'POST', headers: { Authorization: 'Bearer ' + (tok || UpQ.tok()), 'Content-Type': 'image/jpeg' }, body: blob }, 2);
+}
 async function shrink(file) {
-  if ((file.type || mimeOf(file)).startsWith('video/')) { const d = await videoSize(file); return { blob: file, type: file.type || mimeOf(file), w: d.w, h: d.h }; }
+  if ((file.type || mimeOf(file)).startsWith('video/')) { const d = await videoSize(file); return { blob: file, type: file.type || mimeOf(file), w: d.w, h: d.h, poster: d.poster }; }
   if (!file.type.startsWith('image/') || file.type === 'image/gif') return { blob: file, type: file.type, w: null, h: null };
   try {
     const bmp = await createImageBitmap(file);
@@ -181,9 +200,16 @@ function upXhr(path, opt, onProg, tries = 3) {
 // Không có: tệp nhỏ gửi một lần qua Worker, video lớn gửi 5 phần 8 MB cùng lúc qua Worker.
 let upDirect = null;   // null = chưa biết máy chủ có link thẳng không
 async function sendFile(entryId, f, tok, pct) {
+  const r = await sendFile0(entryId, f, tok, pct);
+  const pst = posterFor.get(f);
+  if (r && r.id && pst) await sendPoster(r.id, pst, tok).catch(() => {});   // thiếu ảnh bìa: video vẫn dùng được
+  return r;
+}
+async function sendFile0(entryId, f, tok, pct) {
   const H = { Authorization: 'Bearer ' + tok };
   const q = String(entryId).includes('=') ? String(entryId) : 'entry=' + entryId, msg = q.startsWith('msg=') ? q.slice(4) : null;
   const s = await shrink(f), type = s.type || mimeOf(f), size = s.blob.size;
+  if (s.poster) posterFor.set(f, s.poster);
   pct(0);
   if (size <= BIG && upDirect === false) {
     const r = await upXhr(`/media/v1/upload?${q}${s.w ? `&w=${s.w}&h=${s.h}` : ''}`, { method: 'POST', headers: { ...H, 'Content-Type': type }, body: s.blob }, (n) => pct(n / size), 2);

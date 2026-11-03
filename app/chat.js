@@ -47,7 +47,7 @@ const Chat = {
         <span class="ch-mid"><b>${esc(c.name)}</b><em>${c.last ? esc((c.last.mine ? 'Bạn: ' : c.kind !== 'direct' && c.last.by ? c.last.by + ': ' : '') + c.last.text) : c.kind === 'family' ? 'Nhóm của cả nhà · ' + c.members.length + ' người' : 'Chưa có tin nhắn'}</em></span>
         <span class="ch-end"><i>${c.last ? this.ago(c.last.at) : ''}</i>${c.unread ? `<b>${c.unread > 99 ? '99+' : c.unread}</b>` : ''}</span></button>`).join('');
     $('#chat').innerHTML = `<div class="ch-top"><button class="ch-back" data-a="C-close" aria-label="Đóng">‹</button><h2>Tin nhắn</h2>
-      <button class="icon-btn" data-a="C-find" aria-label="Tìm người">🔍</button><button class="icon-btn" data-a="C-new" aria-label="Tạo nhóm">👥＋</button></div>
+      <button class="icon-btn" data-a="C-new" aria-label="Tạo nhóm">👥＋</button></div>
       <button class="ch-search" data-a="C-find">🔍 Tìm người theo email để nhắn tin</button><div class="ch-list">${rows}</div>`;
   },
 
@@ -104,7 +104,7 @@ const Chat = {
     const ratio = one && one.w && one.h ? Math.max(0.6, Math.min(1.6, one.w / one.h)).toFixed(3) : '';
     const grid = md.length ? `<div class="ch-media n${Math.min(md.length, 4)}"${ratio ? ` style="aspect-ratio:${ratio}"` : ''}>${md.slice(0, 4).map((x, i) => (x.mime.startsWith('image/')
       ? `<img src="${esc(mediaUrl(x.url))}" alt="" decoding="async" data-a="P-img" data-src="${esc(mediaUrl(x.url))}" data-cap="${esc(m.body || '')}">`
-      : `<div class="fd-vid" data-a="C-play"><video src="${esc(mediaUrl(x.url))}#t=0.5" muted playsinline preload="metadata"></video><span class="fd-play big">▶</span></div>`)
+      : `<div class="fd-vid" data-a="C-play"><video src="${esc(mediaUrl(x.url))}${x.poster ? '' : '#t=0.5'}"${x.poster ? ` poster="${esc(mediaUrl(x.poster))}" preload="none"` : ' preload="metadata"'} muted playsinline></video><span class="fd-play big">▶</span></div>`)
       + (i === 3 && md.length > 4 ? `<span class="fd-more">+${md.length - 4}</span>` : '')).join('')}${!m.body && !m.pending ? this.heart(m) : ''}</div>` : '';
     const pending = m.pending ? `<div class="ch-up">${esc(m.pending)}</div>` : '';
     const pin = md.length && !m.pending ? (m.entry_id ? '<div class="ch-pinned">✓ Đã đưa vào Nhật ký</div>'
