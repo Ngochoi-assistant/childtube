@@ -617,3 +617,4 @@ input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .ev-date > div { min-width: 0; }
 .ev-date select, .ev-date input { width: 100%; min-width: 0; }
 #ev-prev { margin: 6px 0 4px; }
+.item.off { opacity: .55; }

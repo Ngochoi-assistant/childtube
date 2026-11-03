@@ -53,6 +53,7 @@ async function load() {
   try { localStorage.setItem('ct-state', JSON.stringify({ uid, S: fresh })); } catch (e) { /* bỏ qua */ }
   if (j !== old) showState(); else updateBadge();
   offerPair();
+  if (typeof Remind !== 'undefined') Remind.pending();   // mở từ thông báo nhắc (remind.js)
 }
 function showState() {
   $('#fam-name').textContent = S.family.name;

@@ -1,6 +1,6 @@
 // Service worker tối giản: cho phép cài app ra màn hình chính và mở nhanh khi mạng chậm.
-const CACHE = 'childtube-v51';
-const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'wizard.js', 'library.js', 'library.css', 'ai-chat.js', 'family.js', 'portal.js', 'v2.css', 'charts.js', 'shell.js', 'today.js', 'learn.js', 'upload.js', 'feeling.js', 'feed.js', 'journey.js', 'familyhub.js', 'chat.js', 'watch.js', 'lunar.js', 'events.js', '../config.js', '../ct-client.js', 'icon-192.png', 'logo.svg'];
+const CACHE = 'childtube-v52';
+const SHELL = ['./', 'index.html', 'app.css', 'app.js', 'wizard.js', 'library.js', 'library.css', 'ai-chat.js', 'family.js', 'portal.js', 'v2.css', 'charts.js', 'shell.js', 'today.js', 'learn.js', 'upload.js', 'feeling.js', 'feed.js', 'journey.js', 'familyhub.js', 'chat.js', 'watch.js', 'lunar.js', 'events.js', 'remind.js', '../config.js', '../ct-client.js', 'icon-192.png', 'logo.svg'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -19,4 +19,21 @@ self.addEventListener('fetch', (e) => {
     if (hit) { e.waitUntil(net.catch(() => {})); return hit; }
     return net.catch(() => (e.request.mode === 'navigate' ? c.match('index.html') : Response.error()));
   })));
+});
+
+// Thông báo nhắc từ máy chủ (remind.ts): hiện ngay, kể cả khi app đang đóng
+self.addEventListener('push', (e) => {
+  let m = {};
+  try { m = e.data ? e.data.json() : {}; } catch (err) { m = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(m.title || 'ChildTube', { body: m.body || '', tag: m.tag, icon: 'icon-192.png', badge: 'icon-192.png', data: { url: m.url || './' } }));
+});
+// Bấm thông báo: app đang mở thì chuyển tới đó và mở khung ghi; chưa mở thì mở app
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope);
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    const c = list.find((x) => x.url.startsWith(self.registration.scope));
+    if (c) { c.postMessage({ go: url.search }); return c.focus(); }
+    return self.clients.openWindow(url.href);
+  }));
 });
